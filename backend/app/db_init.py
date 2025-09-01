@@ -1,6 +1,6 @@
 from app import launch
 from app.extensions import db
-from app.schemas import User
+from app.schemas import Users, Info
 
 def create_table():
     app = launch()

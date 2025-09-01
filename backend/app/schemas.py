@@ -2,13 +2,16 @@ from app.extensions import db
 from sqlalchemy.orm import validates
 import re
 
-class User(db.Model):
-    __tablename__ = 'user'
+class Users(db.Model):
+    __tablename__ = 'users'
     id = db.Column(db.Integer, primary_key = True)
-    username = db.Column(db.String, nullable = False)
+    username = db.Column(db.String, unique = True, nullable = False)
     password = db.Column(db.String, nullable = False)
+    email = db.Column(db.String, unique = True, nullable = False)
+    role = db.Column(db.String, default = 'guest')
     status = db.Column(db.Boolean, default = True)
-    info = db.relationship('Info', back_populates = 'user', lazy = True)
+    is_finalize = db.Column(db.Boolean, default = False)
+    info = db.relationship('Info', back_populates = 'users', lazy = True)
     validates('username')
     def username_validates(self, key, value):
         if not re.fullmatch(r'\d[a-z_]{8,}', value):
@@ -24,12 +27,12 @@ class User(db.Model):
 class Info(db.Model):
     __tablename__ = 'info'
     id = db.Column(db.Integer, primary_key = True)
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), delete_on = 'CASCADE')
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id', ondelete = 'CASCADE'))
     name = db.Column(db.String, nullable = False)
     tel = db.Column(db.String, default = 'Update later')
     add = db.Column(db.String, default = 'Update later')
     class_room = db.Column(db.String, default = 'Update later')
-    user = db.relationship('User', back_populates = 'info', lazy = True)
+    users = db.relationship('Users', back_populates = 'info', lazy = True)
 
     validates('name')
     def name_validates(self, key, value):
