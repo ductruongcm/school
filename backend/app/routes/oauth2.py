@@ -38,9 +38,10 @@ def callback():
         "Authorization": f"Bearer {GG_access_token}"
     })
     user_info = user_res.json()
-    access_token = auth_utils.token_by_GG(user_info)
+    access_token, refresh_token = auth_utils.token_by_GG(user_info)
 
-    response = make_response(redirect('http://localhost:5173/callback'))
+    response = make_response(redirect('http://localhost:5173/dashboard'))
     set_access_cookies(response, access_token)
+    set_refresh_cookies(response, refresh_token)
     return response
     
