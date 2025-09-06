@@ -2,7 +2,8 @@ from flask import Blueprint, jsonify, request, make_response, redirect
 from dotenv import load_dotenv
 from os import getenv
 import requests
-from app.utils import auth_utils
+from app.routes.oauth2 import oauth2_utils
+
 from flask_jwt_extended import set_access_cookies, set_refresh_cookies
 
 load_dotenv()
@@ -38,7 +39,7 @@ def callback():
         "Authorization": f"Bearer {GG_access_token}"
     })
     user_info = user_res.json()
-    access_token, refresh_token = auth_utils.token_by_GG(user_info)
+    access_token, refresh_token = oauth2_utils.token_by_GG(user_info)
 
     response = make_response(redirect('http://localhost:5173/dashboard'))
     set_access_cookies(response, access_token)
