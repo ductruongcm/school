@@ -1,5 +1,5 @@
 from flask import Flask
-from app.extensions import db, lm, jwt, cors, mail
+from app.extensions import db, lm, jwt, cors, mail, migrate
 from configs import Configs
 from app.routes import routes
 
@@ -10,9 +10,8 @@ def launch():
     lm.init_app(app)
     jwt.init_app(app)
     mail.init_app(app)
+    migrate.init_app(app, db)
     cors.init_app(app, origins = ['http://localhost:5173'],
-                   methods = ['GET', 'POST', 'PUT', 'DELETE'],
-                   allow_headers = ['Content-Type'], 
                    supports_credentials = True)
     for route in routes: 
         app.register_blueprint(route)

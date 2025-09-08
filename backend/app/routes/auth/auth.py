@@ -4,7 +4,7 @@ from datetime import timedelta
 from app.extensions import lm, util
 from app.utils import utils
 from werkzeug.security import generate_password_hash
-from app.routes.auth import db_auth_utils
+from app.db_utils import db_auth_utils
 
 
 auth_bp = Blueprint('auth_bp', __name__, url_prefix = '/api/auth')

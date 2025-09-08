@@ -1,46 +1,71 @@
 import re
-from app.routes.user.user_schemas import Users
+from app.schemas import Users, Class_room, Year
 from werkzeug.security import check_password_hash
 
-def username_validates(username):
+def username_validates(username = None):
     errors = []
     user = Users.query.filter_by(username = username).first()
-    if user:
-        errors.append('Username đã có người dùng, vui lòng đổi username khác')
-    if len(username) < 8:
-        errors.append('Username phải có ít nhất 8 ký tự')
-    if not re.fullmatch(r'[a-z0-9_]{8,}', username):
-        errors.append('Username không được chứa ký tự đặc biệt')
+    if username:
+        if user:
+            errors.append('Username đã có người dùng, vui lòng đổi username khác')
+        if len(username) < 8:
+            errors.append('Username phải có ít nhất 8 ký tự')
+        if not re.fullmatch(r'[a-z0-9_]{8,}', username):
+            errors.append('Username không được chứa ký tự đặc biệt')
     return errors
 
-def password_validates(password, repassword):
+def password_validates(password = None,
+                       repassword = None):
     errors = []
-    if password != repassword:
-        errors.append('Xác nhận mật khẩu không chính xác')
-    if len(password) < 8:
-        errors.append('Password phải có ít nhất 8 ký tự')
-    if not re.fullmatch(r'(?=.*\d)(?=.*[A-Z])(?=.*[!@#$%^&*<>,.;:-_=]).*', password):
-        errors.append('Password phải chứa 1 ký tự đặc biệt, 1 số và 1 chữ in hoa')
+    if password:
+        if password != repassword:
+            errors.append('Xác nhận mật khẩu không chính xác')
+        if len(password) < 8:
+            errors.append('Password phải có ít nhất 8 ký tự')
+        if not re.fullmatch(r'(?=.*\d)(?=.*[A-Z])(?=.*[!@#$%^&*<>,.;:-_=]).*', password):
+            errors.append('Password phải chứa 1 ký tự đặc biệt, 1 số và 1 chữ in hoa')
     return errors
 
-def name_validates(name):
+def name_validates(name = None):
     errors = []
-    if not re.fullmatch(r'[A-Za-zÀ-ỹ\s]+', name):              
-        errors.append('Tên không được chứa số và ký tự đặc biệt')
+    if name:
+        if name == None:
+            errors.append('Chưa nhập tên!')
+        if not re.fullmatch(r'[A-Za-zÀ-ỹ\s]+', name):              
+            errors.append('Tên không được chứa số và ký tự đặc biệt')
     return errors
 
-def email_validates(email):
+def class_validates(current_class_room, current_year):
     errors = []
-    if re.search(r'[!#$%^&*-=,.<>]', email):
-        errors.append('Email không hợp lệ')
-    if Users.query.filter_by(email = email).first():
-        errors.append('Email này đã được sử dụng, hãy vào quên mật khẩu để lấy lại mật khẩu')
+    year = Year.query.filter(Year.year == current_year).first()
+    class_room = Class_room.query.filter(Class_room.class_room == current_class_room, year.id == Class_room.year_id).first()
+    if not year:
+        errors.append('Niên khóa không đúng!')
+    if not class_room:
+        errors.append('Thông tin lớp học không đúng!!')
+    return errors
+    
+def email_validates(email = None):
+    errors = []
+    if email:
+        if re.search(r'[-!#$%^&*=,<>]+', email):
+            errors.append('Email không hợp lệ!')
+        if Users.query.filter_by(email = email).first():
+            errors.append('Email này đã được sử dụng, hãy vào quên mật khẩu để lấy lại mật khẩu')
     return errors
 
-def add_validates(add):
+def tel_validates(tel = None):
     errors = []
-    if re.search('[!@#$%^&*(_+=,.<>?)]', add):
-        errors.append('Địa chỉ không được chứa ký tự đặc biệt!')
+    if tel:
+        if not re.fullmatch(r'\d{10}', tel):
+            errors.append('Số điện thoại chỉ được chứa 10 số!')
+    return errors
+
+def add_validates(add = None):
+    errors = []
+    if add:
+        if re.search('[!@#$%^&*(_+=,.<>?)]', add):
+            errors.append('Địa chỉ không được chứa ký tự đặc biệt!')
     return errors
 
 def errors(username = None, password = None, repassword = None, name = None, email = None, add = None):
