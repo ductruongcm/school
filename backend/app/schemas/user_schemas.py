@@ -35,6 +35,7 @@ class Info(db.Model):
     add = db.Column(db.String, default = 'Update later')
     users = db.relationship('Users', back_populates = 'info', lazy = True)
     class_room = db.relationship('Class_room', back_populates = 'info', lazy = True)
+    students = db.relationship('Students', back_populates = 'info', lazy = True)
 
     @validates('name')
     def name_validates(self, key, value):

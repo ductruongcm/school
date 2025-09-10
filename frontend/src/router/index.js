@@ -12,7 +12,8 @@ import ContentToolStudent from '../components/Content-toolStudent.vue'
 import ContentToolTeacher from '../components/Content-toolTeacher.vue'
 import Sidebar from '../components/Sidebar.vue'
 import MainContent from '../components/MainContent.vue'
-import { useUserStore } from '../stores/user'
+import  useUserStore  from '../stores/user'
+import axios from '../stores/axios'
 
 const routes = [
     {path: '/', component: Login},
@@ -40,17 +41,10 @@ router.beforeEach(async (to, form, next) => {
     const userStore = useUserStore()
     const authRequired = !publicPages.includes(to.path)
 
-    if (authRequired && !userStore.info) {
-        await userStore.fetchUser()
-
-        if (!userStore.info) {
+    if (authRequired && !userStore.userInfo) {
             return next('/')
-        }
     }
     next()
 })
-
-
-
 
 export default router

@@ -26,22 +26,20 @@ import { shallowRef } from 'vue';
 import axios from 'axios';
 import {useRouter} from 'vue-router';
 import { ref, onMounted } from 'vue';
-import { useUserStore } from '../stores/user';
+import  useUserStore  from '../stores/user';
 
 const username = ref('')
 const role = ref('')
+const userStore = useUserStore()
 
 onMounted( async () => {
-    const userStore = useUserStore()
-    if (!userStore.info) {
-        await userStore.fetchUser()
-    }
-    username.value = userStore.info.username
-    role.value = userStore.info.role
+    username.value = userStore.userInfo.username
+    role.value = userStore.userInfo.role
 })
 
 const logout = async () => {
     axios.get('api/auth/logout', {withCredentials: true})
+    userStore.clearUser()
     window.location.href = '/'
 } 
 
@@ -77,13 +75,13 @@ function switchComponent(name) {
 
 .mainContent {
     position: relative;
-    left: 500px;
-    top: 100px;
+    left: 45em;
+    top: 4em;
 }
 .sidebar {
     position: relative;
-    left: 30px;
-    top: 50px
+    left: 2em;
+    top: 4em
 }
 .logout {
     cursor: pointer;

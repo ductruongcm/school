@@ -1,25 +1,64 @@
 <template>
     <div>Quản lý giáo viên</div>
-    <form>
-        <div> Thêm giáo viên </div>
+    <div> Thêm giáo viên </div>
+    <form @submit.prevent="addTeacher">
         <label>Họ và tên</label> <br>
-        <input type="text"> <br>
+        <input type="text" v-model="name" required> <br>
         <label>Chuyên môn</label> <br>
-        <input type="text"> <br>
+        <input type="text" v-model="lesson" required> <br>
         <label>Phụ trách lớp</label> <br>
-        <input type="text"> <br>
+        <input type="text" v-model="classRoom" required> <br>
         <label>Số điện thoại</label> <br>
-        <input type="text"> <br>
+        <input type="text" v-model="tel" required> <br>
         <label>Địa chỉ</label> <br>
-        <input type="text"> <br>
+        <input type="text" v-model="add" required> <br>
         <label>Email</label> <br>
-        <input type="text"> <br>
+        <input type="text" v-model="email" required> <br>
         <label>Role</label> <br>
-        <input type="text"> <br>
-        <button type="submit">Đăng ký</button>
+        <input type="text" v-model="role" placeholder="teacher" default="teacher"> <br>
+        <button>Đăng ký</button>
     </form>
+    <div>{{ teacherMsg }}</div>
 </template>
 <script setup>
+import { ref, inject } from 'vue';
+import axios from 'axios';
+
+const name = ref('')
+const lesson = ref('')
+const classRoom = ref('')
+const tel = ref('')
+const add = ref('')
+const email = ref('')
+const role = ref('')
+const teacherMsg = ref('')
+const year = inject('year')
+
+async function addTeacher() {
+    const payload = {
+        name: name.value,
+        lesson: lesson.value,
+        classRoom: classRoom.value,
+        tel: tel.value,
+        add: add.value,
+        email: email.value,
+        role: role.value,
+        year: year.value
+    }
+    try {
+        const res = await axios.post('api/teacher/add_teacher', payload, {
+            withCredentials: true,
+            headers: {'Content-Type': 'application/json'}
+        })
+        teacherMsg.value = 'Thêm giáo viên thành công!'
+    } catch (e) {
+        if (e.response && e.response.status === 400) {
+            teacherMsg.value = e.response.data.msg
+        } else {
+        teacherMsg.value = 'Có vấn đề gì rồi!!!'
+        }
+    }
+}
 
 
 </script>

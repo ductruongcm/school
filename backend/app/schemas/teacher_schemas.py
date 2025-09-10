@@ -5,10 +5,13 @@ import re
 class Teachers(db.Model):
     __tablename__ = 'teachers'
     id = db.Column(db.Integer, primary_key = True)
+    lesson_id = db.Column(db.Integer, db.ForeignKey('lesson.id', ondelete = 'CASCADE'))
+    class_room_id = db.Column(db.Integer, db.ForeignKey('class_room.id', ondelete = 'CASCADE'))
     name = db.Column(db.String, nullable = False)
-    class_room = db.Column(db.String, default = 'update later')
     status = db.Column(db.Boolean, default = True)
-    info_teacher = db.relationship('Info_teacher', back_populates = 'teachers', lazy = True)
+    info_teacher = db.relationship('Infos_teacher', back_populates = 'teachers', lazy = True)
+    lesson = db.relationship('Lesson', back_populates = 'teachers', lazy = True)
+    class_room = db.relationship('Class_room', back_populates = 'teachers', lazy = True)
     @validates('name')
     def name_validates(self, key, value):
         if not re.fullmatch(r'[a_zA-ZÀ-ỹ\s]+', value):
@@ -40,3 +43,10 @@ class Infos_teacher(db.Model):
         if re.search('[!#$%^&*-+=(),;:]', value):
             return ValueError('Email không hợp lệ!!')
         return value
+
+class Lesson(db.Model):
+    __tablename__ = 'lesson'
+    id = db.Column(db.Integer, primary_key = True)
+    lesson = db.Column(db.String(15), nullable = False)
+    mark = db.relationship('Mark', back_populates = 'lesson', lazy = True)
+    teachers = db.relationship('Teachers', back_populates = 'lesson', lazy = True)    

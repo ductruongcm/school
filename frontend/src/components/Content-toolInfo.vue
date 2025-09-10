@@ -44,18 +44,18 @@
 </template>
 <script setup>
 import { ref } from 'vue';
-import { useUserStore } from '../stores/user';
+import  useUserStore  from '../stores/user';
 import axios from 'axios';
 
 
 const userStore = useUserStore() 
-const name = ref(`name: ${userStore.info.name}`)
-const username = ref(`username: ${userStore.info.username}`)
-const role = ref(`role: ${userStore.info.role}`)
-const email = ref(`email: ${userStore.info.email}`)
-const classRoom = ref(`Lớp: ${userStore.info.class_room}`)
-const tel = ref(`Số điện thoại: ${userStore.info.tel}`)
-const add = ref(`Địa chỉ: ${userStore.info.add}`)
+const name = ref(`name: ${userStore.userInfo.name}`)
+const username = ref(`username: ${userStore.userInfo.username}`)
+const role = ref(`role: ${userStore.userInfo.role}`)
+const email = ref(`email: ${userStore.userInfo.email}`)
+const classRoom = ref(`Lớp: ${userStore.userInfo.class_room}`)
+const tel = ref(`Số điện thoại: ${userStore.userInfo.tel}`)
+const add = ref(`Địa chỉ: ${userStore.userInfo.add}`)
 
 const password = ref('')
 const re_password = ref('')
@@ -76,6 +76,8 @@ async function updatePassword() {
     } catch (err) {
         if (err.response && err.response.status === 400) {
             updatePasswordMsg.value = err.response.data.msg
+        } else {        
+            updatePasswordMsg.value = 'Có vấn đề rồi!!'
         }
     }
 }

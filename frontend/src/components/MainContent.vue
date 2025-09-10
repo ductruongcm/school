@@ -1,5 +1,7 @@
 <template>
-    <component :is="activeComponent" />
+    <main>
+        <component :is="activeComponent" />
+    </main>
 </template>
 
 <script setup>

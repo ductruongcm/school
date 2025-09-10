@@ -22,13 +22,14 @@ import axios from 'axios';
 import { useRouter } from 'vue-router';
 import { ref } from 'vue';
 import { message } from '../stores/usePopup';
-import { useUserStore } from '../stores/user';
+import useUserStore from '../stores/user';
 
 const username = ref('')
 const password = ref('')
 let loginMsg = ref('')
 
 const router = useRouter()
+const userStore = useUserStore()
 
 async function login() {
     const payload = {
@@ -36,11 +37,11 @@ async function login() {
         password: password.value
     }
     try {
-        await axios.post('/api/auth/login', payload, {
+        const res = await axios.put('/api/auth/login', payload, {
             headers: {"Content-Type": "application/json"}
         })
-        const userStore = useUserStore()
-        await userStore.fetchUser()
+        userStore.setUserInfo(res.data)
+        userStore.tokenExpiresAt = res.data.expired_at
         router.push('/dashboard')
     } catch (error) {
         if (error.response && error.response.status === 400) {

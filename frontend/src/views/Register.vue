@@ -46,7 +46,7 @@ const handleSubmit = async () => {
         })
         router.push('/')
     } catch (error) {
-        if (error.response && error.response.data) {
+        if (error.response && error.response.status === 400) {
             message.value = error.response.data.msg
         } else {
             message.value = 'có lỗi xảy ra!!'

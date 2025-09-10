@@ -18,3 +18,4 @@ class Class_room(db.Model):
     students = db.relationship('Students', back_populates = 'class_room', lazy = True)
     cloud = db.relationship('Cloud', back_populates = 'class_room', lazy = True)
     info = db.relationship("Info", back_populates = 'class_room', lazy = True)
+    teachers = db.relationship('Teachers', back_populates = 'class_room', lazy = True)

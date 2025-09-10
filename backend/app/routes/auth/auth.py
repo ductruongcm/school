@@ -28,7 +28,7 @@ def register():
 
     return jsonify({'msg': "Đăng ký thành công"}),200
 
-@auth_bp.post('/login')
+@auth_bp.put('/login')
 @lm.limit("5 per minute", key_func = util.get_remote_address)
 def login():
     data = request.get_json()
@@ -42,26 +42,18 @@ def login():
     role = db_auth_utils.role(username)
     access_token = create_access_token(identity = username, expires_delta = timedelta(minutes = 15), additional_claims = {'role': role})
     refresh_token = create_refresh_token(identity = username, expires_delta = timedelta(hours = 10), additional_claims = {'role': role})
-    response = make_response('ok')
-    set_access_cookies(response, access_token)
-    set_refresh_cookies(response, refresh_token)
-    return response, 200
-
-
-@auth_bp.get('/user_info')
-@lm.limit("5 per minute", key_func = util.get_remote_address)
-@jwt_required()
-def user_info():
-    username = get_jwt_identity()
-    role = get_jwt().get('role') 
     name, email, tel, add, class_room = db_auth_utils.info(username)
-    return jsonify({'username': username,
+    response = make_response(jsonify({'username': username,
                     'role': role,
                     'name': name,
                     'email': email,
                     'tel': tel,
                     'add': add,
-                    'class_room': class_room}), 200
+                    'class_room': class_room,
+                    'expired_at': 70000}))
+    set_access_cookies(response, access_token)
+    set_refresh_cookies(response, refresh_token)
+    return response, 200
 
 @auth_bp.get('/refresh_token')
 @jwt_required(refresh = True)
@@ -75,7 +67,15 @@ def refresh_token():
     access_token = create_access_token(identity = username, 
                                        expires_delta = timedelta(minutes = 15),
                                        additional_claims = {'role': role})
-    response = jsonify({'username': username, 'role': role})
+    name, email, tel, add, class_room = db_auth_utils.info(username)
+    response = make_response(jsonify({'username': username,
+                    'role': role,
+                    'name': name,
+                    'email': email,
+                    'tel': tel,
+                    'add': add,
+                    'class_room': class_room,
+                    'expired_at': 70000}))
     set_access_cookies(response, access_token)
     return response, 200
 
