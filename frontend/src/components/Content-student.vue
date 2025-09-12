@@ -1,6 +1,6 @@
 <template>
     <div>Danh sách học sinh</div>
-    <div>
+    <div class="main">
         <form>
             <label>Chọn lớp  </label>
             <select v-model="selectedClass">
@@ -22,9 +22,23 @@
                 <tbody>
                     <tr v-for="(item, index) in student" :key="item">
                         <td>{{ index + 1 }}</td>
-                        <td>{{ item.name }}</td>
-                        <td>{{ item.tel }}</td>
-                        <td>{{ item.add }}</td>
+                        <td>
+                            <span v-if="!item.editing">{{ item.name }}</span>
+                            <input v-else v-model="item.name" @keyup.enter="saveEdit(item)" style="width: 10em;" type="text">
+                        </td>
+                        <td>
+                            <span v-if="!item.editing">{{ item.tel }}</span>
+                            <input v-else v-model="item.tel" @keyup.enter="saveEdit(item)" style="width: 7em;"  type="text">
+                        </td>
+                        <td>
+                            <span v-if="!item.editing">{{ item.add }}</span>
+                            <input v-else v-model="item.add" @keyup.enter="saveEdit(item)" type="text">
+                        </td>
+                        <td>
+                            <button v-if="!item.editing" @click="editRow(item)">Sửa thông tin</button>
+                            <button v-else @click="saveEdit(item)">Lưu</button>
+                            <button v-if="item.editing" @click="cancelEdit(item)">Hủy</button>
+                        </td>
                     </tr>
                 </tbody>
             </table>
@@ -56,7 +70,7 @@ watch(selectedClass, async (newVal) => {
         const res = await axios.get(`api/student/show_student?class_room=${newVal}`, { 
             withCredentials: true, 
         })
-        student.value = res.data.data
+        student.value = res.data.data.map(s => ({...s, editing: false}))
     } catch (err) {
         if (err.response && err.response.status === 403) {
             msg.value = 'Forbidden: Access denied'
@@ -65,4 +79,36 @@ watch(selectedClass, async (newVal) => {
         }
     }
 })
+
+function editRow(item) {
+    item.original = {...item}
+    item.editing = true
+}
+
+function cancelEdit(item) {
+    Object.assign(item, item.original)
+    item.editing = false
+}
+
+async function saveEdit(item) {
+    try {
+        const payload = {
+            id: item.id,
+            name: item.name,
+            tel: item.tel,
+            add: item.add            
+        }
+        const res = await axios.put('/api/student/update_info', payload, {
+            withCredentials: true,
+            headers: {'Content-Type': 'application/json'}
+        })
+        msg.value = 'Updated!'
+    } catch (e) {
+        if (e.response && e.response.status === 400) {
+            msg.value = e.response.data.msg
+        } else {
+            msg.value = 'Có rắc rối rồi!!'
+        }
+    }
+}
 </script>

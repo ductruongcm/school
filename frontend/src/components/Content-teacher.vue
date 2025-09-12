@@ -36,12 +36,35 @@
                 <tbody>
                     <tr v-for="(item, index) in teacherList" :key="item">
                         <td>{{ index + 1 }}</td>
-                        <td>{{ item.name }}</td>
-                        <td>{{ item.lesson }}</td>
-                        <td>{{ item.class_room }}</td>
-                        <td>{{ item.tel }}</td>
-                        <td>{{ item.add }}</td>
-                        <td>{{ item.email }}</td>
+                        <td>
+                            <span v-if="!item.editing">{{ item.name }}</span>
+                            <input v-else v-model="item.name" @keyup.enter="saveEdit(item)" type="text" style="width: 11em">
+                        </td>
+                        <td>
+                            <span v-if="!item.editing">{{ item.lesson }}</span>
+                            <input v-else v-model="item.lesson" @keyup.enter="saveEdit(item)" type="text" style="width: 5em">
+                        </td>
+                        <td>
+                            <span v-if="!item.editing">{{ item.class_room }}</span>
+                            <input v-else v-model="item.class_room" @keyup.enter="saveEdit(item)" type="text" style="width: 5em">
+                        </td>
+                        <td>
+                            <span v-if="!item.editing">{{ item.tel }}</span>
+                            <input v-else v-model="item.tel" @keyup.enter="saveEdit(item)" type="text" style="width: 7em">
+                        </td>
+                        <td>
+                            <span v-if="!item.editing">{{ item.add }}</span>
+                            <input v-else v-model="item.add" @keyup.enter="saveEdit(item)" type="text">
+                        </td>
+                        <td>
+                            <span v-if="!item.editing">{{ item.email }}</span>
+                            <input v-else v-model="item.email" @keyup.enter="saveEdit(item)" type="email" style="width: 11em">
+                        </td>
+                        <td>
+                            <button v-if="!item.editing" @click="editRow(item)">Sửa thông tin</button>
+                            <button v-else @click="saveEdit(item)">Lưu</button>
+                            <button v-if="item.editing" @click="cancelEdit(item)">Hủy</button>
+                        </td>
                     </tr>
                 </tbody>
             </table>
@@ -60,8 +83,6 @@ const selectedLesson = ref('')
 const selectedClass = ref('')
 const classRoomList = ref('')
 const year = inject('year')
-const page = ref(1)
-const limit = 20
 const filterName = ref('')
 
 onMounted(async () => {
@@ -79,10 +100,19 @@ onMounted(async () => {
 })
 
 async function fetchdata(lessonVal, classVal, nameVal) {
-    const res = await axios.get('/api/teacher/show_teacher', {
-        params: {page: page.value, limit, lesson: lessonVal, class_room: classVal, name: nameVal}}, {
+    try {
+        const res = await axios.get('/api/teacher/show_teacher', {
+        params: {lesson: lessonVal, class_room: classVal, name: nameVal}}, {
         withCredentials: true})
-    teacherList.value = res.data.data
+        teacherList.value = res.data.data.map(s => ({ ...s, editing: false}))
+  
+    } catch (e) {
+        if (e.response && e.response.status === 400) {
+            teacherSearchMsg.value = e.response.data.msg
+        } else {
+            teacherSearchMsg.value = 'Có vấn đề gì rồi!!'
+        }
+    }
 }
 
 onMounted(() => {
@@ -97,28 +127,48 @@ function onReset() {
   selectedLesson.value = ""
   selectedClass.value = ""
   filterName.value = ""
+  teacherSearchMsg.value = ""
 
   // gọi API lại để load bảng mặc định
   fetchTeachers("", "", "")
 }
-// 
 
-// async function changePage(newPage) {
-//     page.value = newPage
-//     await fetchdata()
-// }
+function editRow(item) {
+    item.original = {...item}
+    item.editing = true
+}
 
+function cancelEdit(item) {
+    Object.assign(item, item.original) //Revert lại
+    item.editing = false
+}
 
+async function saveEdit(item) {
+    try {
+        const payload = {
+            id: item.id,
+            name: item.name,
+            lesson: item.lesson,
+            class_room: item.class_room,
+            tel: item.tel,
+            add: item.add,
+            email: item.email
+        }
+        const res = await axios.put('api/teacher/update_info', payload, { 
+            withCredentials: true,
+            headers: {'Content-Type': 'application/json'}})
+        item.editing = false
+    } catch (e) {
+        if (e.response && e.response.status === 400) {
+            teacherSearchMsg.value = e.response.data.msg
+        } else {
+            teacherSearchMsg.value = 'Có vấn đề gì rồi!!'
+        }
 
+    }
+}
 
 
 
 
 </script>
-<style scoped>
-.main {
-    position: relative;
-    right: 20em;
-    margin-top: 2em;
-}
-</style>

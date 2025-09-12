@@ -2,34 +2,41 @@
     <div>Thông tin cá nhân</div>
     <div>
         <div>
-            {{ name }} 
-            <button>Edit</button>
+            <label>name: </label>
+            <span v-if="!editing">{{ name }} </span>
+            <input v-else v-model="changeName" type="text">
         </div>
         <div>
-            {{ role }}
-            <button>Edit</button>
+            <label>role: </label>
+            <span v-if="!editing">{{ role }}</span>
+            <input v-else v-model="changeRole" type="text">
         </div>
         <div>
-            {{ classRoom }}
-            <button>Edit</button>
+            <label>username: </label>
+            <span v-if="!editing">{{ username }}</span>
+            <input v-else v-model="changeUsername" type="text">
         </div>
         <div>
-            {{ username }}
-            <button>Edit</button>
+            <label>email: </label>
+            <span v-if="!editing">{{ email }}</span>
+            <input v-else v-model="changeEmail" type="email">
         </div>
         <div>
-            {{ email }}
-            <button>Edit</button>
+            <label>tel: </label>
+            <span v-if="!editing">{{ tel }}</span>
+            <input v-else v-model="changeTel" type="text">
         </div>
         <div>
-            {{ tel }}
-            <button>Edit</button>
+            <label>add: </label>
+            <span v-if="!editing">{{ add }}</span>
+            <input v-else v-model="changeAdd" type="text">
         </div>
-        <div>
-            {{ add }}
-            <button>Edit</button>
-        </div>
-        <div @click="setPassword" style="cursor: pointer;">Đặt mật khẩu</div>
+        <button v-if="!editing" @click="changeInfo">Sửa thông tin</button>
+        <div v-else>        
+            <button @click="cancelEdit">Hủy</button>
+            <button @click="saveEdit">Xác nhận</button>
+        </div> <br>
+        <button @click="setPassword">Đặt mật khẩu</button>
         <div class="setPassword">
             <form @submit.prevent="updatePassword">
                 <label>Password</label> <br>
@@ -38,8 +45,8 @@
                 <input type="password" v-model="re_password"> <br>
                 <button>Xác nhận</button>
             </form>
-            <div>{{ updatePasswordMsg }}</div>
         </div>
+        <div>{{ updatePasswordMsg }}</div>
     </div>
 </template>
 <script setup>
@@ -49,14 +56,19 @@ import axios from 'axios';
 
 
 const userStore = useUserStore() 
-const name = ref(`name: ${userStore.userInfo.name}`)
-const username = ref(`username: ${userStore.userInfo.username}`)
-const role = ref(`role: ${userStore.userInfo.role}`)
-const email = ref(`email: ${userStore.userInfo.email}`)
-const classRoom = ref(`Lớp: ${userStore.userInfo.class_room}`)
-const tel = ref(`Số điện thoại: ${userStore.userInfo.tel}`)
-const add = ref(`Địa chỉ: ${userStore.userInfo.add}`)
-
+const name = ref(userStore.userInfo.name)
+const username = ref(userStore.userInfo.username)
+const role = ref(userStore.userInfo.role)
+const email = ref(userStore.userInfo.email)
+const tel = ref(userStore.userInfo.tel)
+const add = ref(userStore.userInfo.add)
+const editing = ref(userStore.userInfo.editing)
+const changeUsername = ref('')
+const changeName = ref('')
+const changeRole = ref('')
+const changeEmail = ref('')
+const changeTel = ref('')
+const changeAdd = ref('')
 const password = ref('')
 const re_password = ref('')
 let updatePasswordMsg = ref('')
@@ -82,6 +94,45 @@ async function updatePassword() {
     }
 }
 
+function changeInfo() {
+    changeUsername.value = username.value
+    changeName.value = name.value
+    changeRole.value = role.value
+    changeEmail.value = email.value
+    changeTel.value = tel.value
+    changeAdd.value = add.value
+    editing.value = true
+}
+
+function cancelEdit() {
+    editing.value = false
+}
+
+async function saveEdit() {
+    const payload = {
+        id: userStore.userInfo.id,
+        name: changeName.value,
+        role: changeRole.value,
+        username: changeUsername.value,
+        email: changeEmail.value,
+        tel: changeTel.value,
+        add: changeAdd.value
+    }
+    try {
+        const res = await axios.put('/api/user/update_info', payload, {
+            withCredentials: true,
+            headers: {'Content-Type': 'application/json'}
+        })
+        updatePasswordMsg.value = res.data.msg
+        window.location.reload()
+    } catch (e) {
+        if (e.response && e.response.status === 400) {
+            updatePasswordMsg.value = e.response.data.msg
+        } else {
+            updatePasswordMsg.value = 'Có vấn đề gì rồi!!'
+        }
+    }
+}
 </script>
 
 <style scoped>

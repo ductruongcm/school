@@ -42,9 +42,12 @@ router.beforeEach(async (to, form, next) => {
     const authRequired = !publicPages.includes(to.path)
 
     if (authRequired && !userStore.userInfo) {
-            return next('/')
-    }
+        return next('/')
+    } else if (authRequired && new Date(userStore.userInfo.expired_at) < Date.now()) {
+        return next('/')
+    } else {
     next()
+    }
 })
 
 export default router

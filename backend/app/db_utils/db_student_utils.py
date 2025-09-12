@@ -34,11 +34,23 @@ def db_add_student(name, current_class_room, tel, add, role, year):
 def db_show_student(current_class_room):
     class_room = Class_room.query.filter(Class_room.class_room == current_class_room).first()
     
-    rows = db.session.query(Students.name, 
-                           Info.tel, 
-                           Info.add).join(Students, Students.info_id == Info.id).filter(Students.class_room_id == class_room.id).all()
-    keys = ['name', 'tel', 'add']
+    rows = db.session.query(Students.id,
+                            Students.name, 
+                            Info.tel, 
+                            Info.add).join(Students).filter(Students.class_room_id == class_room.id).order_by(Students.name).all()
+    keys = ['id', 'name', 'tel', 'add']
     return [dict(zip(keys, row)) for row in rows]
-    
+
+def db_update_info(id, name = None, tel = None, add = None):
+    student = Students.query.filter(Students.id == id).first()
+    info = Info.query.filter(Info.id == student.info_id).first()
+    if name:
+        student.name = name
+        info.name = name
+    if tel:
+        info.tel = tel
+    if add:
+        info.add = add
+    db.session.commit()
 
    

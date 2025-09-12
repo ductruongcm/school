@@ -1,8 +1,6 @@
 from app.schemas.teacher_schemas import Teachers, Infos_teacher, Lesson
 from app.schemas.class_room_schemas import Class_room
 from app.extensions import db
-from sqlalchemy import func
-
 
 def db_add_lesson(lesson):
     new_lesson = Lesson(lesson = lesson)
@@ -22,15 +20,16 @@ def db_add_teacher(name, current_lesson, current_class_room, tel, add, email):
 def db_show_teacher(lesson = None, class_room = None, name = None):
     #Show table bằng join các tables đồng thời search
     #Chỉ join, không chốt table để search
-    query = Teachers.query.with_entities(Teachers.name,
+    query = Teachers.query.with_entities(Teachers.id,
+                        Teachers.name,
                         Lesson.lesson,
                         Class_room.class_room,
                         Infos_teacher.tel,
                         Infos_teacher.add,
                         Infos_teacher.email)\
-                            .join(Lesson, Teachers.lesson_id == Lesson.id)\
-                            .join(Class_room, Teachers.class_room_id == Class_room.id)\
-                            .join(Infos_teacher, Teachers.id == Infos_teacher.teacher_id)\
+                            .join(Lesson)\
+                            .join(Class_room)\
+                            .join(Infos_teacher)\
 
     if name:
         query = query.filter(Teachers.name.like(f'%{name}%'))
@@ -40,7 +39,7 @@ def db_show_teacher(lesson = None, class_room = None, name = None):
         query = query.filter(Lesson.lesson == lesson)
     rows = query.order_by(Class_room.class_room).all()
 
-    keys = ['name', 'lesson', 'class_room', 'tel', 'add', 'email']
+    keys = ['id', 'name', 'lesson', 'class_room', 'tel', 'add', 'email']
     result = [dict(zip(keys, row)) for row in rows]
     return result
 
@@ -49,14 +48,30 @@ def db_show_lesson():
     key = ['lesson']
     return [dict(zip(key, item)) for item in data]
     
-# def db_search(current_lesson = None, current_name = None, current_class_room = None):
-#     result = Teachers.query
-#     if current_lesson:
-#         lesson = Lesson.query.filter(Lesson.lesson == current_lesson).first()
-#         result.filter(Teachers.lesson_id == lesson.id)
-#     if current_name:
-#         result.filter(Teachers.name.like(f'%{current_name}%'))
-#     if current_class_room:
-#         class_room = Class_room.query.filter(Class_room.class_room == current_class_room).first()
-#         result.filter(Teachers.class_room_id == class_room.id)
-#     return result.all()
+def db_update_info(id, name = None, lesson = None, class_room = None, tel = None, add = None, email = None):
+    #lấy thông tin và update
+    teacher = Teachers.query.filter(Teachers.id == id).first()
+    info = Infos_teacher.query.filter(Infos_teacher.teacher_id == id).first()
+    if not teacher or not info:
+        return False
+    #update name
+    if name:
+        teacher.name = name
+    #update lesson
+    if lesson:
+        new_lesson = Lesson.query.filter(Lesson.lesson == lesson).first().id
+        teacher.lesson_id = new_lesson
+    #update class_room
+    if class_room:
+        new_class_room = Class_room.query.filter(Class_room.class_room == class_room).first().id
+        teacher.class_room_id = new_class_room
+    #update tel
+    if tel:
+        info.tel = tel
+    #update add
+    if add:
+        info.add = add
+    #update email
+    if email:
+        info.email = email
+    db.session.commit()

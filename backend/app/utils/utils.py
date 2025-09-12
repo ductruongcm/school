@@ -68,11 +68,12 @@ def add_validates(add = None):
             errors.append('Địa chỉ không được chứa ký tự đặc biệt!')
     return errors
 
-def errors(username = None, password = None, repassword = None, name = None, email = None, add = None):
+def errors(username = None, password = None, repassword = None, name = None, tel = None, email = None, add = None):
     errors = []
     errors.extend(username_validates(username) or []) 
     errors.extend(password_validates(password, repassword) or []) 
     errors.extend(name_validates(name) or []) 
+    errors.extend(tel_validates(tel) or [])
     errors.extend(email_validates(email) or []) 
     errors.extend(add_validates(add))
     return errors

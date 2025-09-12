@@ -41,8 +41,8 @@ async function login() {
             headers: {"Content-Type": "application/json"}
         })
         userStore.setUserInfo(res.data)
-        userStore.tokenExpiresAt = res.data.expired_at
         router.push('/dashboard')
+        
     } catch (error) {
         if (error.response && error.response.status === 400) {
             loginMsg.value = error.response.data.msg

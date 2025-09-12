@@ -1,7 +1,7 @@
 from flask import Blueprint, request, jsonify
 from app.utils import utils, role_utils
 from flask_jwt_extended import jwt_required
-from app.db_utils.db_student_utils import db_add_student, db_show_student
+from app.db_utils.db_student_utils import db_add_student, db_show_student, db_update_info
 
 student_bp = Blueprint('student_bp', __name__, url_prefix = '/api/student')
 
@@ -21,7 +21,7 @@ def add_student():
     errors.extend(utils.add_validates(add))
     role = request.get_json().get('role') or 'guest'
     if errors:
-        print(errors)
+       
         return jsonify({'msg': errors}), 400
     db_add_student(name, class_room, tel, add, role, year)
     return jsonify({'msg': 'Thêm học sinh mới thành công!'}), 200
@@ -34,3 +34,16 @@ def show_student():
     data = db_show_student(class_room)
     return jsonify({'data': data}), 200
     
+@student_bp.put('/update_info')
+@jwt_required()
+@role_utils.required_role('admin')
+def update_info():
+    id = request.get_json().get('id')
+    name = request.get_json().get('name')
+    tel = request.get_json().get('tel')
+    add = request.get_json().get('add')
+    errors = utils.errors(name = name, tel = tel, add = add)
+    if errors:
+        return jsonify({'msg': errors}), 400
+    db_update_info(id, name, tel, add)
+    return jsonify({'msg': 'Updated!'}), 200

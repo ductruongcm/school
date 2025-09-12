@@ -1,5 +1,5 @@
 <template>
-    <main>
+    <main class="main">
         <component :is="activeComponent" />
     </main>
 </template>

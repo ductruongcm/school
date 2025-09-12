@@ -6,7 +6,6 @@ const useUserStore = defineStore('user', {
     // state để định nghĩa trước 
     state: () => ({
         userInfo: null,
-        tokenExpiresAt: null,
         isAuthentincated: false
     }),
     // action chứa hành động lấy user_info và lưu về định nghĩa ở state
@@ -17,7 +16,7 @@ const useUserStore = defineStore('user', {
         },
 
         clearUser() {
-            this.userInfo = null
+            this.userInfo = null,
             this.isAuthentincated = false
         }
     },

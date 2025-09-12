@@ -1,7 +1,7 @@
 from flask import request, jsonify, Blueprint
 from flask_jwt_extended import jwt_required
 from app.utils import role_utils, utils
-from app.db_utils.db_teacher import db_add_lesson, db_add_teacher, db_show_teacher, db_show_lesson
+from app.db_utils.db_teacher_utils import db_add_lesson, db_add_teacher, db_show_teacher, db_show_lesson, db_update_info
 
 teacher_bp = Blueprint('teacher_bp', __name__, url_prefix = '/api/teacher')
 
@@ -52,4 +52,24 @@ def show_teacher():
     class_room = request.args.get('class_room')
     name = request.args.get('name').title()
     data = db_show_teacher(lesson, class_room, name)
+    if not data:
+        return jsonify({'msg': 'Không tìm thấy thông tin!'}), 400
     return jsonify({'data': data}), 200
+
+@teacher_bp.put('/update_info')
+@role_utils.required_role('admin')
+@jwt_required()
+def update_info():
+    id = request.get_json().get('id')
+    name = request.get_json().get('name')
+    lesson = request.get_json().get('lesson')
+    class_room = request.get_json().get('class_room')
+    tel = request.get_json().get('tel')
+    add = request.get_json().get('add')
+    email = request.get_json().get('email')
+    # print(id, name, lesson, class_room, tel, add, email)
+    errors = utils.errors(name = name, tel = tel, add = add, email = email)
+    if errors:
+        return jsonify({'msg': errors}), 400
+    db_update_info(id, name, lesson, class_room, tel, add, email)
+    return jsonify({'msg': 'Updated!!'}), 200

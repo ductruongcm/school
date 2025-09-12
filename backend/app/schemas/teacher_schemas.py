@@ -14,8 +14,8 @@ class Teachers(db.Model):
     class_room = db.relationship('Class_room', back_populates = 'teachers', lazy = True)
     @validates('name')
     def name_validates(self, key, value):
-        if not re.fullmatch(r'[a_zA-ZÀ-ỹ\s]+', value):
-            raise ValueError('Tên không được chứa số và ký tự đặc biệt')
+        if not re.fullmatch(r'[a-zA-ZÀ-ỹ\s]+', value):
+            raise ValueError('Tên không được chứa số và ký tự đặc biệt!!')
         return value
 
 class Infos_teacher(db.Model):

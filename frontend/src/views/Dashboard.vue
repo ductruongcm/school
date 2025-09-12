@@ -7,6 +7,7 @@
 
     <div class="content">
         <div class="sidebar"><sidebar @change="switchComponent"/></div>
+        <div></div>
         <div class="mainContent"><MainContent :activeComponent="activeComponent"/></div>
     </div>
 
@@ -58,10 +59,37 @@ function switchComponent(name) {
     activeComponent.value = map[name]
 }
 
+onMounted(() => {
+    const timer = new Date(userStore.userInfo.expired_at)
+    const remaining = timer - Date.now()
    
+    if (remaining > 30000) {
+        const delay = remaining - 30000
+        setTimeout(() => {
+            refreshToken()
+        }, delay);
+    } 
+})
 
+async function refreshToken() {
+    const userStore = useUserStore()
+    const res = await axios.get('api/auth/refresh_token', { withCredentials: true })
+    userStore.setUserInfo(res.data)
+    const timer = new Date(userStore.userInfo.expired_at)
+    let remaining = timer - Date.now()
 
-
+    if (remaining > 30000) { 
+        const delay = remaining - 30000
+        setTimeout(() => {
+            refreshToken()
+         }, delay);
+    } 
+    else if (remaining > 0) {
+        setTimeout(() => {
+            refreshToken()
+        }, 1000);
+    }
+}
 
 </script>
 <style scoped>
@@ -70,18 +98,24 @@ function switchComponent(name) {
     right: 25px;
 }
 .content {
-    display: flex
+    content: 100%;
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: 15% 5% 70%;
 }
 
 .mainContent {
     position: relative;
-    left: 45em;
-    top: 4em;
+    width: 100%;
+    top: 3em;
+    justify-items: center;
 }
 .sidebar {
     position: relative;
-    left: 2em;
-    top: 4em
+    width: 100%;
+    top: 2em;
+    left: 1em;
+    cursor: pointer;
 }
 .logout {
     cursor: pointer;

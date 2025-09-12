@@ -19,12 +19,13 @@ def db_register_gg(username, email, name):
 def info(username):
     user = Users.query.filter(Users.username == username).first()
     info = Info.query.filter(Info.user_id == user.id).first()
+    id = user.id
     name = info.name
     email = user.email
     tel = info.tel
     add = info.add
     class_room = info.class_room
-    return name, email, tel, add, class_room
+    return id, name, email, tel, add, class_room
 
 def register(username, password, name, email):
     user = Users(username = username, password = password, email = email)
