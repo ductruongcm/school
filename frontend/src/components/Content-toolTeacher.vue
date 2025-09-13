@@ -6,8 +6,10 @@
         <input type="text" v-model="name" required> <br>
         <label>Chuyên môn</label> <br>
         <input type="text" v-model="lesson" required> <br>
+        <label>Chủ nhiệm lớp</label> <br>
+        <input type="text" v-model="classRoom"> <br>
         <label>Phụ trách lớp</label> <br>
-        <input type="text" v-model="classRoom" required> <br>
+        <input type="text" v-model="teachRoom" required> <br>
         <label>Số điện thoại</label> <br>
         <input type="text" v-model="tel" required> <br>
         <label>Địa chỉ</label> <br>
@@ -27,6 +29,7 @@ import axios from 'axios';
 const name = ref('')
 const lesson = ref('')
 const classRoom = ref('')
+const teachRoom = ref('')
 const tel = ref('')
 const add = ref('')
 const email = ref('')
@@ -38,7 +41,8 @@ async function addTeacher() {
     const payload = {
         name: name.value,
         lesson: lesson.value,
-        classRoom: classRoom.value,
+        class_room: classRoom.value,
+        teach_room: teachRoom.value,
         tel: tel.value,
         add: add.value,
         email: email.value,

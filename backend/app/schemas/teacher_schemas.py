@@ -12,11 +12,20 @@ class Teachers(db.Model):
     info_teacher = db.relationship('Infos_teacher', back_populates = 'teachers', lazy = True)
     lesson = db.relationship('Lesson', back_populates = 'teachers', lazy = True)
     class_room = db.relationship('Class_room', back_populates = 'teachers', lazy = True)
+    teach_room = db.relationship('Teach_room', back_populates = 'teachers', lazy = True)
     @validates('name')
     def name_validates(self, key, value):
         if not re.fullmatch(r'[a-zA-ZÀ-ỹ\s]+', value):
             raise ValueError('Tên không được chứa số và ký tự đặc biệt!!')
         return value
+    
+class Teach_room(db.Model):
+    __tablename__ = 'teach_room'
+    id = db.Column(db.Integer, primary_key = True)
+    teacher_id = db.Column(db.Integer, db.ForeignKey('teachers.id', ondelete = 'CASCADE'))
+    teach_room = db.Column(db.Integer, db.ForeignKey('class_room.id', ondelete = 'CASCADE'))
+    teachers = db.relationship('Teachers', back_populates = 'teach_room', lazy = True)   
+    class_room = db.relationship('Class_room', back_populates = 'teach_room', lazy = True)
 
 class Infos_teacher(db.Model):
     __tablename__ = 'infos_teacher'

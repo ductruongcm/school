@@ -1,7 +1,7 @@
 from flask import request, jsonify, Blueprint
 from flask_jwt_extended import jwt_required
 from app.utils import role_utils, utils
-from app.db_utils.db_teacher_utils import db_add_lesson, db_add_teacher, db_show_teacher, db_show_lesson, db_update_info
+from app.db_utils.db_teacher_utils import db_add_lesson, db_add_teacher, db_show_teacher, db_show_lesson, db_update_info, db_update_teach_room
 
 teacher_bp = Blueprint('teacher_bp', __name__, url_prefix = '/api/teacher')
 
@@ -18,23 +18,19 @@ def add_lesson():
 @jwt_required()
 def add_teacher():
     data = request.get_json()
-    errors = []
     name = data.get('name').strip()
-    errors.extend(utils.name_validates(name))
     lesson = data.get('lesson').strip()
-    class_room = data.get('classRoom').strip()
+    class_room = data.get('class_room').strip()
+    teach_room = data.get('teach_room').strip()
     year = data.get('year').strip()
-    errors.extend(utils.class_validates(class_room, year))
     tel = data.get('tel').strip()
-    errors.extend(utils.tel_validates(tel))
     add = data.get('add').strip()
-    errors.extend(utils.add_validates(add))
     email = data.get('email').strip()
-    errors.extend(utils.email_validates(email))
+    errors = utils.errors(name = name, tel = tel, email = email, add = add, class_room = teach_room, year = year)
     if errors:
         print(errors)
         return jsonify({'msg': errors}), 400
-    db_add_teacher(name, lesson, class_room, tel, add, email)
+    db_add_teacher(name = name, current_lesson = lesson, current_class_room = class_room, current_teach_room = teach_room, tel = tel, add = add, email = email)
     return jsonify({'msg': 'added!'}), 200
 
 @teacher_bp.get('/show_lesson')
@@ -64,12 +60,15 @@ def update_info():
     name = request.get_json().get('name')
     lesson = request.get_json().get('lesson')
     class_room = request.get_json().get('class_room')
+    teach_room = request.get_json().get('teach_room')
     tel = request.get_json().get('tel')
     add = request.get_json().get('add')
     email = request.get_json().get('email')
-    # print(id, name, lesson, class_room, tel, add, email)
-    errors = utils.errors(name = name, tel = tel, add = add, email = email)
+    year = request.get_json().get('year')
+    errors = utils.errors(name = name, tel = tel, add = add, email = email, year = year, class_room = class_room)
+
     if errors:
         return jsonify({'msg': errors}), 400
     db_update_info(id, name, lesson, class_room, tel, add, email)
+    db_update_teach_room(id, teach_room)
     return jsonify({'msg': 'Updated!!'}), 200

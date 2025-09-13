@@ -27,7 +27,8 @@
                         <th>STT</th>
                         <th>Họ và tên</th>
                         <th>Chuyên môn</th>
-                        <th>Phụ trách lớp</th>
+                        <th>Chủ nhiệm</th>
+                        <th>Phụ trách</th>
                         <th>Số điện thoại</th>
                         <th>Địa chỉ</th>
                         <th>Email</th>
@@ -36,23 +37,27 @@
                 <tbody>
                     <tr v-for="(item, index) in teacherList" :key="item">
                         <td>{{ index + 1 }}</td>
-                        <td>
+                        <td style="width: 9em;">
                             <span v-if="!item.editing">{{ item.name }}</span>
                             <input v-else v-model="item.name" @keyup.enter="saveEdit(item)" type="text" style="width: 11em">
                         </td>
-                        <td>
+                        <td style="width: 7em;">
                             <span v-if="!item.editing">{{ item.lesson }}</span>
                             <input v-else v-model="item.lesson" @keyup.enter="saveEdit(item)" type="text" style="width: 5em">
                         </td>
-                        <td>
+                        <td style="width: 7em;">
                             <span v-if="!item.editing">{{ item.class_room }}</span>
                             <input v-else v-model="item.class_room" @keyup.enter="saveEdit(item)" type="text" style="width: 5em">
+                        </td>
+                        <td style="width: 7em;">
+                            <span v-if="!item.editing">{{ item.teach_room }}</span>
+                            <input v-else v-model="item.teach_room" @keyup.enter="saveEdit(item)" type="text">
                         </td>
                         <td>
                             <span v-if="!item.editing">{{ item.tel }}</span>
                             <input v-else v-model="item.tel" @keyup.enter="saveEdit(item)" type="text" style="width: 7em">
                         </td>
-                        <td>
+                        <td style="width: 15em;">
                             <span v-if="!item.editing">{{ item.add }}</span>
                             <input v-else v-model="item.add" @keyup.enter="saveEdit(item)" type="text">
                         </td>
@@ -61,7 +66,7 @@
                             <input v-else v-model="item.email" @keyup.enter="saveEdit(item)" type="email" style="width: 11em">
                         </td>
                         <td>
-                            <button v-if="!item.editing" @click="editRow(item)">Sửa thông tin</button>
+                            <button v-if="!item.editing" @click="editRow(item)">Chỉnh sửa</button>
                             <button v-else @click="saveEdit(item)">Lưu</button>
                             <button v-if="item.editing" @click="cancelEdit(item)">Hủy</button>
                         </td>
@@ -150,9 +155,11 @@ async function saveEdit(item) {
             name: item.name,
             lesson: item.lesson,
             class_room: item.class_room,
+            teach_room: item.teach_room,
             tel: item.tel,
             add: item.add,
-            email: item.email
+            email: item.email,
+            year: year.value
         }
         const res = await axios.put('api/teacher/update_info', payload, { 
             withCredentials: true,

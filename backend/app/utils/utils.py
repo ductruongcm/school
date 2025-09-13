@@ -35,14 +35,15 @@ def name_validates(name = None):
             errors.append('Tên không được chứa số và ký tự đặc biệt')
     return errors
 
-def class_validates(current_class_room, current_year):
+def class_validates(current_class_room = None, current_year = None):
     errors = []
-    year = Year.query.filter(Year.year == current_year).first()
-    class_room = Class_room.query.filter(Class_room.class_room == current_class_room, year.id == Class_room.year_id).first()
-    if not year:
-        errors.append('Niên khóa không đúng!')
-    if not class_room:
-        errors.append('Thông tin lớp học không đúng!!')
+    if current_year and current_class_room:
+        year = Year.query.filter(Year.year == current_year).first() 
+        class_room = Class_room.query.filter(Class_room.class_room == current_class_room, year.id == Class_room.year_id).first()
+        if not year:
+            errors.append('Niên khóa không đúng!')
+        if not class_room:
+            errors.append('Thông tin lớp học không đúng!!')
     return errors
     
 def email_validates(email = None):
@@ -54,7 +55,7 @@ def email_validates(email = None):
             errors.append('Email này đã được sử dụng, hãy vào quên mật khẩu để lấy lại mật khẩu')
     return errors
 
-def tel_validates(tel = None):
+def tel_validates(tel = None):  
     errors = []
     if tel:
         if not re.fullmatch(r'\d{10}', tel):
@@ -68,14 +69,15 @@ def add_validates(add = None):
             errors.append('Địa chỉ không được chứa ký tự đặc biệt!')
     return errors
 
-def errors(username = None, password = None, repassword = None, name = None, tel = None, email = None, add = None):
+def errors(username = None, password = None, repassword = None, name = None, tel = None, email = None, add = None, class_room = None, year = None):
     errors = []
     errors.extend(username_validates(username) or []) 
     errors.extend(password_validates(password, repassword) or []) 
     errors.extend(name_validates(name) or []) 
     errors.extend(tel_validates(tel) or [])
     errors.extend(email_validates(email) or []) 
-    errors.extend(add_validates(add))
+    errors.extend(add_validates(add) or [])
+    errors.extend(class_validates(class_room, year) or [])
     return errors
 
 def login_validates(username, password):

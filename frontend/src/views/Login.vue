@@ -41,8 +41,13 @@ async function login() {
             headers: {"Content-Type": "application/json"}
         })
         userStore.setUserInfo(res.data)
-        router.push('/dashboard')
+        if (userStore.userInfo.role === 'admin') {
+            router.push('/dashboard')
         
+        } else if (userStore.userInfo.role === 'teacher') {
+            router.push('/teacher')
+        } else {
+            router.push('/guest')}
     } catch (error) {
         if (error.response && error.response.status === 400) {
             loginMsg.value = error.response.data.msg
@@ -67,7 +72,7 @@ async function register() {
 .login {
     position: relative;
     justify-items: center;
-    top: 200px;
+    top: 8em;
 }
 
 .register, .forgetPassword, .loginGG {

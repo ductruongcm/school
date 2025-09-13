@@ -62,7 +62,7 @@ function switchComponent(name) {
 onMounted(() => {
     const timer = new Date(userStore.userInfo.expired_at)
     const remaining = timer - Date.now()
-   
+    
     if (remaining > 30000) {
         const delay = remaining - 30000
         setTimeout(() => {
@@ -101,13 +101,13 @@ async function refreshToken() {
     content: 100%;
     margin: 0 auto;
     display: grid;
-    grid-template-columns: 15% 5% 70%;
+    grid-template-columns: 15% 3% 83%;
 }
 
 .mainContent {
     position: relative;
     width: 100%;
-    top: 3em;
+    top: 4em;
     justify-items: center;
 }
 .sidebar {

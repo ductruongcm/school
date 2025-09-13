@@ -33,17 +33,20 @@
         </div>
         <button v-if="!editing" @click="changeInfo">Sửa thông tin</button>
         <div v-else>        
-            <button @click="cancelEdit">Hủy</button>
             <button @click="saveEdit">Xác nhận</button>
+            <button @click="editing = false">Hủy</button>
         </div> <br>
-        <button @click="setPassword">Đặt mật khẩu</button>
-        <div class="setPassword">
+        <button @click="setPassword = true">Đặt mật khẩu</button>
+        <div v-if="setPassword" class="setPassword">
             <form @submit.prevent="updatePassword">
                 <label>Password</label> <br>
                 <input type="password" v-model="password"> <br>
                 <label>Re-type password</label> <br>
                 <input type="password" v-model="re_password"> <br>
-                <button>Xác nhận</button>
+                <div>
+                    <button>Xác nhận</button>
+                    <button @click="setPassword = false">Hủy</button>
+                </div>
             </form>
         </div>
         <div>{{ updatePasswordMsg }}</div>
@@ -72,11 +75,7 @@ const changeAdd = ref('')
 const password = ref('')
 const re_password = ref('')
 let updatePasswordMsg = ref('')
-
-function setPassword() {
-    const el = document.querySelector(".setPassword");
-    el.style.display = (el.style.display === "block") ? "none" : "block";
-}
+const setPassword = ref(false)
 
 async function updatePassword() {
     try { const payload = {
@@ -102,10 +101,6 @@ function changeInfo() {
     changeTel.value = tel.value
     changeAdd.value = add.value
     editing.value = true
-}
-
-function cancelEdit() {
-    editing.value = false
 }
 
 async function saveEdit() {
@@ -136,7 +131,5 @@ async function saveEdit() {
 </script>
 
 <style scoped>
-.setPassword {
-    display: none;
-} 
+
 </style>

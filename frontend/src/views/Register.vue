@@ -60,6 +60,6 @@ const handleSubmit = async () => {
 .register {
     position: relative;
     justify-items: center;
-    top: 200px;
+    top: 8em;
 }
 </style>
