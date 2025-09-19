@@ -1,6 +1,6 @@
 from app import launch
 from app.extensions import db
-from app.schemas import teacher_schemas
+from app.schemas import Monitoring
 # from app.routes.class_room.schemas import class_schemas
 
 

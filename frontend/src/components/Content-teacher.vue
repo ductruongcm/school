@@ -11,12 +11,11 @@
                 <label> Tìm theo lớp: </label>
                 <select v-model="selectedClass">
                     <option selected value="">-- Theo lớp --</option>
-                    <option v-for="classRoom in classRoomList" :key="classRoom">{{ classRoom.class_room }}</option>
+                    <option v-for="classRoom in classRoomList" :key="classRoom">{{ classRoom }}</option>
                 </select>
                 <label> Tìm theo tên: </label>
                 <input v-model="filterName" placeholder="Nhập tên giáo viên">
                 <button type="button" @click="onReset">Nhập lại</button>
-                
             </form>
         </div>
         <div> {{ teacherSearchMsg }}</div>
@@ -25,31 +24,32 @@
                 <thead>
                     <tr>
                         <th>STT</th>
-                        <th>Họ và tên</th>
-                        <th>Chuyên môn</th>
-                        <th>Chủ nhiệm</th>
-                        <th>Phụ trách</th>
-                        <th>Số điện thoại</th>
-                        <th>Địa chỉ</th>
-                        <th>Email</th>
+                        <th style="width: 12em;">Họ và tên</th>
+                        <th style="width: 7em;">Chuyên môn</th>
+                        <th style="width: 7em;">Chủ nhiệm</th>
+                        <th style="width: 12em;">Phụ trách</th>
+                        <th style="width: 7em;">Số điện thoại</th>
+                        <th style="width: 15em;">Địa chỉ</th>
+                        <th style="width: 10em;">Email</th>
+                        <th style="width: 10em;"></th>
                     </tr>
                 </thead>
                 <tbody>
                     <tr v-for="(item, index) in teacherList" :key="item">
                         <td>{{ index + 1 }}</td>
-                        <td style="width: 9em;">
+                        <td>
                             <span v-if="!item.editing">{{ item.name }}</span>
                             <input v-else v-model="item.name" @keyup.enter="saveEdit(item)" type="text" style="width: 11em">
                         </td>
-                        <td style="width: 7em;">
+                        <td>
                             <span v-if="!item.editing">{{ item.lesson }}</span>
                             <input v-else v-model="item.lesson" @keyup.enter="saveEdit(item)" type="text" style="width: 5em">
                         </td>
-                        <td style="width: 7em;">
+                        <td>
                             <span v-if="!item.editing">{{ item.class_room }}</span>
                             <input v-else v-model="item.class_room" @keyup.enter="saveEdit(item)" type="text" style="width: 5em">
                         </td>
-                        <td style="width: 7em;">
+                        <td>
                             <span v-if="!item.editing">{{ item.teach_room }}</span>
                             <input v-else v-model="item.teach_room" @keyup.enter="saveEdit(item)" type="text">
                         </td>
@@ -57,7 +57,7 @@
                             <span v-if="!item.editing">{{ item.tel }}</span>
                             <input v-else v-model="item.tel" @keyup.enter="saveEdit(item)" type="text" style="width: 7em">
                         </td>
-                        <td style="width: 15em;">
+                        <td>
                             <span v-if="!item.editing">{{ item.add }}</span>
                             <input v-else v-model="item.add" @keyup.enter="saveEdit(item)" type="text">
                         </td>
@@ -79,6 +79,7 @@
 <script setup>
 import { ref, onMounted, watch, inject } from 'vue';
 import axios from 'axios';
+import useUserStore from '../stores/user';
 import { message } from '../stores/usePopup';
 
 const teacherList = ref([])
@@ -89,6 +90,7 @@ const selectedClass = ref('')
 const classRoomList = ref('')
 const year = inject('year')
 const filterName = ref('')
+const userStore = useUserStore()
 
 onMounted(async () => {
     const res = await axios.get('api/teacher/show_lesson', { withCredentials: true})
@@ -109,7 +111,7 @@ async function fetchdata(lessonVal, classVal, nameVal) {
         const res = await axios.get('/api/teacher/show_teacher', {
         params: {lesson: lessonVal, class_room: classVal, name: nameVal}}, {
         withCredentials: true})
-        teacherList.value = res.data.data.map(s => ({ ...s, editing: false}))
+        teacherList.value = res.data.data
   
     } catch (e) {
         if (e.response && e.response.status === 400) {
@@ -132,10 +134,7 @@ function onReset() {
   selectedLesson.value = ""
   selectedClass.value = ""
   filterName.value = ""
-  teacherSearchMsg.value = ""
-
-  // gọi API lại để load bảng mặc định
-  fetchTeachers("", "", "")
+  teacherSearchMsg.value = "" 
 }
 
 function editRow(item) {

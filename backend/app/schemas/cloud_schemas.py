@@ -10,8 +10,10 @@ class Cloud(db.Model):
     filetype = db.Column(db.String, nullable = False)
     filesize = db.Column(db.String, nullable = False)
     upload_at = db.Column(db.DateTime, default = datetime.utcnow)
-    upload_by = db.Column(db.String(15), nullable = False)
+    upload_by = db.Column(db.Integer, db.ForeignKey('users.id', ondelete = 'CASCADE'))
     status = db.Column(db.Boolean, default = True)
     class_room = db.relationship('Class_room', back_populates = 'cloud', lazy = True)
+    users = db.relationship('Users', back_populates = 'cloud', lazy = True)
+
 
    

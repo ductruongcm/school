@@ -1,10 +1,12 @@
 from flask import Blueprint, jsonify, request, make_response
-from flask_jwt_extended import get_jwt_identity, get_jwt, jwt_required, create_access_token, set_access_cookies, unset_jwt_cookies, create_refresh_token, set_refresh_cookies
+from flask_jwt_extended import get_jwt_identity, jwt_required, create_access_token, set_access_cookies, unset_jwt_cookies, create_refresh_token, set_refresh_cookies
 from datetime import timedelta, datetime
 from app.extensions import lm, util
 from app.utils import utils
 from werkzeug.security import generate_password_hash
 from app.db_utils import db_auth_utils
+from app.db_utils.db_monitoring_utils import db_record_log
+
 
 
 auth_bp = Blueprint('auth_bp', __name__, url_prefix = '/api/auth')
@@ -34,23 +36,17 @@ def login():
     data = request.get_json()
     username = data.get('username').strip()
     password = data.get('password').strip()
-
-    error = utils.login_validates(username, password)
-    if error:
-        return jsonify({'msg': error}), 400
+    errors = utils.login_validates(username, password)
+    if errors:
+        db_record_log(username, 'login', 'FAIL', f'Login: {errors}')
+        return jsonify({'msg': errors}), 400
     
-    role = db_auth_utils.role(username)
-    access_token = create_access_token(identity = username, expires_delta = timedelta(minutes = 15), additional_claims = {'role': role})
-    refresh_token = create_refresh_token(identity = username, expires_delta = timedelta(hours = 10), additional_claims = {'role': role})
-    id, name, email, tel, add, class_room = db_auth_utils.info(username)
+    role, id = db_auth_utils.role(username)
+    access_token = create_access_token(identity = username, expires_delta = timedelta(minutes = 15), additional_claims = {'role': role, 'id': id})
+    refresh_token = create_refresh_token(identity = username, expires_delta = timedelta(hours = 10), additional_claims = {'role': role, 'id': id})
     response = make_response(jsonify({'id': id,
                     'username': username,
                     'role': role,
-                    'name': name,
-                    'email': email,
-                    'tel': tel,
-                    'add': add,
-                    'class_room': class_room,
                     'editing': False,
                     'expired_at': datetime.utcnow() + timedelta(minutes=15)}))
     set_access_cookies(response, access_token)
@@ -65,19 +61,14 @@ def refresh_token():
     # truyền thông tin qua res
     # đính kèm cookie chứa access token
     username = get_jwt_identity()
-    role = get_jwt().get('role') 
+    role, id = db_auth_utils.role(username)
     access_token = create_access_token(identity = username, 
                                        expires_delta = timedelta(minutes = 15),
-                                       additional_claims = {'role': role})
-    id, name, email, tel, add, class_room = db_auth_utils.info(username)
+                                       additional_claims = {'role': role, 'id': id})
+
     response = make_response(jsonify({'id': id,
                     'username': username,
                     'role': role,
-                    'name': name,
-                    'email': email,
-                    'tel': tel,
-                    'add': add,
-                    'class_room': class_room,
                     'editing': False,
                     'expired_at': datetime.utcnow() + timedelta(minutes=15)}))
     set_access_cookies(response, access_token)

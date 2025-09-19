@@ -4,8 +4,8 @@
         <form>
             <label>Chọn lớp  </label>
             <select v-model="selectedClass">
-                <option disabled selected>-- Chọn lớp --</option>
-                <option v-for="item in classList" :key="item.class_room"> {{ item.class_room }}</option>
+                <option value="" selected disabled>-- Chọn lớp --</option>
+                <option v-for="item in classList" :key="item"> {{ item }}</option>
             </select>
         </form>
 
@@ -13,10 +13,11 @@
             <table>
                 <thead>
                     <tr>
-                        <th>STT</th>
-                        <th>Họ và tên</th>
-                        <th>Số điện thoại</th>
-                        <th>Địa chỉ</th>
+                        <th style="width: 2em;">STT</th>
+                        <th style="width: 15em;">Họ và tên</th>
+                        <th style="width: 10em;">Số điện thoại</th>
+                        <th style="width: 20em;">Địa chỉ</th>
+                        <th style="width: 10em;"></th>
                     </tr>
                 </thead>
                 <tbody>
@@ -70,13 +71,19 @@ watch(selectedClass, async (newVal) => {
         const res = await axios.get(`api/student/show_student?class_room=${newVal}`, { 
             withCredentials: true, 
         })
-        student.value = res.data.data.map(s => ({...s, editing: false}))
+        student.value = res.data.data
     } catch (err) {
         if (err.response && err.response.status === 403) {
             msg.value = 'Forbidden: Access denied'
         } else {
             msg.value = 'Có vấn đề gì rồi'
         }
+    }
+})
+
+watch(classList, (newVal) => {
+    if (newVal.length === 1) {
+        selectedClass.value = newVal[0]
     }
 })
 
@@ -111,4 +118,6 @@ async function saveEdit(item) {
         }
     }
 }
+
+
 </script>

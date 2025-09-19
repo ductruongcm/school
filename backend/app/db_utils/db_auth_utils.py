@@ -1,6 +1,6 @@
 from app.extensions import db
-from app.schemas import Users, Info
-from app.routes.auth import auth_utils
+from app.schemas import Users, Info, Infos_teacher
+from app.utils import auth_utils
     
 def db_register_gg(username, email, name):
     existing_username = Users.query.filter(Users.username == username).first()
@@ -16,17 +16,6 @@ def db_register_gg(username, email, name):
     db.session.add(new_info)
     db.session.commit()
 
-def info(username):
-    user = Users.query.filter(Users.username == username).first()
-    info = Info.query.filter(Info.user_id == user.id).first()
-    id = user.id
-    name = info.name
-    email = user.email
-    tel = info.tel
-    add = info.add
-    class_room = info.class_room
-    return id, name, email, tel, add, class_room
-
 def register(username, password, name, email):
     user = Users(username = username, password = password, email = email)
     db.session.add(user)
@@ -36,8 +25,10 @@ def register(username, password, name, email):
     db.session.commit()
 
 def role(username):
-    role = Users.query.filter_by(username = username).first().role
-    return role
+    user = Users.query.filter_by(username = username).first()
+    role = user.role
+    id = user.id
+    return role, id
         
 
   

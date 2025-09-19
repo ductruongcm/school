@@ -1,6 +1,6 @@
 from app.extensions import db
 from app.schemas import Students, Class_room, Users, Info
-from app.routes.auth.auth_utils import generate_password
+from app.utils.auth_utils import generate_password
 from werkzeug.security import generate_password_hash
 
 def generate_student_id(year, current_class_room):

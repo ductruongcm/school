@@ -1,7 +1,8 @@
 from flask import request, jsonify, Blueprint
-from flask_jwt_extended import jwt_required
+from flask_jwt_extended import jwt_required, get_jwt_identity
 from app.utils import role_utils, utils
 from app.db_utils.db_teacher_utils import db_add_lesson, db_add_teacher, db_show_teacher, db_show_lesson, db_update_info, db_update_teach_room
+from app.db_utils.db_monitoring_utils import db_record_log
 
 teacher_bp = Blueprint('teacher_bp', __name__, url_prefix = '/api/teacher')
 
@@ -17,6 +18,7 @@ def add_lesson():
 @role_utils.required_role('admin')
 @jwt_required()
 def add_teacher():
+    username = get_jwt_identity()
     data = request.get_json()
     name = data.get('name').strip()
     lesson = data.get('lesson').strip()
@@ -25,23 +27,30 @@ def add_teacher():
     year = data.get('year').strip()
     tel = data.get('tel').strip()
     add = data.get('add').strip()
+    teacher_username = data.get('username').strip()
     email = data.get('email').strip()
-    errors = utils.errors(name = name, tel = tel, email = email, add = add, class_room = teach_room, year = year)
+    errors = utils.errors(name = name, tel = tel, username = teacher_username, email = email, add = add, class_room = teach_room, year = year)
     if errors:
-        print(errors)
+        db_record_log(username, 'add teacher', 'FAIL', f'Add {name}: {errors}')
         return jsonify({'msg': errors}), 400
-    db_add_teacher(name = name, current_lesson = lesson, current_class_room = class_room, current_teach_room = teach_room, tel = tel, add = add, email = email)
+    db_add_teacher(name = name, 
+                   current_lesson = lesson, 
+                   current_class_room = class_room, 
+                   current_teach_room = teach_room, 
+                   tel = tel, add = add, email = email, 
+                   username = teacher_username)
+    db_record_log(username, 'add teacher', 'SUCCESS', f'Add: {name}')
     return jsonify({'msg': 'added!'}), 200
 
 @teacher_bp.get('/show_lesson')
-@role_utils.required_role('admin')
+@role_utils.required_role('admin', 'teacher')
 @jwt_required()
 def show_lesson():
     data = db_show_lesson()
     return jsonify({'data': data}), 200
     
 @teacher_bp.get('/show_teacher')
-@role_utils.required_role('admin')
+@role_utils.required_role('admin', 'teacher')
 @jwt_required()
 def show_teacher():
     lesson = request.args.get('lesson')
@@ -56,7 +65,8 @@ def show_teacher():
 @role_utils.required_role('admin')
 @jwt_required()
 def update_info():
-    id = request.get_json().get('id')
+    username = get_jwt_identity()
+    teacher_id = request.get_json().get('id')
     name = request.get_json().get('name')
     lesson = request.get_json().get('lesson')
     class_room = request.get_json().get('class_room')
@@ -65,10 +75,13 @@ def update_info():
     add = request.get_json().get('add')
     email = request.get_json().get('email')
     year = request.get_json().get('year')
-    errors = utils.errors(name = name, tel = tel, add = add, email = email, year = year, class_room = class_room)
+    errors = utils.errors(name = name, tel = tel, add = add, role = 'teacher', email = email, year = year, class_room = class_room)
 
     if errors:
+        db_record_log(username, 'update teacher info', 'FAIL', f'Update {name}: {errors}')
         return jsonify({'msg': errors}), 400
-    db_update_info(id, name, lesson, class_room, tel, add, email)
-    db_update_teach_room(id, teach_room)
+    db_update_info(teacher_id, name, lesson, class_room, tel, add, email)
+    db_update_teach_room(teacher_id, teach_room)
+    db_record_log(username, 'update teacher info', 'SUCCESS', f'Update: {name}')
     return jsonify({'msg': 'Updated!!'}), 200
+

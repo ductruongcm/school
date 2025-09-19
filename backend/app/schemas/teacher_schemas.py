@@ -7,12 +7,14 @@ class Teachers(db.Model):
     id = db.Column(db.Integer, primary_key = True)
     lesson_id = db.Column(db.Integer, db.ForeignKey('lesson.id', ondelete = 'CASCADE'))
     class_room_id = db.Column(db.Integer, db.ForeignKey('class_room.id', ondelete = 'CASCADE'))
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id', ondelete = 'CASCADE'))
     name = db.Column(db.String, nullable = False)
     status = db.Column(db.Boolean, default = True)
     info_teacher = db.relationship('Infos_teacher', back_populates = 'teachers', lazy = True)
     lesson = db.relationship('Lesson', back_populates = 'teachers', lazy = True)
     class_room = db.relationship('Class_room', back_populates = 'teachers', lazy = True)
     teach_room = db.relationship('Teach_room', back_populates = 'teachers', lazy = True)
+    users = db.relationship('Users', back_populates = 'teachers', lazy = True)
     @validates('name')
     def name_validates(self, key, value):
         if not re.fullmatch(r'[a-zA-ZÀ-ỹ\s]+', value):
@@ -34,7 +36,9 @@ class Infos_teacher(db.Model):
     email = db.Column(db.String, default = 'update later')
     tel = db.Column(db.String(10))
     add = db.Column(db.String, default = 'update later')
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id', ondelete = 'CASCADE'))
     teachers = db.relationship('Teachers', back_populates = 'info_teacher', lazy = True)
+    users = db.relationship('Users', back_populates = 'infos_teacher', lazy = True)
     @validates('tel')
     def tel_validates(self, key, value):
         if not re.fullmatch(r'\d{10}', value):

@@ -2,7 +2,7 @@ from flask import Blueprint, jsonify, request, make_response, redirect
 from dotenv import load_dotenv
 from os import getenv
 import requests
-from app.routes.oauth2 import oauth2_utils
+from app.utils import oauth2_utils
 
 from flask_jwt_extended import set_access_cookies, set_refresh_cookies
 

@@ -1,25 +1,29 @@
 from app.schemas.teacher_schemas import Teachers, Infos_teacher, Lesson, Teach_room
+from app.schemas.user_schemas import Users
 from app.schemas.class_room_schemas import Class_room
 from app.extensions import db
-from sqlalchemy import func, cast, literal, Text, literal_column, text
+from sqlalchemy import text
 from sqlalchemy.orm import aliased
+from app.utils import auth_utils
 
 def db_add_lesson(lesson):
     new_lesson = Lesson(lesson = lesson)
     db.session.add(new_lesson)
     db.session.commit()
 
-def db_add_teacher(name, current_lesson, current_teach_room, tel, add, email, current_class_room = None):
+def db_add_teacher(name, current_lesson, current_teach_room, tel, add, email, username, current_class_room = None):
     lesson = Lesson.query.filter(Lesson.lesson == current_lesson).first()
     teach_cls = Class_room.query.filter(Class_room.class_room == current_teach_room).first()
-
+    password = auth_utils.generate_password(length = 32)
+    new_user = Users(username = username, role = 'teacher', password = password)
     if current_class_room:
         class_room = Class_room.query.filter(Class_room.class_room == current_class_room).first()
         new_teacher = Teachers(name = name, lesson_id = lesson.id, class_room_id = class_room.id)
     else:
         new_teacher = Teachers(name = name, lesson_id = lesson.id)    
-    db.session.add(new_teacher)
+    db.session.add_all([new_teacher, new_user])
     db.session.flush()
+    new_teacher.user_id = new_user.id
     new_teacher_info = Infos_teacher(teacher_id = new_teacher.id, email = email, tel = tel, add = add)
     new_teach_room = Teach_room(teacher_id = new_teacher.id, teach_room = teach_cls.id)
     db.session.add_all([new_teacher_info, new_teach_room])
@@ -122,3 +126,4 @@ def db_update_teach_room(id, teach_room = None):
         if to_delete:
             Teach_room.query.filter(Teach_room.teacher_id == id, Teach_room.teach_room.in_(to_delete)).delete(synchronize_session=False)
         db.session.commit()    
+

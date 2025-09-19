@@ -8,11 +8,14 @@ class Users(db.Model):
     id = db.Column(db.Integer, primary_key = True)
     username = db.Column(db.String, unique = True, nullable = False)
     password = db.Column(db.String, nullable = False)
-    email = db.Column(db.String, unique = True)
     role = db.Column(db.String, default = 'guest')
     status = db.Column(db.Boolean, default = True)
     is_finalize = db.Column(db.Boolean, default = False)
     info = db.relationship('Info', back_populates = 'users', lazy = True)
+    cloud = db.relationship('Cloud', back_populates = 'users', lazy = True)
+    teachers = db.relationship('Teachers', back_populates = 'users', lazy = True)
+    infos_teacher = db.relationship('Infos_teacher', back_populates = 'users', lazy = True)
+
     @validates('username')
     def username_validates(self, key, value):
         if not re.fullmatch(r'[a-z0-9_]{8,}', value):
@@ -33,6 +36,7 @@ class Info(db.Model):
     name = db.Column(db.String, nullable = False)
     tel = db.Column(db.String, default = 'Update later')
     add = db.Column(db.String, default = 'Update later')
+    email = db.Column(db.String, unique = True)
     users = db.relationship('Users', back_populates = 'info', lazy = True)
     class_room = db.relationship('Class_room', back_populates = 'info', lazy = True)
     students = db.relationship('Students', back_populates = 'info', lazy = True)

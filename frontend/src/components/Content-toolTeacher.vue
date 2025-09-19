@@ -14,6 +14,8 @@
         <input type="text" v-model="tel" required> <br>
         <label>Địa chỉ</label> <br>
         <input type="text" v-model="add" required> <br>
+        <label>Username</label> <br>
+        <input type="text" v-model="username" required> <br>
         <label>Email</label> <br>
         <input type="text" v-model="email" required> <br>
         <label>Role</label> <br>
@@ -32,6 +34,7 @@ const classRoom = ref('')
 const teachRoom = ref('')
 const tel = ref('')
 const add = ref('')
+const username = ref('')
 const email = ref('')
 const role = ref('')
 const teacherMsg = ref('')
@@ -46,6 +49,7 @@ async function addTeacher() {
         tel: tel.value,
         add: add.value,
         email: email.value,
+        username: username.value,
         role: role.value,
         year: year.value
     }

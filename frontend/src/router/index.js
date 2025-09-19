@@ -10,10 +10,14 @@ import ContentToolClass from '../components/Content-toolClass.vue'
 import ContentToolInfo from '../components/Content-toolInfo.vue'
 import ContentToolStudent from '../components/Content-toolStudent.vue'
 import ContentToolTeacher from '../components/Content-toolTeacher.vue'
+import ContentDownload from '../components/Content-download.vue'
+import ContentUpload from '../components/Content-upload.vue'
+import ContentUser from '../components/Content-user.vue'
+import ContentMonitoring from '../components/Content-monitoring.vue'
 import Sidebar from '../components/Sidebar.vue'
 import MainContent from '../components/MainContent.vue'
-import  useUserStore  from '../stores/user'
-import axios from '../stores/axios'
+import useUserStore  from '../stores/user'
+
 
 const routes = [
     {path: '/', component: Login},
@@ -21,14 +25,18 @@ const routes = [
     {path: '/dashboard', component: Dashboard, Children: [
         {path: 'sidebar', component: Sidebar},
         {path: 'mainContent', component: MainContent, Children: [
+            {path: 'report', component: ContentReport},
             {path: 'class', component: ContentClass},
             {path: 'student', component: ContentStudent},
             {path: 'teacher', component: ContentTeacher},
-            {path: 'report', component: ContentReport},
             {path: 'classtool', component: ContentToolClass},
             {path: 'studentool', component: ContentToolStudent},
             {path: 'teachertool', component: ContentToolTeacher},
-            {path: 'Infotool', component: ContentToolInfo}
+            {path: 'Infotool', component: ContentToolInfo},
+            {path: 'download', component: ContentDownload},
+            {path: 'upload', component: ContentUpload},
+            {path: 'user', component: ContentUser},
+            {path: 'monitoring', component: ContentMonitoring}
         ]}
     ]}
 ]
@@ -44,6 +52,7 @@ router.beforeEach(async (to, form, next) => {
     if (authRequired && !userStore.userInfo) {
         return next('/')
     } else if (authRequired && new Date(userStore.userInfo.expired_at) < Date.now()) {
+        userStore.clearUser()
         return next('/')
     } else {
     next()

@@ -3,13 +3,12 @@
     <div>
         <div>
             <label>name: </label>
-            <span v-if="!editing">{{ name }} </span>
+            <span v-if="!editing">{{ info.name }} </span>
             <input v-else v-model="changeName" type="text">
         </div>
         <div>
             <label>role: </label>
-            <span v-if="!editing">{{ role }}</span>
-            <input v-else v-model="changeRole" type="text">
+            <span>{{ role }}</span>
         </div>
         <div>
             <label>username: </label>
@@ -18,20 +17,20 @@
         </div>
         <div>
             <label>email: </label>
-            <span v-if="!editing">{{ email }}</span>
+            <span v-if="!editing">{{ info.email }}</span>
             <input v-else v-model="changeEmail" type="email">
         </div>
         <div>
             <label>tel: </label>
-            <span v-if="!editing">{{ tel }}</span>
+            <span v-if="!editing">{{ info.tel }}</span>
             <input v-else v-model="changeTel" type="text">
         </div>
         <div>
             <label>add: </label>
-            <span v-if="!editing">{{ add }}</span>
+            <span v-if="!editing">{{ info.add }}</span>
             <input v-else v-model="changeAdd" type="text">
         </div>
-        <button v-if="!editing" @click="changeInfo">Sửa thông tin</button>
+        <button v-if="!editing" @click="changeInfo(info)">Sửa thông tin</button>
         <div v-else>        
             <button @click="saveEdit">Xác nhận</button>
             <button @click="editing = false">Hủy</button>
@@ -53,22 +52,18 @@
     </div>
 </template>
 <script setup>
-import { ref } from 'vue';
+import { ref, onMounted } from 'vue';
 import  useUserStore  from '../stores/user';
 import axios from 'axios';
 
 
 const userStore = useUserStore() 
-const name = ref(userStore.userInfo.name)
+const info = ref([])
 const username = ref(userStore.userInfo.username)
 const role = ref(userStore.userInfo.role)
-const email = ref(userStore.userInfo.email)
-const tel = ref(userStore.userInfo.tel)
-const add = ref(userStore.userInfo.add)
 const editing = ref(userStore.userInfo.editing)
 const changeUsername = ref('')
 const changeName = ref('')
-const changeRole = ref('')
 const changeEmail = ref('')
 const changeTel = ref('')
 const changeAdd = ref('')
@@ -76,6 +71,13 @@ const password = ref('')
 const re_password = ref('')
 let updatePasswordMsg = ref('')
 const setPassword = ref(false)
+
+onMounted(async () => {
+    const res = await axios.get(`api/user/user_info?id=${userStore.userInfo.id}`, {
+        withCredentials: true
+    })
+    info.value = res.data.data
+})
 
 async function updatePassword() {
     try { const payload = {
@@ -93,13 +95,12 @@ async function updatePassword() {
     }
 }
 
-function changeInfo() {
+function changeInfo(info) {
     changeUsername.value = username.value
-    changeName.value = name.value
-    changeRole.value = role.value
-    changeEmail.value = email.value
-    changeTel.value = tel.value
-    changeAdd.value = add.value
+    changeName.value = info.name
+    changeEmail.value = info.email
+    changeTel.value = info.tel
+    changeAdd.value = info.add
     editing.value = true
 }
 
@@ -107,7 +108,6 @@ async function saveEdit() {
     const payload = {
         id: userStore.userInfo.id,
         name: changeName.value,
-        role: changeRole.value,
         username: changeUsername.value,
         email: changeEmail.value,
         tel: changeTel.value,

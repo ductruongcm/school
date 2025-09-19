@@ -3,3 +3,4 @@ from .student_schemas import Students
 from .cloud_schemas import Cloud
 from .user_schemas import Users, Info
 from .teacher_schemas import Teachers, Infos_teacher, Lesson
+from .schema_monitoring import Monitoring
