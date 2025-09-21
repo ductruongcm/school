@@ -65,7 +65,7 @@
                             <span v-if="!item.editing">{{ item.email }}</span>
                             <input v-else v-model="item.email" @keyup.enter="saveEdit(item)" type="email" style="width: 11em">
                         </td>
-                        <td>
+                        <td v-if="userStore.userInfo.role === 'admin'">
                             <button v-if="!item.editing" @click="editRow(item)">Chỉnh sửa</button>
                             <button v-else @click="saveEdit(item)">Lưu</button>
                             <button v-if="item.editing" @click="cancelEdit(item)">Hủy</button>
@@ -92,19 +92,28 @@ const year = inject('year')
 const filterName = ref('')
 const userStore = useUserStore()
 
-onMounted(async () => {
-    const res = await axios.get('api/teacher/show_lesson', { withCredentials: true})
-    lessonList.value = res.data.data
+onMounted( () => {
+    lesson()
+    classRoom()
+    fetchdata(selectedLesson.value, selectedClass.value, filterName.value)
 })
 
-onMounted(async () => {
+const lesson = async () => {
+    const res = await axios.get('api/teacher/show_lesson', {
+        withCredentials: true
+    })
+    lessonList.value = res.data.data
+}
+
+const classRoom = async () => {
     const payload = {year: year.value}
-    const res = await axios.put('api/class_room/show_class_room', payload, { 
+    const res = await axios.put('api/class_room/show_class_room', payload, {
         withCredentials: true,
         headers: {'Content-Type': 'application/json'}
     })
     classRoomList.value = res.data.data
-})
+} 
+
 
 async function fetchdata(lessonVal, classVal, nameVal) {
     try {
@@ -122,13 +131,13 @@ async function fetchdata(lessonVal, classVal, nameVal) {
     }
 }
 
-onMounted(() => {
-    fetchdata(selectedLesson.value, selectedClass.value, filterName.value)
 
-    watch([selectedLesson, selectedClass, filterName], async([lessonVal, classVal, nameVal]) => {
-        fetchdata(lessonVal, classVal, nameVal)
-    })
+    
+
+watch([selectedLesson, selectedClass, filterName], async([lessonVal, classVal, nameVal]) => {
+    fetchdata(lessonVal, classVal, nameVal)
 })
+
 
 function onReset() {
   selectedLesson.value = ""

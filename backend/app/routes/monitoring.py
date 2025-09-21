@@ -16,7 +16,6 @@ def show_monitoring():
     end_date = request.args.get('end_date')
     status = request.args.get('status')
     info = request.args.get('info')
-
-    data = db_show_monitoring(ip, username, action, start_date, end_date, status, info)
-
-    return jsonify({'data': data}), 200
+    page = int(request.args.get('page') or 1)
+    data = db_show_monitoring(ip, username, action, start_date, end_date, status, info, page)
+    return jsonify(data), 200

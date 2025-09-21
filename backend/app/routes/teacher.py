@@ -46,7 +46,8 @@ def add_teacher():
 @role_utils.required_role('admin', 'teacher')
 @jwt_required()
 def show_lesson():
-    data = db_show_lesson()
+    username = get_jwt_identity()
+    data = db_show_lesson(username)
     return jsonify({'data': data}), 200
     
 @teacher_bp.get('/show_teacher')

@@ -3,10 +3,17 @@
     <div>
         <form @submit.prevent="upload">
             <label>Lớp: </label>
-            <select v-model="classRoom">
+            <select v-model="teachRoom">
                 <option value="" disabled>-- Chọn lớp --</option>
-                <option v-for="item in classList" :key="item" :value="item"> {{ item }} </option>
-            </select> <br>
+                <option v-for="item in teachRoomList" :key="item" :value="item"> {{ item }} </option>
+            </select> 
+            <label>Thư mục: </label>
+            <select v-model="folder">
+                <option>-- Chọn môn --</option>
+                <option> {{ lesson }}</option>
+                <option v-if="teachRoom === classRoom">Chung</option>
+            </select>         
+            <br>
             <label>Nhập tên file: </label>
             <input type="text" v-model="filename" required> <br>
             <input type="file" @change="handleFileChange">
@@ -19,22 +26,46 @@
 import { ref, onMounted, inject, watch } from 'vue';
 import axios from 'axios';
 
-const classList = ref([])
-const classRoom = ref('')
+const teachRoomList = ref([])
+const teachRoom = ref('')
 const year = inject('year')
-
-onMounted(async () => {
-    const payload = {year: year.value}
-    const res = await axios.put('api/class_room/show_class_room', payload, { 
-        withCredentials: true,
-        headers: {'Content-Type': 'application/json'}
-    })
-    classList.value = res.data.data
+const folder = ref('')
+onMounted( () => {
+    fetchTeachClass()
+    fetchLesson()
+    fetchClass()
 })
 
 const selectedFile = ref(null)
 const uploadMSG = ref('')
 const filename = ref('')
+
+const fetchTeachClass = async () => {
+    const payload = {year: year.value}
+    const res = await axios.put('api/class_room/show_teach_room', payload, {
+        withCredentials: true,
+        headers: {'Content-Type': 'application/json'}
+    })
+    teachRoomList.value = res.data.data
+}
+
+const lesson = ref('')
+const fetchLesson = async () => {
+    const res = await axios.get('api/teacher/show_lesson', {
+        withCredentials: true
+    })
+    lesson.value = res.data.data
+}
+
+const classRoom = ref(null)
+const fetchClass = async () => {
+    const payload = {year: year.value}
+    const res = await axios.put('api/class_room/show_class_room', payload, {
+        withCredentials: true,
+        headers: {'Content-Type': 'application/json'}
+    })
+    classRoom.value = res.data.data[0]
+}
 
 function handleFileChange(event) {
     selectedFile.value = event.target.files[0]
@@ -46,7 +77,7 @@ async function upload() {
         
     } else {
         const file = selectedFile.value
-        console.log(file)
+        
         const formData = new FormData()
 
         formData.append('file', file)
@@ -54,7 +85,8 @@ async function upload() {
         formData.append('fileExtension', file.name)
         formData.append('fileSize', file.size)
         formData.append('fileType', file.type)
-        formData.append('classRoom', classRoom.value)
+        formData.append('classRoom', teachRoom.value)
+        formData.append('folder', folder.value)
         try {
             const res = await axios.post('api/cloud/upload', formData, { 
                 withCredentials: true,
@@ -76,9 +108,9 @@ async function upload() {
     }
 }
 
-watch(classList, (newList) => {
-    if (newList.length === 1) {
-        classRoom.value = newList[0]
-    }
-})
+// watch(classList, (newList) => {
+//     if (newList.length === 1) {
+//         classRoom.value = newList[0]
+//     }
+// })
 </script>

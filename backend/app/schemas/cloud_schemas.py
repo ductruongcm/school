@@ -6,6 +6,7 @@ class Cloud(db.Model):
     __tablename__ = 'cloud'
     id = db.Column(db.Integer, primary_key = True)
     class_room_id = db.Column(db.Integer, db.ForeignKey('class_room.id', ondelete = 'CASCADE'))
+    folder = db.Column(db.String, nullable = False)
     filename = db.Column(db.String, nullable = False)
     filetype = db.Column(db.String, nullable = False)
     filesize = db.Column(db.String, nullable = False)

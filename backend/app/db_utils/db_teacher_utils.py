@@ -73,10 +73,9 @@ def db_show_teacher(lesson = None, class_room = None, name = None):
     result = [dict(zip(keys, row)) for row in rows]
     return result
 
-def db_show_lesson():
-    data = db.session.query(Lesson.lesson).all()
-    key = ['lesson']
-    return [dict(zip(key, item)) for item in data]
+def db_show_lesson(username):
+    data = db.session.query(Lesson.lesson).join(Teachers).join(Users).filter(Users.username == username).first()
+    return data[0]
     
 def db_update_info(id, name = None, lesson = None, class_room = None, tel = None, add = None, email = None):
     #lấy thông tin và update

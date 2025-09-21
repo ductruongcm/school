@@ -1,7 +1,7 @@
 <template>
     <div>Danh sách Log</div>
 
-    <form @submit.prevent="searchMonitoring()">
+    <form @submit.prevent="fetchData(page)">
         <label>IP: </label>
         <input v-model="ip" type="text">
         <label>Username: </label>
@@ -40,12 +40,19 @@
                 <td>{{ item.client_ip }}</td>
                 <td>{{ item.username }}</td>
                 <td>{{ item.action }}</td>
-                <td>{{ dayjs(item.datetime).format('YYYY/MM/DD HH:MM:ss') }}</td>
+                <td>{{ dayjs(item.datetime).format('YYYY/MM/DD HH:mm:ss') }}</td>
                 <td>{{ item.status }}</td>
                 <td>{{ item.info }}</td>
             </tr>
         </tbody>
     </table>
+    <div class="pagination">
+        <button @click="goToPage(1)" :disabled="currentPage === 1"><< Đầu tiên</button>
+        <button @click="goToPage(currentPage - 1)" :disabled="currentPage === 1">< Trước</button>
+        <span>Page {{ currentPage }} of {{ totalPages }}</span>
+        <button @click="goToPage(currentPage + 1)" :disabled="currentPage === totalPages">Sau ></button>
+        <button @click="goToPage(totalPages)" :disabled="currentPage === totalPages">Cuối >></button>
+    </div>
 </template>
 <script setup>
 import { ref, onMounted } from 'vue';
@@ -59,20 +66,39 @@ const action = ref('')
 const startDate = ref('')
 const endDate = ref('')
 const status = ref('')
+const currentPage = ref('')
+const totalPages = ref('')
 
-onMounted(async () => {
-    const res = await axios.get('api/monitoring/show_monitoring', {
-        withCredentials: true
-    })
-    data.value = res.data.data
-})
-
-async function searchMonitoring() {
-    const res = await axios.get(`api/monitoring/show_monitoring?ip=${ip.value}&username=${username.value}&action=${action.value}&start_date=${startDate.value}&end_date=${endDate.value}&status=${status.value}`, {
+const fetchData = async (page = 1) => {
+    try {
+        const res = await axios.get('api/monitoring/show_monitoring', {
+            params: {ip: ip.value,
+                username: username.value,
+                action: action.value,
+                start_date: startDate.value,
+                end_date: endDate.value,
+                status: status.value,
+                page: page
+            },
             withCredentials: true
         })
-    data.value = res.data.data
+        data.value = res.data.data
+        currentPage.value = res.data.page
+        totalPages.value = res.data.total_pages
+        
+    } catch (e) {
+        console.error('Fetch error', e)
+    }
+} 
+
+const goToPage = (page) => {
+    if (page < 1 || page > totalPages.value) return
+    fetchData(page)
 }
+
+onMounted( () => {
+    fetchData(1)
+})
 
 function onReset() {
     ip.value = ''
@@ -81,8 +107,7 @@ function onReset() {
     status.value = ''
     startDate.value = ''
     endDate.value = ''
-
-    searchMonitoring()
+    fetchData(1)
 }
 
 </script>

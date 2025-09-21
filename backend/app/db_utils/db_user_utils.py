@@ -1,6 +1,7 @@
 from app.schemas import Users, Info, Infos_teacher, Teachers
 from app.extensions import db
 from werkzeug.security import generate_password_hash
+import math
 
 def db_info_update(id, new_name, new_role, new_username, new_email = None, new_tel = None, new_add = None):
     user = Users.query.filter(Users.id == id).first()
@@ -28,15 +29,21 @@ def db_reset_password(username, new_password):
     user.password = new_password
     db.session.commit()
 
-def db_show_users(username = None, role = None):
+def db_show_users(username = None, role = None, page = 1):
     query = db.session.query(Users.username, Users.role)
     if username:
         query = query.filter(Users.username.ilike(f'%{username}%'))
     if role:
         query = query.filter(Users.role.ilike(f'%{role}%'))
-    rows = query.order_by(Users.username).all()
+    all_records = query.count()
+    limit = 25
+    total_pages = math.ceil(all_records/limit) if all_records > 0 else 1
+    offset = (page - 1)*limit
+    rows = query.order_by(Users.username).limit(limit).offset(offset).all()
     keys = ['username', 'role']
-    return [dict(zip(keys, row)) for row in rows]
+    return {'data': [dict(zip(keys, row)) for row in rows],
+            'total_pages': total_pages,
+            'page': page}
 
 def db_update_role(username, role):
     user = Users.query.filter(Users.username == username).first()

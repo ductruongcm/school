@@ -2,11 +2,16 @@
     <div>Download</div>
     <div>
         <div>
-            <form  @change="selectedFolder">
+            <form>
                 <label>Lớp: </label>
-                <select v-model="classFolder">
+                <select v-model="classFolder" @change="showFolder()">
                     <option value="" disabled>-- Chọn lớp --</option>
-                    <option v-for="classRoom in classList" :key="classRoom" :value="classRoom">{{ classRoom }}</option>
+                    <option v-for="classRoom in classList" :key="classRoom">{{ classRoom }}</option>
+                </select>
+                <label>Thư mục: </label>
+                <select v-model="fileFolder" @change="showFile">
+                    <option value="" disabled>-- Chọn môn --</option>
+                    <option v-for="item in folder" :key="item"> {{ item }}</option>
                 </select>
             </form>
         </div>
@@ -24,14 +29,14 @@
                 </tr>
             </thead>
             <tbody>
-                <tr v-for="(item,index) in data" :key="item">
+                <tr v-for="(item, index) in file" :key="item.upload_at" >
                     <td>{{ index + 1 }}</td>
                     <td>{{ item.file_name }}</td>
                     <td>{{ item.file_type }}</td>
                     <td>{{ (item.file_size/1024/1024).toFixed(2) }} MB</td>
-                    <td>{{ dayjs(item.upload_at).format('MM/DD/YYYY HH:MM:ss') }}</td>
+                    <td>{{ dayjs(item.upload_at).format('MM/DD/YYYY HH:mm:ss') }}</td>
                     <td>{{ item.upload_by }}</td>
-                    <td>{{ item.status }}</td>
+                    <td>{{ item.status ? 'Hiện' : 'Ẩn'}}</td>
                     <td>
                         <button @click="download(item)">Download</button>
                         <button v-if="!item.status" @click="unhideFile(item)">Hiện</button>
@@ -49,29 +54,49 @@ import dayjs from 'dayjs'
 import { ref, onMounted, inject, watch } from 'vue';
 
 const classList = ref([])
+const classFolder = ref('')
+const folder = ref([])
+const fileFolder = ref('')
+const file = ref([])
 const year = inject('year')
-onMounted(async () => {
+
+onMounted( () => {
+    showTeachRoom()
+})
+
+const showTeachRoom = async () => {
     const payload = {year: year.value}
-    const res = await axios.put('api/class_room/show_class_room', payload, {
+    const res = await axios.put('api/class_room/show_teach_room', payload, {
         withCredentials: true,
         headers: {'Content-Type': 'application/json'}
     })
     classList.value = res.data.data
-})
-
-const classFolder = ref('')
-const data = ref('')
-async function selectedFolder() {
-    const res = await axios.get(`api/cloud/show_folder?class_room=${classFolder.value}`, { withCredentials: true})
-    data.value = res.data.data
 }
 
-watch(classList, (newList) => {
-    if(newList.length === 1) {
-        classFolder.value = newList[0]
-        selectedFolder()
+const showFolder = async () => {
+    const res = await axios.get('api/cloud/show_folder', {
+        params: {class_room: classFolder.value},
+        withCredentials: true
+    })
+    folder.value = res.data.data
+}
+
+watch([classFolder, fileFolder], async ([newClass, newFolder]) => {
+    if (newClass && newFolder) {
+        await showFile()
     }
 })
+
+const showFile = async () => {
+    const res = await axios.get('api/cloud/show_file', {
+        withCredentials: true,
+        params: { 
+            class_room: classFolder.value,
+            folder: fileFolder.value
+        }
+    })
+    file.value = res.data.data
+}
 
 async function hideFile(item) {
     const payload = {file_name: item.file_name}
