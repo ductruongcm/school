@@ -1,7 +1,7 @@
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, jsonify
 from flask_jwt_extended import jwt_required
-from app.utils.role_utils import required_role
-from app.db_utils.db_monitoring_utils import db_show_monitoring
+from app.utils import required_role, error_show_return
+from app.controllers import Monitoring_controller
 
 monitoring_bp = Blueprint('monitoring_bp', __name__, url_prefix='/api/monitoring')
 
@@ -9,13 +9,10 @@ monitoring_bp = Blueprint('monitoring_bp', __name__, url_prefix='/api/monitoring
 @jwt_required()
 @required_role('admin')
 def show_monitoring():
-    ip = request.args.get('ip')
-    username = request.args.get('username')
-    action = request.args.get('action')
-    start_date = request.args.get('start_date')
-    end_date = request.args.get('end_date')
-    status = request.args.get('status')
-    info = request.args.get('info')
-    page = int(request.args.get('page') or 1)
-    data = db_show_monitoring(ip, username, action, start_date, end_date, status, info, page)
-    return jsonify(data), 200
+    result = Monitoring_controller.show_monitoring()
+    errors = error_show_return(result)
+    if errors:
+        return errors
+
+    return jsonify(result['data']), 200
+

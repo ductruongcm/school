@@ -1,9 +1,8 @@
-from app.routes import user, class_room, student, teacher, oauth2, auth, cloud, monitoring
+from app.routes import user, student, teacher, oauth2, cloud, monitoring, academic
 
 routes = [oauth2.oauth2_bp, 
-          auth.auth_bp, 
           user.user_bp, 
-          class_room.class_room_bp,
+          academic.academic_bp,
           student.student_bp,
           teacher.teacher_bp,
           cloud.cloud_bp,

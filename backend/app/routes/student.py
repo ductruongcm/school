@@ -1,14 +1,14 @@
 from flask import Blueprint, request, jsonify
-from app.utils import utils, role_utils
+from app.utils import helpers, required_role
 from flask_jwt_extended import jwt_required, get_jwt_identity
-from app.db_utils.db_student_utils import db_add_student, db_show_student, db_update_info
-from app.db_utils.db_monitoring_utils import db_record_log
+from app.repositories.student import db_add_student, db_show_student, db_update_info, db_show_score
+from app.services import Monitoring_service
 
 student_bp = Blueprint('student_bp', __name__, url_prefix = '/api/student')
 
 @student_bp.post('/add_student')
 @jwt_required()
-@role_utils.required_role('admin', 'teacher')
+@required_role('admin', 'teacher')
 def add_student():
     errors = []
     username = get_jwt_identity()
@@ -18,17 +18,19 @@ def add_student():
     tel = request.get_json().get('tel')
     add = request.get_json().get('add')
     role = request.get_json().get('role') or 'guest'
-    errors = utils.errors(name = name, class_room = class_room, year = year, tel = tel, add = add)
+
+    errors = helpers.errors(name = name, class_room = class_room, year = year, tel = tel, add = add)
     if errors:
-        db_record_log(username, 'add student', 'FAIL', f'Add {name}: {errors}')
+        Monitoring_service.handle_add_monitoring(username, 'add student', 'FAIL', f'Add {name}: {errors}')
         return jsonify({'msg': errors}), 400
-    db_record_log(username, 'add student', 'SUCCESS', f'Add: {name}')
+   
+    Monitoring_service.handle_add_monitoring(username, 'Add student', 'SUCCESS', f'Add: {name}')
     db_add_student(name, class_room, tel, add, role, year)
     return jsonify({'msg': 'Thêm học sinh mới thành công!'}), 200
 
 @student_bp.get('/show_student')
 @jwt_required()
-@role_utils.required_role('admin', 'teacher')
+@required_role('admin', 'teacher')
 def show_student():
     class_room = request.args.get('class_room')
     data = db_show_student(class_room)
@@ -36,17 +38,27 @@ def show_student():
     
 @student_bp.put('/update_info')
 @jwt_required()
-@role_utils.required_role('admin')
+@required_role('admin')
 def update_info():
     username = get_jwt_identity()
     student_id = request.get_json().get('id')
     name = request.get_json().get('name')
     tel = request.get_json().get('tel')
     add = request.get_json().get('add')
-    errors = utils.errors(name = name, tel = tel, add = add)
+    errors = helpers.errors(name = name, tel = tel, add = add)
     if errors:
-        db_record_log(username, 'update student info', 'FAIL', f'Update {name}: {errors}')
+        Monitoring_service.handle_add_monitoring(username, 'update student info', 'FAIL', f'Update {name}: {errors}')
         return jsonify({'msg': errors}), 400
+    
     db_update_info(student_id, name, tel, add)
-    db_record_log(username, 'update student info', 'SUCCESS', f'Update: {name}')
+    Monitoring_service.handle_add_monitoring(username, 'update student info', 'SUCCESS', f'Update: {name}')
     return jsonify({'msg': 'Updated!'}), 200
+
+@student_bp.get('/show_score')
+@jwt_required()
+@required_role('admin', 'teacher')
+def show_score():
+    class_room = request.args.get('class_room')
+    lesson = request.args.get('lesson')
+    data = db_show_score(class_room, lesson)
+    return jsonify({'data': data})

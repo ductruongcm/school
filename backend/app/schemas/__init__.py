@@ -1,6 +1,5 @@
-from .class_room_schemas import Class_room, Year
-from .student_schemas import Students
-from .cloud_schemas import Cloud
-from .user_schemas import Users, Info
-from .teacher_schemas import Teachers, Infos_teacher, Lesson, Teach_room
-from .schema_monitoring import Monitoring
+from .auth import Register, Login, SetPassword
+from .user import TeacherSchemas, UserSchemas, Student
+from .academic import AcademicCreateSchemas, AcademicShowSchemas
+from pydantic import ValidationError
+from .monitoring import MonitoringShowSchema

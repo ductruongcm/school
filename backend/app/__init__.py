@@ -1,11 +1,13 @@
 from flask import Flask
-from app.extensions import db, lm, jwt, cors, mail, migrate
+from .extensions import db, lm, jwt, cors, mail, migrate
 from configs import Configs
-from app.routes import routes
+from .routes import routes
 
 def launch():
+    global celery
     app = Flask(__name__)
     app.config.from_object(Configs)
+
     db.init_app(app)
     lm.init_app(app)
     jwt.init_app(app)
@@ -13,6 +15,7 @@ def launch():
     migrate.init_app(app, db)
     cors.init_app(app, origins = ['http://localhost:5173'],
                    supports_credentials = True)
+
     for route in routes: 
         app.register_blueprint(route)
     return app

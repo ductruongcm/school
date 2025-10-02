@@ -9,7 +9,7 @@ db_password = quote_plus(getenv('db_password'))
 jwt_secret_key = quote_plus(getenv('jwt_secret_key'))
 
 
-class Configs():
+class Configs:
     SQLALCHEMY_DATABASE_URI = f'postgresql://{db_username}:{db_password}@localhost:5432/school'
     SQLALCHEMY_TRACK_MODIFICATIONS = True
     JWT_SECRET_KEY = jwt_secret_key
@@ -20,4 +20,7 @@ class Configs():
     JWT_COOKIE_SAMESITE = 'Strict' 
     JWT_COOKIE_CSRF_PROTECT = False          #tắt csrf để test, thực tế phải bật
     JWT_COOKIE_SECURE = False                 #cho phép gửi cookies qua http(ko cần https để test)
-   
+    CELERY_BROKER_URL = "redis://localhost:6379/0"
+    CELERY_RESULT_BACKEND = "redis://localhost:6379/0"
+
+

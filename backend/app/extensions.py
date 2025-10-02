@@ -12,7 +12,7 @@ load_dotenv()
 
 db = SQLAlchemy()
 jwt = JWTManager()
-lm = Limiter(key_func = util.get_remote_address, storage_uri = "redis://localhost:6379", )
+lm = Limiter(key_func = util.get_remote_address, storage_uri = "redis://localhost:6379/1" )
 cors = CORS()
 mail = Mail()
 migrate = Migrate()
