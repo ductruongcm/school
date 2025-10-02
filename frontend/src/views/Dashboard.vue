@@ -9,22 +9,23 @@
 <script setup>
 import Sidebar from '../components/Sidebar.vue';
 import MainContent from '../components/MainContent.vue';
-import ContentClass from '../components/Content-class.vue';
-import ContentReport from '../components/Content-report.vue';
-import ContentStudent from '../components/Content-student.vue';
-import ContentTeacher from '../components/Content-teacher.vue';
-import ContentToolClass from '../components/Content-toolClass.vue';
-import ContentToolInfo from '../components/Content-toolInfo.vue';
-import ContentToolStudent from '../components/Content-toolStudent.vue';
-import ContentToolTeacher from '../components/Content-toolTeacher.vue';
-import ContentDownload from '../components/Content-download.vue';
-import ContentUpload from '../components/Content-upload.vue';
-import ContentUser from '../components/Content-user.vue';
-import ContentMonitoring from '../components/Content-monitoring.vue';
+import ContentDownload from '../components/class_room/Content-download.vue';
+import ContentUpload from '../components/class_room/Content-upload.vue';
+import ContentInfo from '../components/info/Content-info.vue';
+import ContentMonitoring from '../components/monitoring/Content-monitoring.vue';
+import ContentReport from '../components/report/Content-report.vue';
+import ContentAddStudent from '../components/student/Content-addStudent.vue';
+import ContentStudent from '../components/student/Content-Student.vue';
+import ContentAddTeacher from '../components/teacher/Content-addTeacher.vue';
+import ContentTeacher from '../components/teacher/Content-teacher.vue';
+import ContentClass from '../components/class_room/Content-class.vue';
+import ContentLessonTool from '../components/tool/Content-lessonTool.vue';
+import ContentYearTool from '../components/tool/Content-yearTool.vue';
+import ContentUser from '../components/user/Content-user.vue';
 import axios from 'axios';
 import { ref, onMounted, shallowRef } from 'vue';
 import  useUserStore  from '../stores/user';
-
+import ContentClassTool from '../components/tool/Content-classTool.vue';
 
 const username = ref('')
 const role = ref('')
@@ -40,17 +41,19 @@ const activeComponent = shallowRef(ContentReport)
 function switchComponent(name) {
     const map = {
         ContentReport,
-        ContentClass,
+        ContentClassTool,
+        ContentYearTool,
+        ContentLessonTool,
         ContentTeacher,
+        ContentAddTeacher,
         ContentStudent,
-        ContentToolClass,
-        ContentToolInfo,
-        ContentToolStudent,
-        ContentToolTeacher,
+        ContentAddStudent,
+        ContentInfo,
         ContentDownload,
         ContentUpload,
         ContentUser,
-        ContentMonitoring
+        ContentMonitoring,
+        ContentClass
     }
     activeComponent.value = map[name]
 }
@@ -58,7 +61,7 @@ function switchComponent(name) {
 onMounted(() => {
     const timer = new Date(userStore.userInfo.expired_at)
     const remaining = timer - Date.now()
-    
+   
     if (remaining > 30000) {
         const delay = remaining - 30000
         setTimeout(() => {
@@ -69,7 +72,7 @@ onMounted(() => {
 
 async function refreshToken() {
     const userStore = useUserStore()
-    const res = await axios.get('api/auth/refresh_token', { withCredentials: true })
+    const res = await axios.post('api/user/refresh_token', { withCredentials: true })
     userStore.setUserInfo(res.data)
     const timer = new Date(userStore.userInfo.expired_at)
     let remaining = timer - Date.now()

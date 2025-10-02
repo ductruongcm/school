@@ -66,7 +66,7 @@ onMounted( () => {
 
 const showTeachRoom = async () => {
     const payload = {year: year.value}
-    const res = await axios.put('api/class_room/show_teach_room', payload, {
+    const res = await axios.put('api/academic/show_teach_room', payload, {
         withCredentials: true,
         headers: {'Content-Type': 'application/json'}
     })

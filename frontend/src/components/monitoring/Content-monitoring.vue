@@ -85,9 +85,12 @@ const fetchData = async (page = 1) => {
         data.value = res.data.data
         currentPage.value = res.data.page
         totalPages.value = res.data.total_pages
-        
     } catch (e) {
-        console.error('Fetch error', e)
+        if (e.response.status === 400 || 422 || 500) {
+            console.log(e.response.data.msg)
+        } else {
+            console.log('Có rắc rối với frontend!')
+        }
     }
 } 
 

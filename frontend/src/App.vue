@@ -2,6 +2,7 @@
 import TopPopup from './components/TopPopup.vue';
 import { ref, provide, computed } from 'vue';
 import useUserStore from './stores/user';
+import axios from 'axios';
 
 const userStore = useUserStore()
 
@@ -12,6 +13,7 @@ const year = ref('2025 - 2026')
 provide('year', year)
 
 function logout() {
+  axios.get('api/user/logout')
   userStore.clearUser()
   window.location.href = '/'
 }

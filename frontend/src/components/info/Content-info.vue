@@ -53,7 +53,7 @@
 </template>
 <script setup>
 import { ref, onMounted } from 'vue';
-import  useUserStore  from '../stores/user';
+import useUserStore from '../../stores/user';
 import axios from 'axios';
 
 
@@ -73,10 +73,14 @@ let updatePasswordMsg = ref('')
 const setPassword = ref(false)
 
 onMounted(async () => {
-    const res = await axios.get(`api/user/user_info?id=${userStore.userInfo.id}`, {
-        withCredentials: true
+    const res = await axios.get('api/user/show_user_info', {
+        withCredentials: true,
+        params: {
+            id: userStore.userInfo.id,
+            role: userStore.userInfo.role
+        }
     })
-    info.value = res.data.data
+    info.value = res.data
 })
 
 async function updatePassword() {
@@ -121,7 +125,7 @@ async function saveEdit() {
         updatePasswordMsg.value = res.data.msg
         window.location.reload()
     } catch (e) {
-        if (e.response && e.response.status === 400) {
+        if (e.response && e.response.status === 400 || 422 || 500) {
             updatePasswordMsg.value = e.response.data.msg
         } else {
             updatePasswordMsg.value = 'Có vấn đề gì rồi!!'

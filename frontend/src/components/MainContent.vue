@@ -5,17 +5,19 @@
 </template>
 
 <script setup>
-import ContentReport from '../components/Content-report.vue';
-import ContentClass from '../components/Content-class.vue';
-import ContentStudent from '../components/Content-student.vue';
-import ContentTeacher from '../components/Content-teacher.vue';
-import ContentToolClass from '../components/Content-toolClass.vue';
-import ContentToolInfo from '../components/Content-toolInfo.vue';
-import ContentToolStudent from '../components/Content-toolStudent.vue';
-import ContentToolTeacher from '../components/Content-toolTeacher.vue';
-import ContentDownload from './Content-download.vue';
-import ContentUpload from './Content-upload.vue';
-import ContentUser from './Content-user.vue';
+import ContentDownload from './class_room/Content-download.vue';
+import ContentUpload from './class_room/Content-upload.vue';
+import ContentInfo from './info/Content-info.vue';
+import ContentMonitoring from './monitoring/Content-monitoring.vue';
+import ContentReport from './report/Content-report.vue';
+import ContentAddStudent from './student/Content-addStudent.vue';
+import ContentStudent from './student/Content-addStudent.vue';
+import ContentAddTeacher from './teacher/Content-addTeacher.vue';
+import ContentTeacher from './teacher/Content-teacher.vue';
+import ContentClassTool from './tool/Content-classTool.vue';
+import ContentLessonTool from './tool/Content-lessonTool.vue';
+import ContentYearTool from './tool/Content-yearTool.vue';
+import ContentUser from './user/Content-user.vue';
 
 const props = defineProps({
     activeComponent: {

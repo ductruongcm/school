@@ -2,19 +2,14 @@
     <div>Danh sách giáo viên</div>
     <div class="main">
         <div>
-            <form>
+            <form @submit.prevent="fetchdata">
                 <label>Tìm theo môn học: </label>
-                <select v-model="selectedLesson">
-                    <option selected value="">-- Theo môn học --</option>
-                    <option v-for="lesson in lessonList" :key="lesson">{{ lesson.lesson }}</option>
-                </select>
+                <input type="text" v-model="selectedLesson">
                 <label> Tìm theo lớp: </label>
-                <select v-model="selectedClass">
-                    <option selected value="">-- Theo lớp --</option>
-                    <option v-for="classRoom in classRoomList" :key="classRoom">{{ classRoom }}</option>
-                </select>
+                <input type="text" v-model="selectedClass">
                 <label> Tìm theo tên: </label>
                 <input v-model="filterName" placeholder="Nhập tên giáo viên">
+                <button>Tìm kiếm</button>
                 <button type="button" @click="onReset">Nhập lại</button>
             </form>
         </div>
@@ -77,10 +72,10 @@
     </div>
 </template>
 <script setup>
-import { ref, onMounted, watch, inject } from 'vue';
+import { ref, onMounted, inject } from 'vue';
 import axios from 'axios';
-import useUserStore from '../stores/user';
-import { message } from '../stores/usePopup';
+import useUserStore from '../../stores/user';
+import { message } from '../../stores/usePopup';
 
 const teacherList = ref([])
 const teacherSearchMsg = ref('')
@@ -93,37 +88,22 @@ const filterName = ref('')
 const userStore = useUserStore()
 
 onMounted( () => {
-    lesson()
-    classRoom()
-    fetchdata(selectedLesson.value, selectedClass.value, filterName.value)
+    fetchdata()
 })
 
-const lesson = async () => {
-    const res = await axios.get('api/teacher/show_lesson', {
-        withCredentials: true
-    })
-    lessonList.value = res.data.data
-}
-
-const classRoom = async () => {
-    const payload = {year: year.value}
-    const res = await axios.put('api/class_room/show_class_room', payload, {
-        withCredentials: true,
-        headers: {'Content-Type': 'application/json'}
-    })
-    classRoomList.value = res.data.data
-} 
-
-
-async function fetchdata(lessonVal, classVal, nameVal) {
+async function fetchdata() {
     try {
         const res = await axios.get('/api/teacher/show_teacher', {
-        params: {lesson: lessonVal, class_room: classVal, name: nameVal}}, {
-        withCredentials: true})
-        teacherList.value = res.data.data
-  
+        params: {
+            lesson: selectedLesson.value, 
+            class_room: selectedClass.value, 
+            name: filterName.value}}, {
+        withCredentials: true
+    })
+        console.log(res.data)
+        teacherList.value = res.data
     } catch (e) {
-        if (e.response && e.response.status === 400) {
+        if (e.response && e.response.status === 400 || 422 || 500) {
             teacherSearchMsg.value = e.response.data.msg
         } else {
             teacherSearchMsg.value = 'Có vấn đề gì rồi!!'
@@ -131,19 +111,12 @@ async function fetchdata(lessonVal, classVal, nameVal) {
     }
 }
 
-
-    
-
-watch([selectedLesson, selectedClass, filterName], async([lessonVal, classVal, nameVal]) => {
-    fetchdata(lessonVal, classVal, nameVal)
-})
-
-
 function onReset() {
   selectedLesson.value = ""
   selectedClass.value = ""
   filterName.value = ""
   teacherSearchMsg.value = "" 
+  fetchdata()
 }
 
 function editRow(item) {
@@ -169,12 +142,12 @@ async function saveEdit(item) {
             email: item.email,
             year: year.value
         }
-        const res = await axios.put('api/teacher/update_info', payload, { 
+        await axios.put('api/teacher/update_info', payload, { 
             withCredentials: true,
             headers: {'Content-Type': 'application/json'}})
         item.editing = false
     } catch (e) {
-        if (e.response && e.response.status === 400) {
+        if (e.response && e.response.status === 400 || 422 || 500) {
             teacherSearchMsg.value = e.response.data.msg
         } else {
             teacherSearchMsg.value = 'Có vấn đề gì rồi!!'

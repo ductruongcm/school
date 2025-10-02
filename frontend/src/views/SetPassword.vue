@@ -1,18 +1,14 @@
 <template>
-    <div class="register">
-        <div>Đăng ký làm thành viên của trường chúng tôi</div>
+    <div class="setPassword">
         <form @submit.prevent="handleSubmit">
             <label>Username</label> <br>
-            <input type="text" v-model="username" required> <br>
+            <div>Xin chào {{ name }}! Hãy thiết lập mật khẩu để đăng nhập</div>
             <label>Password</label> <br>
             <input type="password" v-model="password" required> <br>
             <label>Re-type password</label> <br>
             <input type="password" v-model="rePassword" required> <br>
-            <label>Name</label> <br>
-            <input type="text" v-model="name" required> <br>
-  
-         
-            <button type="submit">Đăng ký</button>
+        
+            <button type="submit">Xác nhận</button>
             <button type="reset">Nhập lại từ đầu</button>
         </form>
         <div>{{ message }}</div>
@@ -20,33 +16,53 @@
 
 </template>
 <script setup>
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import axios from 'axios'
 import router from '../router'
 
-const username = ref('')
+const name = ref('')
 const password = ref('')
 const rePassword = ref('')
-const name = ref('')
+const token = new URLSearchParams(window.location.search).get('token')
+const userId = ref('')
 const message = ref('')
+
+const fetchUserInfo = async () => {
+    try{
+        const payload = {token: token}
+        await axios.post('api/user/check_tmp_token', payload, {
+            headers: {'Content-Type': 'application/json'}
+        })
+    } catch (e) {
+        router.push('/')
+    }
+}
+
+onMounted(() => {
+    if (!token) {
+        router.push('/')
+    }
+    fetchUserInfo()
+})
 
 const handleSubmit = async () => {
     const payload = {
-        username: username.value,
         password: password.value,
         repassword: rePassword.value,
-        name: name.value
+        user_id: userId.value,
+        token: token
     }
 
     try {
-        await axios.post("/api/user/register", payload, {
+        await axios.post("/api/user/set_password", payload, {
         headers: {"Content-Type": "application/json"}
         })
+        
         router.push('/')
+        
     } catch (error) {
         if (error.response && error.response.status === 400 || 422 || 500) {
             message.value = error.response.data.msg
-            console.log(error.response.data.msg)
         } else {
             message.value = 'có lỗi xảy ra!!'
         }        
@@ -55,7 +71,7 @@ const handleSubmit = async () => {
 
 </script>
 <style scoped>
-.register {
+.setPassword {
     position: relative;
     justify-items: center;
     top: 8em;
