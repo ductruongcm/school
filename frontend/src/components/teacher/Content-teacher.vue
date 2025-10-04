@@ -79,39 +79,37 @@ import { message } from '../../stores/usePopup';
 
 const teacherList = ref([])
 const teacherSearchMsg = ref('')
-const lessonList = ref([])
 const selectedLesson = ref('')
 const selectedClass = ref('')
-const classRoomList = ref('')
 const year = inject('year')
 const filterName = ref('')
 const userStore = useUserStore()
 
-onMounted( () => {
+onMounted(() => {
     fetchdata()
 })
 
-async function fetchdata() {
+const fetchdata = async () => {
     try {
-        const res = await axios.get('/api/teacher/show_teacher', {
-        params: {
-            lesson: selectedLesson.value, 
-            class_room: selectedClass.value, 
-            name: filterName.value}}, {
-        withCredentials: true
-    })
-        console.log(res.data)
+        const res = await axios.get('api/teacher/teachers', {
+            params: {
+                lesson: selectedLesson.value,
+                class_room: selectedClass.value,
+                name: filterName.value
+            },
+            withCredentials: true
+        })
         teacherList.value = res.data
     } catch (e) {
         if (e.response && e.response.status === 400 || 422 || 500) {
             teacherSearchMsg.value = e.response.data.msg
         } else {
-            teacherSearchMsg.value = 'Có vấn đề gì rồi!!'
+            teacherSearchMsg.value = 'Có rắc rồi rồi!'
         }
     }
 }
 
-function onReset() {
+const onReset = () => {
   selectedLesson.value = ""
   selectedClass.value = ""
   filterName.value = ""
@@ -119,17 +117,17 @@ function onReset() {
   fetchdata()
 }
 
-function editRow(item) {
+const editRow = (item) => {
     item.original = {...item}
     item.editing = true
 }
 
-function cancelEdit(item) {
+const cancelEdit = (item) => {
     Object.assign(item, item.original) //Revert lại
     item.editing = false
 }
 
-async function saveEdit(item) {
+const saveEdit = async (item) => {
     try {
         const payload = {
             id: item.id,
@@ -142,21 +140,19 @@ async function saveEdit(item) {
             email: item.email,
             year: year.value
         }
-        await axios.put('api/teacher/update_info', payload, { 
+        const res = await axios.put('api/teacher/teacher_info', payload, {
             withCredentials: true,
-            headers: {'Content-Type': 'application/json'}})
+            headers: {'Content-Type': 'application/json'}
+        })
         item.editing = false
+        teacherSearchMsg.value = 'Đã cập nhật thành công!'
     } catch (e) {
         if (e.response && e.response.status === 400 || 422 || 500) {
             teacherSearchMsg.value = e.response.data.msg
         } else {
-            teacherSearchMsg.value = 'Có vấn đề gì rồi!!'
+            teacherSearchMsg.value = 'Có rắc rồi rồi!'
         }
-
     }
 }
-
-
-
 
 </script>

@@ -26,41 +26,38 @@ import useUserStore from '../stores/user';
 
 const username = ref('')
 const password = ref('')
-let loginMsg = ref('')
+const loginMsg = ref('')
 
 const router = useRouter()
 const userStore = useUserStore()
 
-async function login() {
+const login = async () => {
     const payload = {
         username: username.value,
         password: password.value
     }
     try {
-        const res = await axios.post('/api/user/login', payload, {
-            headers: {"Content-Type": "application/json"}
+        const res = await axios.post('api/user/login', payload, {
+            headers: {'Content-Type': 'application/json'}
         })
         userStore.setUserInfo(res.data)
-        
         router.push('/dashboard')
-        
-  
-    } catch (error) {
-        if (error.response && error.response.status === 400) {
-            loginMsg.value = error.response.data.msg
+    } catch (e) {
+        if (e.response && e.response.status === 400 || 422 || 500) {
+            loginMsg.value = e.response.data.msg
         } else {
-            loginMsg.value = 'Có lỗi xảy ra!'
+            loginMsg.value = 'Có rắc rối rồi!'
         }
     }
 }
 
-async function loginGG() {
-    const res = await axios.get("/api/oauth2/login_gg");
-    const url = res.data;
-    window.location.href = url;
+const loginGG = async () => {
+    const res = await axios.get('api/oauth2/login_gg')
+    const url = res.data
+    window.location.href = url
 }
 
-async function register() {
+function register() {
     router.push('/register')
 }
 

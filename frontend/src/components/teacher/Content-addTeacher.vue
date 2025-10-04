@@ -12,7 +12,7 @@
         <label>Chủ nhiệm lớp</label> <br>
         <select v-model="selectedClassRoom">
             <option value="" selected disabled>--Chọn lớp học--</option>
-            <option v-for="classRoom in classList" :key="classRoom">{{ classRoom }}</option>
+            <option v-for="classRoom in classList" :key="classRoom.class_room_id" :value="classRoom.class_room_id">{{ classRoom.class_room }}</option>
         </select> <br>
         <label>Phụ trách lớp</label> <br>
         <div style="display: flex; gap: 20px">
@@ -20,8 +20,8 @@
             <div>
                 <div>Chọn lớp học</div>
                 <ul>
-                    <li v-for="teachRoom in teachClassList" :key="teachRoom">
-                        <input type="checkbox" :value="teachRoom" v-model="selectedLeft" /> {{ teachRoom }}
+                    <li v-for="teachRoom in teachClassList" :key="teachRoom.class_room_id" :value="teachRoom.class_room_id">
+                        <input type="checkbox" :value="teachRoom" v-model="selectedLeft" /> {{ teachRoom.class_room }}
                     </li>
                 </ul>
             </div>
@@ -81,7 +81,7 @@ onMounted( () => {
 })
 
 const fetchLesson = async () => {
-    const res = await axios.get('api/academic/show_lesson', {
+    const res = await axios.get('api/academic/lessons', {
         withCredentials: true,
         params: {lesson: ''}
     })
@@ -89,7 +89,7 @@ const fetchLesson = async () => {
 }
 
 const fetchClass = async () => {
-    const res = await axios.get('api/academic/show_class_room', {
+    const res = await axios.get('api/academic/class_rooms', {
         withCredentials: true,
         params: {year: year.value}
     })
@@ -116,7 +116,7 @@ const removeFromRight = () => {
 }
 
 
-async function addTeacher() {
+const addTeacher = async () => {
     const payload = {
         name: name.value,
         lesson: selectedLesson.value,
@@ -129,9 +129,8 @@ async function addTeacher() {
         role: role.value,
         year: year.value
     }
-    console.log(payload)
     try {
-        const res = await axios.post('api/teacher/add_teacher', payload, {
+        const res = await axios.post('api/teacher/teachers', payload, {
             withCredentials: true,
             headers: {'Content-Type': 'application/json'}
         })

@@ -31,12 +31,6 @@ const username = ref('')
 const role = ref('')
 const userStore = useUserStore()
 
-onMounted( async () => {
-    username.value = userStore.userInfo.username
-    role.value = userStore.userInfo.role
-    
-})
-
 const activeComponent = shallowRef(ContentReport)
 function switchComponent(name) {
     const map = {
@@ -59,6 +53,8 @@ function switchComponent(name) {
 }
 
 onMounted(() => {
+    username.value = userStore.userInfo.username
+    role.value = userStore.userInfo.role
     const timer = new Date(userStore.userInfo.expired_at)
     const remaining = timer - Date.now()
    
@@ -70,23 +66,23 @@ onMounted(() => {
     } 
 })
 
-async function refreshToken() {
-    const userStore = useUserStore()
-    const res = await axios.post('api/user/refresh_token', { withCredentials: true })
+const refreshToken = async () => {
+    const res = await axios.post('api/user/refresh_token', {
+        withCredentials: true
+    })
     userStore.setUserInfo(res.data)
     const timer = new Date(userStore.userInfo.expired_at)
     let remaining = timer - Date.now()
 
-    if (remaining > 30000) { 
+    if (remaining > 30000) {
         const delay = remaining - 30000
         setTimeout(() => {
             refreshToken()
-         }, delay);
-    } 
-    else if (remaining > 0) {
+        }, delay)
+    } else if (remaining > 0) {
         setTimeout(() => {
             refreshToken()
-        }, 1000);
+        }, 1000)
     }
 }
 

@@ -30,7 +30,7 @@ const message = ref('')
 const fetchUserInfo = async () => {
     try{
         const payload = {token: token}
-        await axios.post('api/user/check_tmp_token', payload, {
+        await axios.post('api/user/tmp_token', payload, {
             headers: {'Content-Type': 'application/json'}
         })
     } catch (e) {
@@ -54,7 +54,7 @@ const handleSubmit = async () => {
     }
 
     try {
-        await axios.post("/api/user/set_password", payload, {
+        await axios.post("/api/user/password", payload, {
         headers: {"Content-Type": "application/json"}
         })
         

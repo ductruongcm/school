@@ -29,7 +29,7 @@
         </table>
     </div>
 
-    <!-- <div>
+    <div>
         <table>
             <thead>
                 <tr v-for="(grade, index) in gradeList" :key="grade">
@@ -44,7 +44,7 @@
                 </tr>
             </tbody>
         </table>
-    </div>  -->
+    </div> 
 </template>
 <script setup>
 import axios from 'axios';
@@ -60,7 +60,7 @@ const gradeList = ref([])
 
 onMounted( () => {
     fetchClassData()
-    // fetchGradeData()
+    fetchGradeData()
 })
 
 const addGrade = async () => {
@@ -68,7 +68,7 @@ const addGrade = async () => {
         grade: gradeInput.value
     }
     try {
-        const res = await axios.post('api/academic/add_grade', payload, {
+        const res = await axios.post('api/academic/grades', payload, {
         withCredentials: true,
         headers: {'Content-Type': 'application/json'}
         })
@@ -88,7 +88,7 @@ const addClass = async () => {
         class_room: classInput.value
     }
     try {
-        const res = await axios.post('api/academic/add_class', payload, 
+        const res = await axios.post('api/academic/class_rooms', payload, 
             { 
             withCredentials: true, 
             headers: {'Content-Type': 'application/json'}
@@ -104,7 +104,7 @@ const addClass = async () => {
 }
 
 const fetchClassData = async () => {
-    const res = await axios.get('api/academic/show_class_room', {
+    const res = await axios.get('api/academic/class_rooms', {
         params: {
             class_room: classRoomInput.value,
             year: year.value
@@ -116,7 +116,7 @@ const fetchClassData = async () => {
 }
 
 const fetchGradeData = async () => {
-    const res = axios.get('api/academic/show_grade', {
+    const res = axios.get('api/academic/grades', {
         params: {grade: gradeInput.value},
         withCredentials: true
     })

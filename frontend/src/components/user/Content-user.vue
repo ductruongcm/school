@@ -15,9 +15,9 @@
         <table>
             <thead>
                 <tr>
-                    <th>STT</th>
-                    <th>Username</th>
-                    <th>role</th>
+                    <th style="width: 3em;">STT</th>
+                    <th style="width: 7em;">Username</th>
+                    <th style="width: 4em;">role</th>
                 </tr>
             </thead>
             <tbody>
@@ -26,7 +26,7 @@
                     <td>{{ item.username }}</td>
                     <td>
                         <span v-if="!item.editing">{{ item.role }}</span>
-                        <input v-else v-model="item.role" type="text">
+                        <input style="width: 4em;" v-else v-model="item.role" type="text">
                     </td>
                     <td>
                         <div>
@@ -77,13 +77,14 @@ onMounted(() => {
 })
 
 const fetchData = async (page = 1) => {
-    const res = await axios.get('api/user/show_users', {
+    const res = await axios.get('api/user/users', {
         params: {
             username: username.value,
             role: role.value,
             email: email.value,
             page
-        }, withCredentials: true
+        }, 
+        withCredentials: true
     })
     data.value = res.data.data
     currentPage.value = res.data.page
@@ -123,7 +124,7 @@ async function save(item) {
     editMSG.value = res.data.msg
 }
 
-async function savePassword(item) {
+const savePassword = async (item) => {
     const payload = {
         username: item.username,
         password: password.value,
@@ -131,7 +132,7 @@ async function savePassword(item) {
     }
     console.log(payload)
     try {
-        const res = await axios.post('api/user/set_password', payload, {
+        const res = await axios.put('api/user/password', payload, {
             withCredentials: true,
             headers: {'Content-Type': 'application/json'}
         })              

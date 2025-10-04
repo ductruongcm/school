@@ -4,14 +4,14 @@
         <div>
             <form>
                 <label>Lớp: </label>
-                <select v-model="classFolder" @change="showFolder()">
+                <select v-model="classFolder" @change="fetchFolder">
                     <option value="" disabled>-- Chọn lớp --</option>
-                    <option v-for="classRoom in classList" :key="classRoom">{{ classRoom }}</option>
+                    <option v-for="classRoom in classList" :key="classRoom.class_room_id" :value="classRoom.class_room_id">{{ classRoom.class_room }}</option>
                 </select>
                 <label>Thư mục: </label>
                 <select v-model="fileFolder" @change="showFile">
                     <option value="" disabled>-- Chọn môn --</option>
-                    <option v-for="item in folder" :key="item"> {{ item }}</option>
+                    <option v-for="item in folder" :key="item" :value="item"> {{ item }}</option>
                 </select>
             </form>
         </div>
@@ -61,21 +61,21 @@ const file = ref([])
 const year = inject('year')
 
 onMounted( () => {
-    showTeachRoom()
+    fetchTeachRoom()
 })
 
-const showTeachRoom = async () => {
-    const payload = {year: year.value}
-    const res = await axios.put('api/academic/show_teach_room', payload, {
+const fetchTeachRoom = async () => {
+    const res = await axios.get('api/academic/teach_rooms', {
         withCredentials: true,
-        headers: {'Content-Type': 'application/json'}
+        headers: {'Content-Type': 'application/json'},
+        params: {year: year.value}
     })
     classList.value = res.data.data
 }
 
-const showFolder = async () => {
-    const res = await axios.get('api/cloud/show_folder', {
-        params: {class_room: classFolder.value},
+const fetchFolder = async () => {
+    const res = await axios.get('api/cloud/folders', {
+        params: {class_room_id: classFolder.value},
         withCredentials: true
     })
     folder.value = res.data.data
@@ -88,10 +88,10 @@ watch([classFolder, fileFolder], async ([newClass, newFolder]) => {
 })
 
 const showFile = async () => {
-    const res = await axios.get('api/cloud/show_file', {
+    const res = await axios.get('api/cloud/files', {
         withCredentials: true,
         params: { 
-            class_room: classFolder.value,
+            class_room_id: classFolder.value,
             folder: fileFolder.value
         }
     })
@@ -99,38 +99,32 @@ const showFile = async () => {
 }
 
 async function hideFile(item) {
-    const payload = {file_name: item.file_name}
-    await axios.put(`/api/cloud/hide_file?class_room=${classFolder.value}`, payload, { 
+    await axios.put(`/api/cloud/files/${item.id}/hide`, { 
         withCredentials: true, 
-        headers: {'Content-Type': 'application/json'}
     })
+    console.log(res.data.msg)
 }
 
 async function unhideFile(item) {
     const payload = {file_name: item.file_name}
-    await axios.put(`/api/cloud/unhide_file?class_room=${classFolder.value}`, payload, {
+    await axios.put(`/api/cloud/files/${item.id}/unhide`, {
         withCredentials: true,
-        headers: {'Content-Type': 'application/json'}
     })
+    console.log(res.data.msg)
 }
 
 async function download(item) {
-    const payload = {
-        class_room: classFolder.value,
-        file_name: item.file_name
-    }
-    const res = await axios.put('api/cloud/download', payload, {
+    const res = await axios.get(`api/cloud/files/${item.id}/download`, {
         withCredentials: true,
-        headers: {'Content-Type': 'application/json'}
     })
-    window.open(res.data.url) 
+    window.open(res.data) 
 }
 
 async function del(item) {
-    const res = await axios.delete(`api/cloud/delete?class_room=${classFolder.value}&file_name=${item.file_name}`, {
+    const res = await axios.delete(`api/cloud/files/${item.id}`, {
         withCredentials: true,
     })
-    await axios.delete(res.data.url)
+    console.log(res.data.msg)
 }
 
 </script>

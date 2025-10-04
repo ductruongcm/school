@@ -34,7 +34,7 @@ const role = ref('')
 const msg = ref('')
 const classRoom = ref('')
 
-async function addStudent() {
+const addStudent = async () => {
     const payload = {
         name: name.value,
         class_room: classRoom.value,
@@ -61,13 +61,19 @@ async function addStudent() {
 }
 
 onMounted(async () => {
-    const payload = {year: year.value}
+    fetchClassList()
+})
+
+const fetchClassList = async () => {
+    const payload = {
+        year: year.value
+    }
     const res = await axios.put('api/academic/show_class_room', payload, {
         withCredentials: true,
         headers: {'Content-Type': 'application/json'}
     })
     classList.value = res.data.data
-})
+}
 
 watch(classList, (newval) => {
     if (newval.length === 1) {

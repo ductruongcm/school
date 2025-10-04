@@ -36,7 +36,7 @@ const year = inject('year')
 const addYear = async () => {
     const payload = {year: yearInput.value}
     try {
-        const res = await axios.post('/api/academic/add_year', payload, {
+        const res = await axios.post('/api/academic/years', payload, {
             withCredentials: true,
             headers: {'Content-Type': 'application/json'}
         })
@@ -56,7 +56,7 @@ const addSemester = async () => {
         semester: semesterInput.value
     }
     try {
-        const res = await axios.post('api/academic/add_semester', payload, {
+        const res = await axios.post('api/academic/semesters', payload, {
             withCredentials: true,
             headers: {'Content-Type': 'application/json'}
         })

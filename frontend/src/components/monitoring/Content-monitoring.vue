@@ -103,7 +103,7 @@ onMounted( () => {
     fetchData(1)
 })
 
-function onReset() {
+const onReset = () => {
     ip.value = ''
     username.value = ''
     action.value = ''

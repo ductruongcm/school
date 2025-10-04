@@ -73,7 +73,7 @@ let updatePasswordMsg = ref('')
 const setPassword = ref(false)
 
 onMounted(async () => {
-    const res = await axios.get('api/user/show_user_info', {
+    const res = await axios.get('api/user/user_info', {
         withCredentials: true,
         params: {
             id: userStore.userInfo.id,
@@ -88,7 +88,7 @@ async function updatePassword() {
         password: password.value,
         re_password: re_password.value
     }
-    const res = await axios.put('api/user/reset_password', payload, { withCredentials: true, headers: {"Content-Type": "application/json"}})
+    const res = await axios.put('api/user/password', payload, { withCredentials: true, headers: {"Content-Type": "application/json"}})
     updatePasswordMsg.value = res.data.msg
     } catch (err) {
         if (err.response && err.response.status === 400) {
@@ -118,7 +118,7 @@ async function saveEdit() {
         add: changeAdd.value
     }
     try {
-        const res = await axios.put('/api/user/update_info', payload, {
+        const res = await axios.put('/api/user/user_info', payload, {
             withCredentials: true,
             headers: {'Content-Type': 'application/json'}
         })

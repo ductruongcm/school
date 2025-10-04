@@ -3,15 +3,15 @@
     <div>
         <form @submit.prevent="upload">
             <label>Lớp: </label>
-            <select v-model="teachRoom">
+            <select @change="fetchLesson" v-model="teachRoom">
                 <option value="" disabled>-- Chọn lớp --</option>
-                <option v-for="item in teachRoomList" :key="item" :value="item"> {{ item }} </option>
+                <option v-for="item in teachRoomList" :key="item.class_room_id" :value="item"> {{ item.class_room }} </option>
             </select> 
             <label>Thư mục: </label>
             <select v-model="folder">
-                <option>-- Chọn môn --</option>
-                <option> {{ lesson }}</option>
-                <option v-if="teachRoom === classRoom">Chung</option>
+                <option value="" disabled>-- Chọn môn --</option>
+                <option>Tổng hợp</option>
+                <option v-for="lesson in lessonList" :key="lesson.lesson_id" :value="lesson.lesson">{{ lesson.lesson }}</option>
             </select>         
             <br>
             <label>Nhập tên file: </label>
@@ -25,15 +25,16 @@
 <script setup>
 import { ref, onMounted, inject, watch } from 'vue';
 import axios from 'axios';
+import useUserStore from '../../stores/user';
 
 const teachRoomList = ref([])
+const lessonList = ref([])
 const teachRoom = ref('')
 const year = inject('year')
 const folder = ref('')
-onMounted( () => {
+const userStore = useUserStore()
+onMounted(() => {
     fetchTeachClass()
-    fetchLesson()
-    fetchClass()
 })
 
 const selectedFile = ref(null)
@@ -41,54 +42,49 @@ const uploadMSG = ref('')
 const filename = ref('')
 
 const fetchTeachClass = async () => {
-    const payload = {year: year.value}
-    const res = await axios.put('api/academic/show_teach_room', payload, {
+    const res = await axios.get('api/academic/teach_rooms', {
         withCredentials: true,
-        headers: {'Content-Type': 'application/json'}
+        headers: {'Content-Type': 'application/json'},
+        params: {year: year.value}
     })
     teachRoomList.value = res.data.data
 }
 
-const lesson = ref('')
 const fetchLesson = async () => {
-    const res = await axios.get('api/teacher/show_lesson', {
-        withCredentials: true
-    })
-    lesson.value = res.data.data
-}
-
-const classRoom = ref(null)
-const fetchClass = async () => {
-    const payload = {year: year.value}
-    const res = await axios.put('api/academic/show_class_room', payload, {
+    const res = await axios.get('api/academic/lessons', {
         withCredentials: true,
-        headers: {'Content-Type': 'application/json'}
+        params: {
+            class_room_id: teachRoom.class_room_id,
+            id: userStore.userInfo.id,
+            year: year.value
+        }
     })
-    classRoom.value = res.data.data[0]
+    lessonList.value = res.data.data
 }
 
 function handleFileChange(event) {
     selectedFile.value = event.target.files[0]
 }
 
-async function upload() {
+const upload = async () => {
     if (!selectedFile.value) {
         uploadMSG.value = 'Bạn chưa chọn file để upload!!'
         
     } else {
         const file = selectedFile.value
-        
-        const formData = new FormData()
-
-        formData.append('file', file)
-        formData.append('fileName', filename.value)
-        formData.append('fileExtension', file.name)
-        formData.append('fileSize', file.size)
-        formData.append('fileType', file.type)
-        formData.append('classRoom', teachRoom.value)
-        formData.append('folder', folder.value)
+        const payload = {
+            class_room_id: teachRoom.value.class_room_id,
+            class_room: teachRoom.value.class_room,
+            folder: folder.value,
+            file_name: filename.value,
+            file_ext: file.name,
+            file_type: file.type,
+            file_size: file.size,
+            user_id: userStore.userInfo.id,
+            year: year.value
+        }
         try {
-            const res = await axios.post('api/cloud/upload', formData, { 
+            const res = await axios.post('api/cloud/files', payload, { 
                 withCredentials: true,
             })
             const uploadURL = res.data.url
@@ -96,10 +92,9 @@ async function upload() {
             await axios.put(uploadURL, file, {
                 headers: {'Content-Type': file.type}
             })
-
             uploadMSG.value = 'Uploaded thành công!!'
         } catch (e) {
-            if (e.response && e.response.status == 400) {
+            if (e.response && e.response.status == 400 || 422 || 500) {
                 uploadMSG.value = e.response.data.msg
             } else {
                 uploadMSG.value = 'Có rắc rối rồi đó!!'

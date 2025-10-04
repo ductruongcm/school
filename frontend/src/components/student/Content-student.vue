@@ -87,17 +87,17 @@ watch(classList, (newVal) => {
     }
 })
 
-function editRow(item) {
+const editRow = (item) => {
     item.original = {...item}
     item.editing = true
 }
 
-function cancelEdit(item) {
+const cancelEdit = (item) => {
     Object.assign(item, item.original)
     item.editing = false
 }
 
-async function saveEdit(item) {
+const saveEdit = async (item) => {
     try {
         const payload = {
             id: item.id,

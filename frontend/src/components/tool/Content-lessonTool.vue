@@ -19,7 +19,7 @@ const addLesson = async () => {
         lesson: lessonInput.value
     }
     try {
-        const res = await axios.post('api/academic/add_lesson', payload, {
+        const res = await axios.post('api/academic/lessons', payload, {
             withCredentials: true,
             headers: {'Content-Type': 'application/json'}
         })
