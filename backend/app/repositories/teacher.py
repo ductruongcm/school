@@ -4,7 +4,7 @@ from sqlalchemy import text, func, cast, String
 from sqlalchemy.orm import aliased
 
 
-class Teacher_repo:
+class TeachersRepositories:
     @staticmethod
     def add_user(username, password, token, name, lesson_id, email, tel, add):
         new_user = Users(username = username, password = password, role = 'Teacher')

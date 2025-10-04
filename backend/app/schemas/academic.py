@@ -66,18 +66,6 @@ class AcademicCreateSchemas:
             return v
 
 class AcademicShowSchemas:
-    class LessonShowSchema(BaseModel):
-        lesson: Optional[str] = None
-
-        @field_validator('lesson')
-        def lesson_validator(cls, v):
-            if not v:
-                return 
-            
-            if re.search(r"[\d~!@#$%^&*()_+=`,.<>/?-]+", v):
-                raise ValueError("Thông tin không được chứa số và ký tự đặc biệt!")
-            return v
-
     class YearShowSchema(BaseModel):
         year: Optional[str] = None
 
@@ -88,6 +76,33 @@ class AcademicShowSchemas:
             
             if not re.fullmatch(r'[\d -]', v):
                 raise ValueError('Niên khóa không được chứa ký tự đặc biệt và chữ cái. VD: 2025 - 2026')
+            return v
+    
+    class ClassroomShowSchema(YearShowSchema):
+        class_room: Optional[str] = None
+
+        @field_validator('class_room')
+        def class_room_validator(cls, v):    
+            if not v:
+                return 
+            
+            elif len(v) > 3:
+                raise ValueError('Nhập lớp học không đúng!!')
+
+            elif not re.search(r'[\dA-Za-z]', v):
+                raise ValueError('Lớp học không chứa ký tự đặc biệt!!')
+            return v
+        
+    class LessonShowSchema(ClassroomShowSchema):
+        lesson: Optional[str] = None
+    
+        @field_validator('lesson')
+        def lesson_validator(cls, v):
+            if not v:
+                return 
+            
+            if re.search(r"[\d~!@#$%^&*()_+=`,.<>/?-]+", v):
+                raise ValueError("Thông tin không được chứa số và ký tự đặc biệt!")
             return v
 
     class SemesterShowSchema(BaseModel):
@@ -110,25 +125,4 @@ class AcademicShowSchemas:
             if re.search(r"[~!@#$%^&*()_+=`,.<>/?-]+", v):
                 raise ValueError('Không được nhập ký tự đặc biệt!!')
             return v
-        
-    class ClassroomShowSchema(BaseModel):
-        year: Optional[str] = None
-        class_room: Optional[str] = None
-
-        @field_validator('class_room')
-        def class_room_validator(cls, v):    
-            if not v:
-                return 
-            
-            elif len(v) > 3:
-                raise ValueError('Nhập lớp học không đúng!!')
-
-            elif not re.search(r'[\dA-Za-z]', v):
-                raise ValueError('Lớp học không chứa ký tự đặc biệt!!')
-            return v
-        
-        @field_validator('year')
-        def year_validator(cls, v):
-            if not re.fullmatch(r'[\d\s+-]+', v):
-                raise ValueError('Niên khóa không được chứa ký tự đặc biệt và chữ cái. VD: 2025 - 2026')  
-            return v
+    

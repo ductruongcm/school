@@ -1,11 +1,11 @@
 from app.schemas import ValidationError, TeacherSchemas
-from app.repositories import Teacher_repo, User_repo, Academic_repo, Class_room_repo
+from app.repositories import TeachersRepositories, UsersRepositories, AcademicRepositories, ClassroomsRepositories
 from app.tasks import send_email_task
 from app.utils import error_400, error_422, generate_password, token_set_password, get_updated_fields
 from werkzeug.security import generate_password_hash
 from app.extensions import db
 
-class Teacher_service:
+class TeacherService:
     @staticmethod
     def handle_add_teacher(data):
         try:
@@ -13,17 +13,17 @@ class Teacher_service:
         except ValidationError as e:
             return error_422(e)
         
-        if User_repo.get_user(teacher_data.username):
+        if UsersRepositories.get_user(teacher_data.username):
             return error_400('Username đã được sử dụng!')
         
-        lesson = Academic_repo.Get_repo.get_lesson(teacher_data.lesson)
+        lesson = AcademicRepositories.Get_repo.get_lesson(teacher_data.lesson)
         if not lesson:
             return error_400('Không tìm thấy môn học')
             
         try:           
             password = generate_password(length = 32)
             token = generate_password_hash(token_set_password(length = 32))
-            teacher = Teacher_repo.add_user(teacher_data.username, 
+            teacher = TeachersRepositories.add_user(teacher_data.username, 
                                             password, 
                                             token, 
                                             teacher_data.name, 
@@ -32,7 +32,7 @@ class Teacher_service:
                                             teacher_data.tel,
                                             teacher_data.add)
             
-            repo = Class_room_repo(teacher_data.year)
+            repo = ClassroomsRepositories(teacher_data.year)
             if teacher_data.class_room:
                 class_room = repo.get_class_room(teacher_data.class_room)
                 if class_room.teacher_id:
@@ -65,7 +65,7 @@ class Teacher_service:
             return error_422(e)
         
         try:
-            rows = Teacher_repo.show_teacher(teacher_data.lesson, teacher_data.class_room, teacher_data.name)
+            rows = TeachersRepositories.show_teacher(teacher_data.lesson, teacher_data.class_room, teacher_data.name)
             if rows:
                 keys = ['id', 'name', 'lesson', 'class_room', 'teach_room', 'tel', 'email', 'add']
                 return {'status': 'ok', 'data': [dict(zip(keys, values)) for values in rows]}
@@ -84,28 +84,28 @@ class Teacher_service:
         except ValidationError as e:
             return error_422(e)
         
-        if not Academic_repo.Get_repo.get_lesson(update_info_data.lesson):
+        if not AcademicRepositories.Get_repo.get_lesson(update_info_data.lesson):
             return error_400('Thông tin môn học không hợp lệ!')
         
-        query = Teacher_repo.Get_repo.get_info(update_info_data.id, update_info_data.year)
+        query = TeachersRepositories.Get_repo.get_info(update_info_data.id, update_info_data.year)
         keys = ['id', 'name', 'lesson', 'class_room', 'class_room_id','teach_room', 'tel', 'add', 'email', 'year']
         current_info = dict(zip(keys, query))  
         
         update = get_updated_fields(data, current_info)
-        repo = Class_room_repo(update_info_data.year)
+        repo = ClassroomsRepositories(update_info_data.year)
         if update.get('name'):
-            Teacher_repo.Get_repo.get_teacher(update_info_data.id).name = update_info_data.name
+            TeachersRepositories.Get_repo.get_teacher(update_info_data.id).name = update_info_data.name
 
         if update.get('lesson'):
-            lesson_id = Academic_repo.Get_repo.get_lesson(update_info_data.lesson).id
-            Teacher_repo.Get_repo.get_teacher(update_info_data.id).lesson_id = lesson_id
+            lesson_id = AcademicRepositories.Get_repo.get_lesson(update_info_data.lesson).id
+            TeachersRepositories.Get_repo.get_teacher(update_info_data.id).lesson_id = lesson_id
 
         if update.get('class_room'):
             class_room = repo.get_class_room(update_info_data.class_room)
             class_room.teacher_id = update_info_data.id
 
         if update.get('teach_room'):
-            lesson_id = Academic_repo.Get_repo.get_lesson(update_info_data.lesson).id
+            lesson_id = AcademicRepositories.Get_repo.get_lesson(update_info_data.lesson).id
             rooms = [repo.get_class_room(i) for i in update_info_data.teach_room.replace(' ','').split(',')]
             if not all(rooms):
                 return error_400('Thông tin lớp học không hợp lệ!')
@@ -124,13 +124,13 @@ class Teacher_service:
      
         
         if update.get('tel'):
-            Teacher_repo.Get_repo.get_teacher_info(update_info_data.id).tel = update['tel']
+            TeachersRepositories.Get_repo.get_teacher_info(update_info_data.id).tel = update['tel']
 
         if update.get('add'):
-            Teacher_repo.Get_repo.get_teacher_info(update_info_data.id).add = update['add']
+            TeachersRepositories.Get_repo.get_teacher_info(update_info_data.id).add = update['add']
 
         if update.get('email'):
-            Teacher_repo.Get_repo.get_teacher_info(update_info_data.id).email = update['email']
+            TeachersRepositories.Get_repo.get_teacher_info(update_info_data.id).email = update['email']
 
         db.session.commit()
         return {'status': 'success', 'msg': 'Đã cập nhật thông tin!'}

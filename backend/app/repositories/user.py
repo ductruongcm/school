@@ -54,11 +54,10 @@ def info(id, role):
     
     return {'name': name, 'tel': tel, 'add': add, 'email': email}
 
-class User_repo:
+class UsersRepositories:
     @staticmethod
     def get_user(username):
-        user = Users.query.filter(Users.username == username).first()
-        return user
+        return Users.query.filter(Users.username == username).first()
     
     @staticmethod
     def get_tmp_token(token):
@@ -66,6 +65,26 @@ class User_repo:
                                        Tmp_token.expire_at > datetime.utcnow(), 
                                        Tmp_token.status == False).first()
         return result
+             
+    @staticmethod
+    def get_tmp_token_by_id(id):
+        return Tmp_token.query.filter(Tmp_token.user_id == id).first()
+    
+    @staticmethod
+    def get_user_info(id, role):
+        if role in ['teacher', 'admin']:
+            user = Users.query.with_entities(Users.username,
+                                         Teachers.name,
+                                         Teacher_info.email,
+                                         Teacher_info.tel,
+                                         Teacher_info.add).join(Teachers).outerjoin(Teacher_info).filter(Users.id == id).first()
+            
+        user = Users.query.with_entities(Users.username,
+                                         Students.name,
+                                         Student_info.tel,
+                                         Student_info.add).join(Students).outerjoin(Student_info).filter(Users.id == id).first()
+        
+        return user
      
     @staticmethod
     def add_user(username, password, name):
@@ -75,9 +94,8 @@ class User_repo:
 
     @staticmethod
     def set_password(user_id, password):
-        user = Users.query.join(Tmp_token).filter(Users.id == user_id).first()
-        user.password = password
-        user.set_password_status = True
+        Users.query.filter(Users.id == user_id).update({Users.password: password})
+        Tmp_token.query.filter(Tmp_token.user_id == user_id).update({Tmp_token.set_password_status: True})
 
     @staticmethod
     def show_user(username, role, page):
@@ -109,22 +127,12 @@ class User_repo:
                             Teacher_info.email,
                             Teacher_info.tel,
                             Teacher_info.add).outerjoin(Teacher_info).filter(Teachers.user_id == id).first()]
+
+
+
         
-    @staticmethod
-    def get_user_info(id, role):
-        if role in ['teacher', 'admin']:
-            user = Users.query.with_entities(Users.username,
-                                         Teachers.name,
-                                         Teacher_info.email,
-                                         Teacher_info.tel,
-                                         Teacher_info.add).join(Teachers).outerjoin(Teacher_info).filter(Users.id == id).first()
-            
-        user = Users.query.with_entities(Users.username,
-                                         Students.name,
-                                         Student_info.tel,
-                                         Student_info.add).join(Students).outerjoin(Student_info).filter(Users.id == id).first()
         
-        return user
+
 
 
     

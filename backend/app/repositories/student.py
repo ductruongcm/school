@@ -3,7 +3,7 @@ from app.models import Students, Class_room, Users, Score, Lesson, Student_info
 # from app.utils import generate_password
 from werkzeug.security import generate_password_hash
 
-class Student_repo:
+class StudentsRepositories:
     @staticmethod 
     def add_student(username, password, name, tel, add, class_room):
         pass

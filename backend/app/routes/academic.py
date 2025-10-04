@@ -1,8 +1,8 @@
 from flask import Blueprint, jsonify
 from app.utils import required_role, error_show_return
 from flask_jwt_extended import jwt_required
-from app.services import Monitoring_service
-from app.controllers import Class_room_controller, Academic_controller
+from app.services import MonitoringService
+from app.controllers import ClassroomsController, AcademicController
 
 academic_bp = Blueprint('academic_bp', __name__, url_prefix = '/api/academic')
 
@@ -10,125 +10,126 @@ academic_bp = Blueprint('academic_bp', __name__, url_prefix = '/api/academic')
 @jwt_required()
 @required_role('admin')
 def add_class_room_route():
-    result = Class_room_controller.add_class_room()
+    result = ClassroomsController.add_class_room()
     if result['status'] == 'Validation_error':
-        Monitoring_service.handle_add_monitoring( result['username'], 'Add class room', 'FAIL', f"{result['class_room']}: {result['msg']}")
+        MonitoringService.handle_add_monitoring( result['username'], 'Add class room', 'FAIL', f"{result['class_room']}: {result['msg']}")
         return jsonify({'msg': result['msg']}), 422
        
     elif result['status'] == 'Logic_error':
-        Monitoring_service.handle_add_monitoring(result['username'], 'Add class room', 'FAIL', f"{result['class_room']}: {result['msg']}")
+        MonitoringService.handle_add_monitoring(result['username'], 'Add class room', 'FAIL', f"{result['class_room']}: {result['msg']}")
         return jsonify({'msg': result['msg']}), 400
     
     elif result['status'] == 'DB_error':
-        Monitoring_service.handle_add_monitoring(result['username'], 'Add class room', 'FAIL', f"{result['class_room']}: {result['msg']}")
+        MonitoringService.handle_add_monitoring(result['username'], 'Add class room', 'FAIL', f"{result['class_room']}: {result['msg']}")
         return jsonify({'msg': result['msg']}), 500
     
     else:
         return jsonify({'msg': result['msg']}), 200
     
-@academic_bp.get('/show_class_room')
+@academic_bp.get('/class_rooms')
 @required_role('admin', 'teacher')
 @jwt_required()
-def show_class_route():
-    result = Class_room_controller.show_class_room()
+def class_room_show():
+    result = ClassroomsController.show_class_room()
     errors = error_show_return(result)
     if errors:
         return errors
     
     return jsonify({'data': result['data']}), 200
 
-@academic_bp.put('/show_teach_room')
+@academic_bp.get('/teach_rooms')
 @jwt_required()
 @required_role('teacher', 'admin')
-def show_teach_room_route():
-    result = Class_room_controller.show_teach_room()
+def teach_room_show():
+    result = ClassroomsController.show_teach_room()
     if result['status'] == 'DB_error':
+  
         return jsonify({'msg': result['msg']}), 500
     
     return jsonify({'data': result['data']}), 200
 
-@academic_bp.post('/add_year')
+@academic_bp.post('/years')
 @jwt_required()
 @required_role('admin')
 def add_year_route():
-    result = Academic_controller.Add_controller.add_year()
+    result = AcademicController.Add_controller.add_year()
     errors = error_show_return(result)
     if errors:
         return errors
     
     return jsonify({'msg': result['msg']}), 200
 
-@academic_bp.post('/add_semester')
+@academic_bp.post('/semesters')
 @jwt_required()
 @required_role('admin')
 def add_semester_route():
-    result = Academic_controller.Add_controller.add_semester()
+    result = AcademicController.Add_controller.add_semester()
     errors = error_show_return(result)
     if errors:
         return errors
     
     return jsonify({'msg': result['msg']}), 200
     
-@academic_bp.post('/add_lesson')
+@academic_bp.post('/lessons')
 @required_role('admin')
 @jwt_required()
 def add_lesson_route():
-    result = Academic_controller.Add_controller.add_lesson()
+    result = AcademicController.Add_controller.add_lesson()
     errors = error_show_return(result)
     if errors:
         return errors
     
     return jsonify({'msg': result['msg']}), 200
     
-@academic_bp.post('/add_grade')
+@academic_bp.post('/grades')
 @jwt_required()
 @required_role('admin')
 def add_grade_route():
-    result = Academic_controller.Add_controller.add_grade()
+    result = AcademicController.Add_controller.add_grade()
     errors = error_show_return(result)
     if errors:
         return errors
     
     return jsonify({'msg': result['msg']}), 200
 
-@academic_bp.get('/show_year')
+@academic_bp.get('/years')
 @jwt_required()
 @required_role('admin')
 def show_year_route():
-    result = Academic_controller.Show_controller.show_year()
+    result = AcademicController.Show_controller.show_year()
     errors = error_show_return(result)
     if errors:
         return errors
     
     return jsonify({'data': result['data']}), 200
 
-@academic_bp.get('/show_semester')
+@academic_bp.get('/semesters')
 @jwt_required()
 @required_role('admin')
 def show_semester_route():
-    result = Academic_controller.Show_controller.show_semester()
+    result = AcademicController.Show_controller.show_semester()
     errors = error_show_return(result)
     if errors:
         return errors
 
     return jsonify({'data': result['data']}), 200
 
-@academic_bp.get('/show_lesson')
+@academic_bp.get('/lessons')
 @jwt_required()
 @required_role('admin', 'teacher')
 def show_lesson_route():
-    result = Academic_controller.Show_controller.show_lesson()
+    result = AcademicController.Show_controller.show_lesson()
     errors = error_show_return(result)
     if errors:
         return errors
 
     return jsonify({'data': result['data']}), 200
 
-@academic_bp.get('/show_grade')
+@academic_bp.get('/grades')
 @jwt_required()
 @required_role('admin')
 def show_grade_route():
-    result = Academic_controller.Show_controller.show_grade()
+    result = AcademicController.Show_controller.show_grade()
     errors = error_show_return(result)
     if errors:
         return errors

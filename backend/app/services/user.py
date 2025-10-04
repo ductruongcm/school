@@ -1,12 +1,13 @@
 from app.schemas import Register, ValidationError, Login, SetPassword, UserSchemas
-from app.utils import  error_422, error_400, Password_helpers
+from app.utils import  error_422, error_400, Password_helpers, token_set_password, send_set_password_email
 from app.extensions import db
-from app.repositories import User_repo
+from app.repositories import UsersRepositories, TeachersRepositories
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_jwt_extended import create_access_token, create_refresh_token
-from datetime import timedelta
+from datetime import timedelta, datetime
+import traceback
 
-class Auth_service:
+class AuthService:
     @staticmethod
     def handle_login(data):
         try:
@@ -15,7 +16,7 @@ class Auth_service:
         except ValidationError as e:
             return error_422(e)
         
-        user = User_repo.get_user(data_login.username)
+        user = UsersRepositories.get_user(data_login.username)
         if not user:
             return {'status': 'Logic_error', 'msg': 'Sai tên đăng nhập hoặc không đúng mật khẩu!'}
         
@@ -52,12 +53,12 @@ class Auth_service:
         if logic_error:
             return error_400(logic_error)
         
-        elif User_repo.get_user(register_data.username):
+        elif UsersRepositories.get_user(register_data.username):
             return {'status': 'Logic_error', 'msg': 'Username này đã được sử dụng!'}
         
         try:
             hashed_password = generate_password_hash(register_data.password)
-            User_repo.add_user(register_data.username, hashed_password, register_data.name)
+            UsersRepositories.add_user(register_data.username, hashed_password, register_data.name)
             db.session.commit()       
             return {'status': 'ok', 'msg': 'Registration success', 'username': register_data.username}
             
@@ -67,7 +68,7 @@ class Auth_service:
         
     @staticmethod
     def handle_refresh_token(username):
-        user = User_repo.get_user(username)
+        user = UsersRepositories.get_user(username)
         if not user:
             return {'status': False, 'msg': 'User không tồn tại'}
         
@@ -81,13 +82,85 @@ class Auth_service:
     
     @staticmethod
     def handle_check_tmp_token(data):
-        token = User_repo.get_tmp_token(data)
+        token = UsersRepositories.get_tmp_token(data['token'])
         if token:
             return {'status': 'ok', 'msg': 'Token hợp lệ!'}
         else:
             return {'status': 'DB_error', 'msg': 'Token không hợp lệ!'}
-    
-class User_service:
+        
+    @staticmethod
+    def handle_set_password(data):
+        try:
+            set_password_data = SetPassword(**data)
+            
+        except ValidationError as e:
+            return error_422(e)
+            
+        try:
+            token = UsersRepositories.get_tmp_token(set_password_data.token)
+            if token:
+                hashed_password = generate_password_hash(data['password'])
+                UsersRepositories.set_password(token.user_id, hashed_password)
+                db.session.commit()
+                return {'status': 'ok', 'msg': 'Thiết lập mật khẩu thành công'}
+            
+            else:
+                return {'status': 'Logic_error', 'msg': 'Token không hợp lệ!'}
+        
+        except Exception as e:
+            return {'status': 'DB_error', 'msg': f'DB_error: {str(e)}'}    
+        
+    @staticmethod
+    def handle_reset_password(username, data):
+        try:
+            reset_password_data = SetPassword(**data)
+
+        except ValidationError as e:
+            return error_422(e)
+        
+        try:
+            logic_error = Password_helpers().validate(reset_password_data.repassword, reset_password_data.password)
+            if logic_error:
+                return error_400(logic_error)
+            
+            hashed_password = generate_password_hash(reset_password_data.password)
+            user = UsersRepositories.get_user(username)
+            if user:
+                user.password = hashed_password
+                db.session.commit()
+
+            return error_400('User không tồn tại!')
+        
+        except Exception as e:
+            print(traceback.format_exc())
+            db.session.rollback()
+            return {'status': 'DB_error', 'msg': f'{str(e)}'}
+
+    @staticmethod
+    def renew_tmp_token(id):
+        try:
+            user_info = TeachersRepositories.Get_repo.get_teacher_info(id)
+            if user_info:
+               
+                new_tmp_token = generate_password_hash(token_set_password(length=32))
+                email = user_info.email
+                tmp_token = UsersRepositories.get_tmp_token_by_id(id)
+                tmp_token.token = new_tmp_token
+                tmp_token.expire_at = datetime.utcnow() + timedelta(hours=7) 
+                db.session.commit()
+                
+                link = f'http://localhost:5173/setpassword?token={new_tmp_token}'
+                send_set_password_email(email, 'Renew Password', f'Click here the following link to renew password: {link}')
+
+                
+            return error_400('User không tồn tại!')
+        
+        except Exception as e:
+            print(traceback.format_exc())
+            db.session.rollback()
+            return {'status': 'DB_error', 'msg': f'{str(e)}'}
+
+class UserService:
     @staticmethod
     def handle_show_user(data):
         try:
@@ -97,7 +170,7 @@ class User_service:
             return error_422(e)
         
         try:
-            result = User_repo.show_user(search_data.username, search_data.role, search_data.page)
+            result = UsersRepositories.show_user(search_data.username, search_data.role, search_data.page)
             if result:
                 return {'status': 'ok', 'data': result}
             
@@ -109,7 +182,7 @@ class User_service:
 
     @staticmethod
     def handle_show_user_info(data):
-        result = User_repo.show_user_info(data['id'], data['role'])
+        result = UsersRepositories.show_user_info(data['id'], data['role'])
         keys = ['name', 'email', 'tel', 'add']
 
         return [dict(zip(keys, values)) for values in result][0]
@@ -123,7 +196,7 @@ class User_service:
             return error_422(e)
         
         try:
-            User_repo.update_user_info(update_data.id, 
+            UsersRepositories.update_user_info(update_data.id, 
                                         update_data.name, 
                                         update_data.username, 
                                         update_data.email, 
@@ -136,27 +209,7 @@ class User_service:
             db.session.rollback()
             return {'status': 'DB_error', 'msg': f'DB_error: {str(e)}'}
         
-    @staticmethod
-    def handle_set_password(data):
-        try:
-            set_password_data = SetPassword(**data)
-            
-        except ValidationError as e:
-            return error_422(e)
-            
-        try:
-            token = User_repo.get_tmp_token(set_password_data.token)
-            if token:
-                hashed_password = generate_password_hash(data['password'])
-                User_repo.set_password(token.user_id, hashed_password)
-                db.session.commit()
-                return {'status': 'ok', 'msg': 'Thiết lập mật khẩu thành công'}
-            
-            else:
-                return {'status': 'Logic_error', 'msg': 'Token không hợp lệ!'}
-        
-        except Exception as e:
-            return {'status': 'DB_error', 'msg': f'DB_error: {str(e)}'}
+
             
 
                 

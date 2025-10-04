@@ -1,7 +1,7 @@
 from app.models import Class_room, Year, Teachers, Users, Teach_room, Semester, Lesson, Grade
 from app.extensions import db
 
-class Class_room_repo:
+class ClassroomsRepositories:
     def __init__(self, year):
         self.year_id = Year.query.filter(Year.year == year).first().id
 
@@ -13,11 +13,11 @@ class Class_room_repo:
         return [item.teach_room for item in data]
     
     def check_teach_room(self, lesson_id, teach_room):
-        return (db.session.query(Teach_room.teach_room, 
+        return db.session.query(Teach_room.teach_room, 
                          Teach_room.year_id, 
                          Teachers.lesson_id).join(Teachers, Teachers.id == Teach_room.teacher_id).filter(Teach_room.teach_room == teach_room, 
                                                                                                         Teachers.lesson_id == lesson_id,
-                                                                                                        Teach_room.year_id == self.year_id).first())
+                                                                                                        Teach_room.year_id == self.year_id).first()
        
     def add_class_room(self, class_room):
         grade_id = Grade.query.filter(Grade.grade == class_room[0,1]).first().id
@@ -33,17 +33,19 @@ class Class_room_repo:
             new_teach_room = Teach_room(teacher_id = teacher_id, teach_room = data.id, year_id = self.year_id)
             db.session.add(new_teach_room)
 
-    def show_class_room(self, class_room):
-        query = Class_room.query
+    def show_class_room(self, class_room = None):
+        query = Class_room.query.with_entities(Class_room.id, Class_room.class_room)
         if class_room:
             query = query.filter(Class_room.class_room.ilike(f'%{class_room}%'))
 
-        query = query.order_by(Class_room.class_room).all()
-        return [class_room.class_room for class_room in query]
+        return query.order_by(Class_room.class_room).all()
+        
     
-    def show_teach_room(self, id):
-        data = Teach_room.query.join(Class_room).filter(Teach_room.teacher_id == id, Teach_room.year_id == self.year_id).all()
-        return [teach_room.class_room for teach_room in data]
+    def show_teach_room(self, id = None):
+        return Teach_room.query.with_entities(Teach_room.class_room,
+                                              Class_room.class_room).join(Class_room).filter(Teach_room.teacher_id == id,
+                                                                                             Teach_room.year_id == self.year_id).all()
+        
     
     def update_teach_room(self, id, to_del, to_add):
         if to_add:
@@ -56,7 +58,7 @@ class Class_room_repo:
                                     Teach_room.year_id == self.year_id, 
                                     Teach_room.teach_room.in_(list(to_del))).delete(synchronize_session=False)
 
-class Academic_repo:
+class AcademicRepositories:
     class Get_repo:
         @staticmethod
         def get_year(year):
@@ -89,6 +91,7 @@ class Academic_repo:
         @staticmethod
         def add_lesson(lesson):
             db.session.add(Lesson(lesson = lesson))
+
     class Show_repo:
         @staticmethod
         def show_year(year = None):
@@ -96,8 +99,8 @@ class Academic_repo:
             if year:
                 query = query.filter(Year.year.ilike(f'%{year}%'))
 
-            query = query.all()
-            return [data.year for data in query]
+            return query.all()
+            
 
         @staticmethod
         def show_semester(semester = None):
@@ -105,18 +108,34 @@ class Academic_repo:
             if semester:
                 query = query.filter(Semester.semester.ilike(f'%{semester}%'))
             
-            query = query.all()
-            return [data.semester for data in query]
+            return query.all()
+            
 
         @staticmethod
         def show_lesson(lesson = None):
-            query = db.session.query(Lesson.lesson)
+            query = Lesson.query.with_entities(Lesson.id, Lesson.lesson)
+
             if lesson:
                 query = query.filter(Lesson.lesson.ilike(f'%{lesson}%'))
+
+            return query.all()            
+
+        def show_lesson_by_id(id = None, lesson = None, class_room_id = None):
+            query = db.session.query(Lesson.id,
+                                    Lesson.lesson,
+                                    Teachers.id,
+                                    Class_room.id).join(Teachers).outerjoin(Class_room)
+            if lesson:
+                query = query.filter(Lesson.lesson.ilike(f'%{lesson}%'))
+            
+            if id:
+                query = query.filter(Teachers.id == id)
+
+            if class_room_id:
+                query = query.filter(Class_room.id == class_room_id)
                 
-            query = query.all()
-            return [data.lesson for data in query]
-        
+            return query.first()
+                  
         @staticmethod
         def show_grade(grade = None):
             query = Grade.query
@@ -124,5 +143,4 @@ class Academic_repo:
             if grade:
                 query = query.filter(Grade.grade.ilike(f'%{grade}%'))
             
-            query = query.all()
-            return [data.grade for data in query]
+            return query.all()

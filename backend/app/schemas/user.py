@@ -33,9 +33,9 @@ class UserSchemas:
         def class_validator(cls, v):
             if not v:
                 return
-            if len(v) != 3:
+            elif len(v) != 3:
                 raise ValueError('Tên lớp chỉ có 3 ký tự!')
-            if not re.fullmatch(r'[\dA-Z]+', v):
+            elif not re.fullmatch(r'[\dA-Z]+', v):
                 raise ValueError('Tên lớp chỉ chứa số và chữ in hoa!')
             return v
         

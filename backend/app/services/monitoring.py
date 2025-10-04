@@ -1,12 +1,12 @@
 from app.schemas import MonitoringShowSchema, ValidationError
-from app.repositories import Monitoring_repo
+from app.repositories import MonitoringRepositories
 from app.utils import error_422
 from app.extensions import db
 
-class Monitoring_service:
+class MonitoringService:
     @staticmethod
     def handle_add_monitoring(username, action, status, info):
-        repo = Monitoring_repo(username, action, status)
+        repo = MonitoringRepositories(username, action, status)
         repo.add_monitoring(info)
         db.session.commit()
 
@@ -18,7 +18,7 @@ class Monitoring_service:
             return error_422(e)
         
         try:
-            repo = Monitoring_repo(search_data.username, search_data.action, search_data.status)
+            repo = MonitoringRepositories(search_data.username, search_data.action, search_data.status)
             result = repo.show_monitoring(search_data.start_date, search_data.end_date, search_data.page)
             if result:
                 return {'status': 'ok', 'data': result}

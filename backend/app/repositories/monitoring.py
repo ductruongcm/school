@@ -4,7 +4,7 @@ from sqlalchemy import func
 import math
 from app.extensions import db
 
-class Monitoring_repo:
+class MonitoringRepositories:
     def __init__(self, username, action, status):
         from app.utils import get_client_ip
         self.ip = get_client_ip()
