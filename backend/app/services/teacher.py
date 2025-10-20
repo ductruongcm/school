@@ -1,137 +1,82 @@
-from app.schemas import ValidationError, TeacherSchemas
-from app.repositories import TeachersRepositories, UsersRepositories, AcademicRepositories, ClassroomsRepositories
 from app.tasks import send_email_task
-from app.utils import error_400, error_422, generate_password, token_set_password, get_updated_fields
+from .subservices.sub_teacher import Teacher_Subservices
+from app.exceptions import CustomException
+from app.utils import generate_password, token_set_password, get_updated_fields
 from werkzeug.security import generate_password_hash
-from app.extensions import db
 
 class TeacherService:
-    @staticmethod
-    def handle_add_teacher(data):
-        try:
-            teacher_data = TeacherSchemas.TeacherCreateSchema(**data)
-        except ValidationError as e:
-            return error_422(e)
+    def __init__(self, db, user_repo=None, teacher_repo=None, academic_get_repo=None, academic_add_repo=None, academic_update_repo=None):
+        self.db = db
+        self.teacher_repo = teacher_repo(db)
+        self.academic_get_repo = academic_get_repo(db)
+        self.academic_add_repo = academic_add_repo(db)
+        self.academic_update_repo = academic_update_repo(db)
+        self.user_repo = user_repo(db)
+        self.teacher_subservices = Teacher_Subservices(self.user_repo, self.teacher_repo, self.academic_get_repo)
+
+    def handle_add_teacher(self, data):
+        #check user
+        self.teacher_subservices.check_dup_user(data)
+
+        data['password'] = generate_password_hash(generate_password(length=32))
+        data['token'] = generate_password_hash(token_set_password(length=32))
+        data['role'] = 'Teacher'
+        teacher = self.teacher_repo.add_user(data)
+
+        if data['class_room_id']:
+            class_room = self.teacher_subservices.check_home_class(data)
+            class_room.teacher_id = teacher.id
+
+        #check teach class
+        self.teacher_subservices.check_teach_class(data)
         
-        if UsersRepositories.get_user(teacher_data.username):
-            return error_400('Username đã được sử dụng!')
+        data['teacher_id'] = teacher.id
+        self.teacher_repo.assign_teach_class(data)
+        self.db.session.commit()
+
+        link = f'http://localhost:5173/setpassword?token={data['token']}'
+        send_email_task.delay(data['email'], 'Set password', f'Click following link to set password: {link}')
+        return data
         
-        lesson = AcademicRepositories.Get_repo.get_lesson(teacher_data.lesson)
-        if not lesson:
-            return error_400('Không tìm thấy môn học')
+    def handle_show_teacher(self, data):
+        result = self.teacher_repo.show_teacher(data)
+        keys = ['id', 'name','lesson_id', 'lesson', 'class_room_id', 'class_room', 'teach_room_ids', 'teach_room', 'tel', 'email', 'add', 'status']
+        return [dict(zip(keys, values)) for values in result]
+
+    def handle_update_info(self, data):
+        current_info_query = self.teacher_repo.get_info(data)
+        if not current_info_query:
+            raise CustomException('Không truy xuất được dữ liệu') 
+        
+        keys = ['teacher_id', 'name', 'lesson_id', 'class_room_id','teach_class', 'tel', 'add', 'email', 'year_id']
+        current_info = dict(zip(keys, current_info_query))
+
+        update_fields = get_updated_fields(data, current_info)
+        if 'name' in update_fields:
+            self.teacher_subservices.update_name(data)
+
+        if 'lesson_id' in update_fields:
+            self.teacher_subservices.update_lesson(current_info, data)
+
+        if 'add' or 'tel' or 'email' in update_fields:
+            self.teacher_subservices.update_info(update_fields, data)
+
+        if 'class_room_id' in update_fields:
+            self.teacher_subservices.update_home_class(update_fields, data)
+
+        if 'teach_class' in update_fields:
+            self.teacher_subservices.update_teach_class(current_info, data)
             
-        try:           
-            password = generate_password(length = 32)
-            token = generate_password_hash(token_set_password(length = 32))
-            teacher = TeachersRepositories.add_user(teacher_data.username, 
-                                            password, 
-                                            token, 
-                                            teacher_data.name, 
-                                            lesson.id,
-                                            teacher_data.email,
-                                            teacher_data.tel,
-                                            teacher_data.add)
-            
-            repo = ClassroomsRepositories(teacher_data.year)
-            if teacher_data.class_room:
-                class_room = repo.get_class_room(teacher_data.class_room)
-                if class_room.teacher_id:
-                    raise ValueError('Lớp học đã có giáo viên chủ nhiệm!')
-                
-                class_room.teacher_id = teacher.id
-            teach_room = [repo.get_class_room(room).id for room in teacher_data.teach_room]
-
-            check_teach_room = [repo.check_teach_room(lesson.id, room) for room in teach_room]
-            if all(check_teach_room):
-                raise ValueError('Lớp học đã có giáo viên bộ môn này!!')
-            
-            repo.assign_teach_rooms(teacher.id, teacher_data.teach_room)
-            db.session.commit()
-
-            link = f'http://localhost:5173/setpassword?token={token}'
-            send_email_task.delay(teacher_data.email, 'Set Password', f'Click following link to set password: {link}')
-
-            return {'status': 'ok', 'msg': 'Thêm giáo viên thành công'}
+        self.db.session.commit()
+        return current_info
+    
+    def handle_status_teacher(self, data):
+        teacher = self.teacher_repo.get_teacher(data)
+        teacher.status = not teacher.status
+        self.db.session.commit()
+        return teacher
         
-        except Exception as e:
-            db.session.rollback()
-            return {'status': 'DB_error', 'msg': f'DB_error: {str(e)}'}
+    def handle_delete_teacher(self, data):
+        self.teacher_repo.delete(data)
+        return {'status': 'Success', 'msg': 'Đã xóa giáo viên!'}
         
-    @staticmethod
-    def handle_show_teacher(data):
-        try:
-            teacher_data = TeacherSchemas.TeacherShowSchema(**data)
-        except ValidationError as e:
-            return error_422(e)
-        
-        try:
-            rows = TeachersRepositories.show_teacher(teacher_data.lesson, teacher_data.class_room, teacher_data.name)
-            if rows:
-                keys = ['id', 'name', 'lesson', 'class_room', 'teach_room', 'tel', 'email', 'add']
-                return {'status': 'ok', 'data': [dict(zip(keys, values)) for values in rows]}
- 
-            else:
-                return {'status': 'Logic_error', 'msg': 'Không tìm thấy thông tin!'}
-            
-        except Exception as e:
-            return {'status': 'DB_error', 'msg': f'DB_error: {str(e)}'}
-
-    @staticmethod
-    def handle_update_info(data):
-        try:
-            update_info_data = TeacherSchemas.TeacherUpdateSchema(**data)
-
-        except ValidationError as e:
-            return error_422(e)
-        
-        if not AcademicRepositories.Get_repo.get_lesson(update_info_data.lesson):
-            return error_400('Thông tin môn học không hợp lệ!')
-        
-        query = TeachersRepositories.Get_repo.get_info(update_info_data.id, update_info_data.year)
-        keys = ['id', 'name', 'lesson', 'class_room', 'class_room_id','teach_room', 'tel', 'add', 'email', 'year']
-        current_info = dict(zip(keys, query))  
-        
-        update = get_updated_fields(data, current_info)
-        repo = ClassroomsRepositories(update_info_data.year)
-        if update.get('name'):
-            TeachersRepositories.Get_repo.get_teacher(update_info_data.id).name = update_info_data.name
-
-        if update.get('lesson'):
-            lesson_id = AcademicRepositories.Get_repo.get_lesson(update_info_data.lesson).id
-            TeachersRepositories.Get_repo.get_teacher(update_info_data.id).lesson_id = lesson_id
-
-        if update.get('class_room'):
-            class_room = repo.get_class_room(update_info_data.class_room)
-            class_room.teacher_id = update_info_data.id
-
-        if update.get('teach_room'):
-            lesson_id = AcademicRepositories.Get_repo.get_lesson(update_info_data.lesson).id
-            rooms = [repo.get_class_room(i) for i in update_info_data.teach_room.replace(' ','').split(',')]
-            if not all(rooms):
-                return error_400('Thông tin lớp học không hợp lệ!')
-            
-            new_teach_room = {room.id for room in rooms}
-                
-            current_teach_room = set(repo.get_teach_room(update_info_data.id))
-            to_del = current_teach_room - new_teach_room
-            to_add = new_teach_room - current_teach_room
-
-            error = [repo.check_teach_room(lesson_id, i) for i in to_add]
-            if all(error):
-                return error_400('Đã có giáo viên bộ môn cho lớp này!')
-
-            repo.update_teach_room(update_info_data.id, to_del, to_add)
-     
-        
-        if update.get('tel'):
-            TeachersRepositories.Get_repo.get_teacher_info(update_info_data.id).tel = update['tel']
-
-        if update.get('add'):
-            TeachersRepositories.Get_repo.get_teacher_info(update_info_data.id).add = update['add']
-
-        if update.get('email'):
-            TeachersRepositories.Get_repo.get_teacher_info(update_info_data.id).email = update['email']
-
-        db.session.commit()
-        return {'status': 'success', 'msg': 'Đã cập nhật thông tin!'}
-

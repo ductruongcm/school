@@ -1,73 +1,54 @@
 from flask import Blueprint, jsonify
-from app.utils import required_role, error_show_return
-from flask_jwt_extended import jwt_required
-from app.services import MonitoringService, CloudService
-from app.controllers import CloudController
+from app.utils import required_role, validate_input, ResponseBuilder
+from flask_jwt_extended import jwt_required, get_jwt
+from app.services import CloudService
+from app.extensions import db
+from app.repositories import CloudRepo
+from app.schemas import CloudSchemas
+
 
 cloud_bp = Blueprint('cloud_bp', __name__, url_prefix = '/api/cloud')
+cloud_service = CloudService(db, CloudRepo)
 
 @cloud_bp.post('/files')
 @jwt_required()
 @required_role('admin', 'teacher')
-def upload():
-    result = CloudController.upload()
-    errors = error_show_return(result)
-    if errors:
-        return errors
-    
-    return jsonify({'url': result['url']}), 201
+@validate_input(CloudSchemas.Upload)
+def upload(validated_data):
+    validated_data['upload_by'] = get_jwt().get('id')
+    result = cloud_service.handle_upload(validated_data)
+    msg = f"Đã upload file {result['filename']} thành công!"
+    return ResponseBuilder.post(msg, result['url'])
 
 @cloud_bp.get('/files')
 @jwt_required()
 @required_role('admin', 'teacher')
-def show_file():
-    data = CloudController.show_file()
-    return jsonify(data), 200
-
-@cloud_bp.get('/files/<int:id>/download')
+@validate_input(CloudSchemas.ShowFileSchema)
+def show_file(validated_data):
+    result = cloud_service.handle_show_file(validated_data)
+    return ResponseBuilder.get('Không có dữ liệu!', result)
+ 
+@cloud_bp.get('/files/<int:id>')
 @jwt_required()
 def download(id: int):
-    return CloudService.handle_download(id)
-
-@cloud_bp.get('/folders')
-@jwt_required()
-@required_role('admin', 'teacher')
-def show_folder():
-    data = CloudController.show_folder()
-    return jsonify({'data': data}), 200
+    result = cloud_service.handle_download({'file_id': id})
+    return ResponseBuilder.get('Không có dữ liệu!', result)
 
 @cloud_bp.put('/files/<int:id>/hide')
 @jwt_required()
 @required_role('admin', 'teacher')
 def hide_files(id: int):
-    result = CloudService.handle_hide(id)
-    errors = error_show_return(result)
-    if errors:
-        return errors
-    
-    return jsonify({'msg': result['msg']}), 200
-
-@cloud_bp.put('/files/<int:id>/unhide')
-@jwt_required()
-@required_role('admin', 'teacher')
-def unhide_file(id: int):
-    result = CloudService.handle_undhide(id)
-    errors = error_show_return(result)
-    if errors:
-        return errors
-    
-    return jsonify({'msg': result['msg']}), 200
+    file = cloud_service.handle_status({'file_id': id})
+    msg = f"Đã ẩn file {file['filename']}!" if not file['status'] else f"Đã hiện file {file['filename']}!"
+    return ResponseBuilder.put(msg)
 
 @cloud_bp.delete('/files/<int:id>')
 @jwt_required()
 @required_role('admin', 'teacher')
 def delete(id: int):
-    result = CloudController.delete_file(id)
-    errors = error_show_return(result)
-    if errors:
-        return(errors)
-    MonitoringService.handle_add_monitoring(result['username'], 'delete file', 'SUCCESS', f"Delete: {result['file_name']}")
-    return {'msg': result['msg']}, 200
+    file = cloud_service.handle_delete({'file_id': id})
+    msg = f"Đã xóa file {file['filename']}!"
+    return ResponseBuilder.delete(msg)
 
 
 

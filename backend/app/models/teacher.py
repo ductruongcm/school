@@ -13,21 +13,12 @@ class Teachers(db.Model):
     users = db.relationship('Users', back_populates = 'teachers', lazy = True)
     lesson = db.relationship('Lesson', back_populates = 'teachers', lazy = True)
     class_room = db.relationship('Class_room', back_populates = 'teachers', lazy = True)
-    teach_room = db.relationship('Teach_room', back_populates = 'teachers', lazy = True)
+    teach_class = db.relationship('Teach_class', back_populates = 'teachers', lazy = True)
     @validates('name')
     def name_validates(self, key, value):
         if not re.fullmatch(r'[a-zA-ZÀ-ỹ\s]+', value):
             raise ValueError('Tên không được chứa số và ký tự đặc biệt!!')
         return value
-    
-class Teach_room(db.Model):
-    __tablename__ = 'teach_room'
-    id = db.Column(db.Integer, primary_key = True)
-    teacher_id = db.Column(db.Integer, db.ForeignKey('teachers.id', ondelete = 'CASCADE'))
-    year_id = db.Column(db.Integer, db.ForeignKey('year.id', ondelete = 'CASCADE'))
-    teach_room = db.Column(db.Integer, db.ForeignKey('class_room.id', ondelete = 'CASCADE'))
-    teachers = db.relationship('Teachers', back_populates = 'teach_room', lazy = True)   
-    class_room = db.relationship('Class_room', back_populates = 'teach_room', lazy = True)
 
 class Teacher_info(db.Model):
     __tablename__ = 'teacher_info'
@@ -45,7 +36,7 @@ class Teacher_info(db.Model):
     
     @validates('add')
     def add_validates(self, key, value):
-        if re.search('[!@#$%^&*(_+=,.<>?)]', value):
+        if re.search(r"[~!@#$%^&*()_+=`,.<>/?-]+", value):
             raise ValueError('Địa chỉ không được chứa ký tự đặc biệt!')
         return value
     
@@ -55,9 +46,4 @@ class Teacher_info(db.Model):
             return ValueError('Email không hợp lệ!!')
         return value
 
-class Lesson(db.Model):
-    __tablename__ = 'lesson'
-    id = db.Column(db.Integer, primary_key = True)
-    lesson = db.Column(db.String(15), nullable = False)
-    teachers = db.relationship('Teachers', back_populates = 'lesson', lazy = True)    
-    score = db.relationship('Score', back_populates = 'lesson', lazy = True)
+

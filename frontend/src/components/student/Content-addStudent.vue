@@ -2,57 +2,73 @@
     <div>Quản lý học sinh</div>
     <form @submit.prevent="addStudent">
         <div> Thêm học sinh </div>
-        <label>Họ và tên</label> <br>
-        <input type="text" v-model="name" required> <br>
-        <label >Lớp học</label> <br>
-        <!-- <input type="text" v-model="class_room" required> <br> -->
+        <label>Khối lớp: </label>
+        <select v-model="selectedGrade" @change="fetchClassData()">
+            <option value="null" disabled>-- Chọn khối --</option>
+            <option v-for="grade in gradeList" :key="grade.id" :value="grade.id">Khối {{ grade.grade }}</option>
+        </select> 
+        <label > Lớp học: </label> 
         <select v-model="classRoom">
-            <option value="" selected disabled>-- Chọn lớp --</option>
-            <option v-for="item in classList" :key="item">{{ item }}</option>
+            <option value="">-- Xếp lớp sau --</option>
+            <option v-for="class_room in classList" :key="class_room.clas_room_id" :value="class_room">
+                {{ class_room.class_room }}
+            </option>
         </select>   <br>
-        <label>Số điện thoại liên lạc</label> <br>
-        <input type="text" v-model="tel" required> <br>
-        <label>Địa chỉ</label> <br>
-        <input type="text" v-model="add" required> <br>
-        <label>Role</label> <br>
-        <input type="text" v-model="role" default="guest" placeholder="guest"> <br>
+        <label>Họ và tên: </label> 
+        <input type="text" v-model="name" required> <br>
+        <label>Giới tính: </label>
+        <select v-model="selectedGender">
+            <option value="">--Chọn giới tính --</option>
+            <option value="Nam">Nam</option>
+            <option value="Nữ">Nữ</option>
+        </select> <br>
+        <label>Sinh ngày: </label> 
+        <input type="date" v-model="selectedBOD"> <br>
+        <label>Số điện thoại gia đình: </label> 
+        <input type="text" v-model="tel"> <br>
+        <label>Địa chỉ: </label> 
+        <input type="text" v-model="add"> <br>
         <button type="submit">Đăng ký</button>
     </form>
     <div>{{ msg }}</div>
 </template>
 
 <script setup>
-import { inject, ref, onMounted, watch } from 'vue';
+import { ref, onMounted } from 'vue';
+import { userYearStore } from '../../stores/yearStore';
 import axios from 'axios';
 
-const year = inject('year')
+const yearStore = userYearStore()
 const name = ref('')
-const classList = ref([])
 const tel = ref('')
 const add = ref('')
-const role = ref('')
 const msg = ref('')
 const classRoom = ref('')
-
+const selectedGender = ref('')
+const selectedBOD = ref('')
 const addStudent = async () => {
     const payload = {
         name: name.value,
-        class_room: classRoom.value,
-        year: year.value,
+        class_room_id: classRoom.value?.class_room_id || null,
+        class_room: classRoom.value?.class_room || null,
+        year_id: yearStore.year.id,
+        year: yearStore.year.year,                                  // quan trọng: để làm student code
         tel: tel.value,
         add: add.value,
-        role: role.value,    
+        gender: selectedGender.value,
+        bod: selectedBOD.value,
+        grade_id: selectedGrade?.value || null
     }
-    try {const res = await axios.post('/api/student/add_student', payload, { 
+    try {const res = await axios.post('/api/students', payload, { 
             withCredentials: true,
             headers: {'Content-Type': 'application/json'}
         })
-        
+
         msg.value = res.data.msg
     } catch (err) {
         if (err.response && err.response.status === 403) {
             msg.value = 'Forbidden: Access denied!'
-        } else if (err.response && err.response.status === 400) {
+        } else if (err.response && err.response.status === 400 || 404 || 422) {
             msg.value = err.response.data.msg
         } else {
             msg.value = 'Có vấn đề gì rồi!!'
@@ -60,24 +76,32 @@ const addStudent = async () => {
     }
 }
 
-onMounted(async () => {
-    fetchClassList()
+onMounted( () => {
+    fetchGradeData()
 })
 
-const fetchClassList = async () => {
-    const payload = {
-        year: year.value
-    }
-    const res = await axios.put('api/academic/show_class_room', payload, {
+const gradeSearch = ref('')
+const gradeList = ref(null)
+const fetchGradeData = async () => {
+    const res = await axios.get('api/academic/grades', {
         withCredentials: true,
-        headers: {'Content-Type': 'application/json'}
+        params: {
+            grade: gradeSearch.value
+        }
+    })
+    gradeList.value = res.data.data
+}
+
+const selectedGrade = ref('null')
+const classList = ref(null)
+const fetchClassData = async () => {
+    const res = await axios.get('api/academic/class_rooms', {
+        withCredentials: true,
+        params: {
+            year_id: yearStore.year.id,
+            grade_id: selectedGrade.value
+        }
     })
     classList.value = res.data.data
 }
-
-watch(classList, (newval) => {
-    if (newval.length === 1) {
-        classRoom.value = newval[0]
-    }
-})
 </script>

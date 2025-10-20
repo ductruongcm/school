@@ -21,7 +21,10 @@ import ContentTeacher from '../components/teacher/Content-teacher.vue';
 import ContentClass from '../components/class_room/Content-class.vue';
 import ContentLessonTool from '../components/tool/Content-lessonTool.vue';
 import ContentYearTool from '../components/tool/Content-yearTool.vue';
+import ContentSemesterTool from '../components/tool/Content-semesterTool.vue';
 import ContentUser from '../components/user/Content-user.vue';
+import ContentFolder from '../components/class_room/Content-folder.vue';
+import ContentScheduleTool from '../components/tool/Content-scheduleTool.vue';
 import axios from 'axios';
 import { ref, onMounted, shallowRef } from 'vue';
 import  useUserStore  from '../stores/user';
@@ -47,7 +50,10 @@ function switchComponent(name) {
         ContentUpload,
         ContentUser,
         ContentMonitoring,
-        ContentClass
+        ContentClass,
+        ContentSemesterTool,
+        ContentFolder,
+        ContentScheduleTool
     }
     activeComponent.value = map[name]
 }
@@ -67,7 +73,7 @@ onMounted(() => {
 })
 
 const refreshToken = async () => {
-    const res = await axios.post('api/user/refresh_token', {
+    const res = await axios.post('api/auth/refresh_token', {
         withCredentials: true
     })
     userStore.setUserInfo(res.data)

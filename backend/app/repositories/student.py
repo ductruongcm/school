@@ -1,41 +1,91 @@
 from app.extensions import db
-from app.models import Students, Class_room, Users, Score, Lesson, Student_info
-# from app.utils import generate_password
-from werkzeug.security import generate_password_hash
+from .base import BaseRepo
+from sqlalchemy import func, select
+from app.models import Students, Class_room, Users, Score, Lesson, Student_info, Student_Lesson_Period, Student_Class, Period, Grade
 
-class StudentsRepositories:
-    @staticmethod 
-    def add_student(username, password, name, tel, add, class_room):
-        pass
+class StudentsRepo(BaseRepo):
+    def add_student(self, data):
+        student = Students(name = data['name'])
+     
+        student.student_info = [Student_info(tel = data['tel'],
+                                            add = data['add'],
+                                            gender = data['gender'],
+                                            BOD = data['bod'])]
+        self.db.session.add(student)
+        self.db.session.flush()
+        return student
+    
+    def student_last_code(self):
+        last_code = self.db.session.query(func.max(Students.student_code)).scalar()
+        if not last_code:
+            next_num = 1
+        else:
+            last_num = int(last_code[-4:])
+            next_num = last_num + 1
+        return next_num
+    
+    def add_user(self, data):
+        user = Users(**data)
+        self.db.session.add(user)
+        self.db.session.flush()
+        return user
 
+    def check_student_code(self, data):
+        return self.db.session.query(Students).filter(Students.student_code == data).first()
+    
+    def get_lessons_id_by_grade_id(self, data):
+        fields = self.filter_context('grade_id', 'year_id', context=data)
+        return self.db.session.scalars(select(Lesson.id).filter(Lesson.year_id == fields['year_id'],
+                                                       Lesson.grade_id <= fields['grade_id'])).all()
+    
+    def get_period_id(self, data: dict):
+        fields = self.filter_context('year_id', 'semester_id', context=data)
+        return self.db.session.query(Period.id).filter(Period.year_id == fields['year_id'],
+                                                       Period.semester_id == fields['semester_id']).scalar()
 
-def generate_student_id(year, current_class_room):
-    year_id = year[2:4:1]
-    class_id = Class_room.query.filter(Class_room.class_room == current_class_room).first().id
-    if class_id < 10:
-        student_id = f'{year_id}0{class_id}00'
-    else:
-        student_id = f'{year_id}{class_id}00'
-    return student_id
+    def student_lesson_period(self, data: dict):
+        fields = self.filter_context('student_id', 'lessons_id', context=data)
+        for lesson_id in fields['lessons_id']:
+            student_lesson = Student_Lesson_Period(student_id = fields['student_id'],
+                                                   lesson_id = lesson_id)
+            student_lesson.score = [Score()]
+            self.db.session.add(student_lesson)
 
-def db_add_student(name, current_class_room, tel, add, role, year):
-    class_room = Class_room.query.filter(Class_room.class_room == current_class_room).first()
-    new_student = Students(name = name, class_room_id = class_room.id)
-    db.session.add(new_student)
-    db.session.flush()
-    username = generate_student_id(year, current_class_room) 
-    if new_student.id < 10:
-        username = f'{username}0{new_student.id}'
-    else:
-        username = f'{username}{new_student.id}'
-    # password = generate_password_hash(generate_password(length = 32))
-    new_student.student_id = username
-    # new_user = Users(username = username, password = password, role = role)
-    # new_info = Student_info(user_id = new_user.id, name = name, tel = tel, add = add)
-    # db.session.add_all([new_user, new_info])
-    db.session.flush()
-    # new_student.info_id = new_info.id
-    db.session.commit()
+    def student_class(self, data: dict):
+        fields = self.filter_context('class_room_id', 'student_id', 'grade_id', 'year_id', context=data)
+        self.db.session.add(Student_Class(**fields))
+
+    def show_student_by_grade(self, data):
+        query = self.db.session.query(Students.id,
+                                      Students.name,
+                                      Student_info.tel,
+                                      Student_info.add,
+                                      Grade.grade).join(Students.student_info)\
+                                                  .join(Students.student_class)\
+                                                  .join(Grade, Student_Class.grade_id == Grade.id)
+        if data['grade_id']:
+            query = query.filter(Student_Class.grade_id == data['grade_id'])
+        
+        return query.filter(Student_Class.class_room_id == None).all()
+    
+# def db_add_student(name, current_class_room, tel, add, role, year):
+#     class_room = Class_room.query.filter(Class_room.class_room == current_class_room).first()
+#     new_student = Students(name = name, class_room_id = class_room.id)
+#     db.session.add(new_student)
+#     db.session.flush()
+#     username = generate_student_id(year, current_class_room) 
+#     if new_student.id < 10:
+#         username = f'{username}0{new_student.id}'
+#     else:
+#         username = f'{username}{new_student.id}'
+#     # password = generate_password_hash(generate_password(length = 32))
+#     new_student.student_id = username
+#     # new_user = Users(username = username, password = password, role = role)
+#     # new_info = Student_info(user_id = new_user.id, name = name, tel = tel, add = add)
+#     # db.session.add_all([new_user, new_info])
+#     db.session.flush()
+#     # new_student.info_id = new_info.id
+#     db.session.commit()
 
 def db_show_student(current_class_room): 
     rows = db.session.query(Students.id,

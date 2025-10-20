@@ -71,7 +71,7 @@ const totalPages = ref('')
 
 const fetchData = async (page = 1) => {
     try {
-        const res = await axios.get('api/monitoring/show_monitoring', {
+        const res = await axios.get('api/audit', {
             params: {ip: ip.value,
                 username: username.value,
                 action: action.value,
@@ -82,7 +82,7 @@ const fetchData = async (page = 1) => {
             },
             withCredentials: true
         })
-        data.value = res.data.data
+        data.value = res.data.data.data
         currentPage.value = res.data.page
         totalPages.value = res.data.total_pages
     } catch (e) {

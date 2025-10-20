@@ -1,18 +1,20 @@
 <template>
     <div>Download</div>
+
     <div>
         <div>
             <form>
                 <label>Lớp: </label>
                 <select v-model="classFolder" @change="fetchFolder">
-                    <option value="" disabled>-- Chọn lớp --</option>
-                    <option v-for="classRoom in classList" :key="classRoom.class_room_id" :value="classRoom.class_room_id">{{ classRoom.class_room }}</option>
+                    <option :value="null" disabled>-- Chọn lớp --</option>
+                    <option v-for="item in classList" :key="item.class_room_id" :value="item">{{item.class_room }}</option>
                 </select>
-                <label>Thư mục: </label>
-                <select v-model="fileFolder" @change="showFile">
-                    <option value="" disabled>-- Chọn môn --</option>
-                    <option v-for="item in folder" :key="item" :value="item"> {{ item }}</option>
+                <label> Thư mục: </label>
+                <select v-model="fileFolder">
+                    <option :value="null" disabled>-- Chọn môn --</option>
+                    <option v-for="item in folder" :key="item" :value="item"> {{ item.lesson }}</option>
                 </select>
+                <label>{{ downloadMsg }}</label>
             </form>
         </div>
         <table>
@@ -22,14 +24,14 @@
                     <th style="width: 15em;">File name</th>
                     <th style="width: 7em;">File type</th>
                     <th style="width: 4em;">File size</th>
-                    <th style="width: 15em;">Upload lúc</th>
+                    <th style="width: 10em;">Upload lúc</th>
                     <th style="width: 8em;">Người upload</th>
-                    <th style="width: 8em;">Trạng thái</th>
-                    <th style="width: 12em;"></th>
+                    <th style="width: 7em;">Trạng thái</th>
+                    <th style="width: 14em;"></th>
                 </tr>
             </thead>
             <tbody>
-                <tr v-for="(item, index) in file" :key="item.upload_at" >
+                <tr v-for="(item, index) in fileList" :key="item.id" :value="item.id">
                     <td>{{ index + 1 }}</td>
                     <td>{{ item.file_name }}</td>
                     <td>{{ item.file_type }}</td>
@@ -39,8 +41,7 @@
                     <td>{{ item.status ? 'Hiện' : 'Ẩn'}}</td>
                     <td>
                         <button @click="download(item)">Download</button>
-                        <button v-if="!item.status" @click="unhideFile(item)">Hiện</button>
-                        <button v-else @click="hideFile(item)">Ẩn</button>
+                        <button @click="hideFile(item)">Ẩn/Hiện</button>
                         <button @click="del(item)">Xóa</button>
                     </td>
                 </tr>
@@ -51,80 +52,94 @@
 <script setup>
 import axios from 'axios';
 import dayjs from 'dayjs'
-import { ref, onMounted, inject, watch } from 'vue';
+import { ref, onMounted, watch } from 'vue';
+import { userYearStore } from '../../stores/yearStore';
 
 const classList = ref([])
-const classFolder = ref('')
+const classFolder = ref(null)
 const folder = ref([])
-const fileFolder = ref('')
-const file = ref([])
-const year = inject('year')
+const fileFolder = ref(null)
+const yearStore = userYearStore()
+const downloadMsg = ref(null)
 
 onMounted( () => {
     fetchTeachRoom()
 })
 
+const class_roomSearch = ref('')
+const gradeSearch = ref('')
 const fetchTeachRoom = async () => {
-    const res = await axios.get('api/academic/teach_rooms', {
+    const res = await axios.get('api/academic/teach_classes', {
         withCredentials: true,
         headers: {'Content-Type': 'application/json'},
-        params: {year: year.value}
+        params: {
+            year_id: yearStore.year.id,
+            class_room: class_roomSearch.value,
+            grade_id: gradeSearch.value
+        }
     })
     classList.value = res.data.data
 }
 
 const fetchFolder = async () => {
-    const res = await axios.get('api/cloud/folders', {
-        params: {class_room_id: classFolder.value},
+    const res = await axios.get('api/academic/lessons', {
+        params: {
+            class_room_id: classFolder.value.class_room_id,
+            grade_id: classFolder.value.grade_id,
+            year_id: yearStore.year.id
+        },
         withCredentials: true
     })
     folder.value = res.data.data
 }
 
-watch([classFolder, fileFolder], async ([newClass, newFolder]) => {
-    if (newClass && newFolder) {
-        await showFile()
+const fileList = ref(null)
+const fetchFile = async () => {
+    try{
+        const res = await axios.get('api/cloud/files', {
+            withCredentials: true,
+            params: {
+                class_room_id: classFolder.value.class_room_id,
+                lesson_id: fileFolder.value.lesson_id,
+                year_id: yearStore.year.id
+            }   
+        })
+        fileList.value = res.data.data
+
+    } catch (e) {
+        if (e.response && e.response.status === 400 || 404 || 422 || 500) {
+            downloadMsg.value = e.response.data.msg
+        }
+    }
+}
+
+watch([fileFolder, classFolder], async([newLessonId, newClassId]) => {
+    if (newLessonId && newClassId) {
+        await fetchFile()
     }
 })
 
-const showFile = async () => {
-    const res = await axios.get('api/cloud/files', {
-        withCredentials: true,
-        params: { 
-            class_room_id: classFolder.value,
-            folder: fileFolder.value
-        }
-    })
-    file.value = res.data.data
-}
-
 async function hideFile(item) {
-    await axios.put(`/api/cloud/files/${item.id}/hide`, { 
+    const res = await axios.put(`/api/cloud/files/${item.id}/hide`, { 
         withCredentials: true, 
     })
-    console.log(res.data.msg)
-}
-
-async function unhideFile(item) {
-    const payload = {file_name: item.file_name}
-    await axios.put(`/api/cloud/files/${item.id}/unhide`, {
-        withCredentials: true,
-    })
-    console.log(res.data.msg)
+    downloadMsg.value = res.data.msg
+    fetchFile()
 }
 
 async function download(item) {
-    const res = await axios.get(`api/cloud/files/${item.id}/download`, {
+    const res = await axios.get(`api/cloud/files/${item.id}`, {
         withCredentials: true,
     })
-    window.open(res.data) 
+    window.open(res.data.data) 
 }
 
 async function del(item) {
     const res = await axios.delete(`api/cloud/files/${item.id}`, {
         withCredentials: true,
     })
-    console.log(res.data.msg)
+    fetchFile()
+    downloadMsg.value = res.data.msg
 }
 
 </script>

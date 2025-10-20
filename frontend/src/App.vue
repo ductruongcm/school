@@ -1,16 +1,31 @@
 <script setup>
 import TopPopup from './components/TopPopup.vue';
-import { ref, provide, computed } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import useUserStore from './stores/user';
+import { userYearStore } from './stores/yearStore';
 import axios from 'axios';
 
 const userStore = useUserStore()
-
 const username = computed(() => userStore.userInfo?.username ?? '')
 const role = computed(() => userStore.userInfo?.role ?? '')
+const yearUse = userYearStore()
+const yearSearch = ref('')
+const yearList = ref([])
 
-const year = ref('2025 - 2026')
-provide('year', year)
+const fetchYear = async () => {
+  const res = await axios.get('api/academic/years', {
+    params: {
+      year: yearSearch.value,
+      is_active: true
+    }
+  })
+  yearList.value = res.data.data
+  yearUse.setYear(yearList.value[0])
+}
+
+onMounted(()=> {
+  fetchYear()
+})
 
 function logout() {
   axios.get('api/user/logout')
@@ -25,7 +40,7 @@ function logout() {
     <div class="header">
       <div>
         <div>Trường THPT BVD</div>
-        <div>Niên khóa {{ year }}</div> 
+        <div v-for="year in yearList" :key="year.id" :value="year.id">Niên khóa {{ year.year }}</div> 
       </div>
       <div class="topPopup"><TopPopup /></div>
       <div v-if="userStore.userInfo" class="userInfo">

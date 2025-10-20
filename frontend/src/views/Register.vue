@@ -39,7 +39,7 @@ const handleSubmit = async () => {
     }
 
     try {
-        await axios.post("/api/user/register", payload, {
+        await axios.post("/api/auth/register", payload, {
         headers: {"Content-Type": "application/json"}
         })
         router.push('/')

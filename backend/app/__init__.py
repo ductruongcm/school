@@ -1,7 +1,8 @@
-from flask import Flask
+from flask import Flask, request, jsonify
 from .extensions import db, lm, jwt, cors, mail, migrate
 from configs import Configs
 from .routes import routes
+from .exceptions import register_error_handler_with_log
 
 def launch():
     global celery
@@ -14,8 +15,11 @@ def launch():
     mail.init_app(app)
     migrate.init_app(app, db)
     cors.init_app(app, origins = ['http://localhost:5173'],
-                   supports_credentials = True)
+                       supports_credentials = True)
 
     for route in routes: 
         app.register_blueprint(route)
+    
+    register_error_handler_with_log(app, db)
+
     return app

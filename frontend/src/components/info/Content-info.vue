@@ -73,15 +73,22 @@ let updatePasswordMsg = ref('')
 const setPassword = ref(false)
 
 onMounted(async () => {
-    const res = await axios.get('api/user/user_info', {
+    fetchUserInfo()
+})
+
+const fetchUserInfo = async () => {
+    try {const res = await axios.get(`api/users/me`, {
         withCredentials: true,
-        params: {
-            id: userStore.userInfo.id,
-            role: userStore.userInfo.role
-        }
     })
     info.value = res.data
-})
+    } catch (e) {
+        if (e.response && e.response.status === 400 || 422 || 500) {
+            updatePasswordMsg.value = e.response.data.msg
+        } else {
+            updatePasswordMsg.value = 'Có vấn đề gì rồi!!'
+        }
+    }
+}
 
 async function updatePassword() {
     try { const payload = {

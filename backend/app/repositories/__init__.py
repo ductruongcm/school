@@ -1,6 +1,8 @@
-from .academic import ClassroomsRepositories
-from .teacher import TeachersRepositories
-from .monitoring import MonitoringRepositories
-from .user import UsersRepositories
-from .academic import AcademicRepositories
-from .cloud import CloudRepositories
+from .teacher import TeachersRepo
+from .audit import AuditRepo
+from .user import UsersRepo
+from .academic import AcademicAddRepo, AcademicGetRepo, AcademicShowRepo, AcademicUpdateRepo, AcademicCheckRepo
+from .file import CloudRepo
+from .student import StudentsRepo
+from .export import Export_Repo
+

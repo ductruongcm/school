@@ -1,6 +1,6 @@
-from .auth import Register, Login, SetPassword, Username
-from .user import TeacherSchemas, UserSchemas, Student
-from .academic import AcademicCreateSchemas, AcademicShowSchemas
+from .auth import Register, Login, SetPassword, Username, Password
+from .user import TeacherSchemas, UserSchemas, StudentSchemas
+from .academic import AcademicShowSchemas, AcademicSchemas
 from pydantic import ValidationError
-from .monitoring import MonitoringShowSchema
-from .cloud import CloudSchemas
+from .audit import AuditShowSchema
+from .file import CloudSchemas

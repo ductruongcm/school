@@ -37,7 +37,7 @@ const login = async () => {
         password: password.value
     }
     try {
-        const res = await axios.post('api/user/login', payload, {
+        const res = await axios.post('api/auth/login', payload, {
             headers: {'Content-Type': 'application/json'}
         })
         userStore.setUserInfo(res.data)

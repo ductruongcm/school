@@ -37,7 +37,6 @@ class Password(BaseModel):
         
         return v
 
-
 class Register(Username, Password):
     name: str 
 
@@ -51,7 +50,6 @@ class Register(Username, Password):
    
         return v
 
-    
 class Login(Username):
     password: str
 

@@ -20,7 +20,9 @@ import ContentClassTool from '../components/tool/Content-classTool.vue'
 import ContentLessonTool from '../components/tool/Content-lessonTool.vue'
 import ContentYearTool from '../components/tool/Content-yearTool.vue'
 import ContentUser from '../components/user/Content-user.vue'
-
+import ContentSemesterTool from '../components/tool/Content-semesterTool.vue'
+import ContentFolder from '../components/class_room/Content-folder.vue'
+import ContentScheduleTool from '../components/tool/Content-scheduleTool.vue'
 
 const routes = [
     {path: '/', component: Login},
@@ -42,7 +44,10 @@ const routes = [
             {path: 'download', component: ContentDownload},
             {path: 'upload', component: ContentUpload},
             {path: 'user', component: ContentUser},
-            {path: 'monitoring', component: ContentMonitoring}
+            {path: 'monitoring', component: ContentMonitoring},
+            {path: 'semesterTool', component: ContentSemesterTool},
+            {path: 'folder', component: ContentFolder},
+            {path: 'scheduleTool', component: ContentScheduleTool}
         ]}
     ]}
 ]

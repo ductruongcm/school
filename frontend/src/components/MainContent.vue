@@ -17,7 +17,9 @@ import ContentTeacher from './teacher/Content-teacher.vue';
 import ContentClassTool from './tool/Content-classTool.vue';
 import ContentLessonTool from './tool/Content-lessonTool.vue';
 import ContentYearTool from './tool/Content-yearTool.vue';
+import ContentFolder from './class_room/Content-folder.vue';
 import ContentUser from './user/Content-user.vue';
+import ContentScheduleTool from './tool/Content-scheduleTool.vue';
 
 const props = defineProps({
     activeComponent: {

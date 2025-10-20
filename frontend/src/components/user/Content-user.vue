@@ -21,7 +21,7 @@
                 </tr>
             </thead>
             <tbody>
-                <tr v-for="(item, index) in data" :key="item.username">
+                <tr v-for="(item, index) in userList" :key="item.username">
                     <td>{{ index + 1 }}</td>
                     <td>{{ item.username }}</td>
                     <td>
@@ -33,19 +33,9 @@
                             <button v-if="!item.editing" @click="edit(item)">Edit</button>
                             <button v-else @click.prevent="save(item)">Save</button>
                             <button v-if="item.editing" @click.prevent="cancel(item)">Cancel</button>
-                            <button @click.prevent="item.setPasswordStatus = true">Set password</button>
+                            <button @click.prevent="resendTmpToken(item)">Resent new temporary token</button>
                         </div>
                     </td>  
-                    <td v-if="item.setPasswordStatus" colspan="6">
-                        <form @submit.prevent="savePassword(item)">
-                            <label>Set password: </label>
-                            <input v-model="password" type="password">
-                            <label>Re-type password : </label>
-                            <input v-model="rePassword" type="password">
-                            <button type="submit">Confirm</button>
-                            <button @click.prevent="item.setPasswordStatus = false">Cancel</button>
-                        </form>
-                    </td>
                 </tr>      
             </tbody>
         </table>
@@ -62,13 +52,10 @@
 import { ref, onMounted } from 'vue';
 import axios from 'axios';
 
-const data = ref([])
+const userList = ref([])
 const username = ref('')
 const role = ref('')
-const email = ref('')
 const editMSG = ref('')
-const password = ref('')
-const rePassword = ref('')
 const currentPage = ref('')
 const totalPages = ref('')
 
@@ -77,18 +64,25 @@ onMounted(() => {
 })
 
 const fetchData = async (page = 1) => {
-    const res = await axios.get('api/user/users', {
-        params: {
-            username: username.value,
-            role: role.value,
-            email: email.value,
-            page
-        }, 
-        withCredentials: true
-    })
-    data.value = res.data.data
-    currentPage.value = res.data.page
-    totalPages.value = res.data.total_pages
+    try {
+        const res = await axios.get('api/users', {
+            params: {
+                username: username.value,
+                role: role.value,
+                page
+            }, 
+            withCredentials: true
+            })
+        userList.value = res.data.data.data
+        currentPage.value = res.data.page
+        totalPages.value = res.data.total_pages
+    } catch (e) {
+        if (e.response && e.response.status === 400 || 404 || 422 || 500) {
+            editMSG.value = e.response.data.msg
+        } else {
+            editMSG.value = 'Có rắc rối khác!'
+        }
+    }
 }
 
 const goToPage = (page) => {
@@ -124,25 +118,10 @@ async function save(item) {
     editMSG.value = res.data.msg
 }
 
-const savePassword = async (item) => {
-    const payload = {
-        username: item.username,
-        password: password.value,
-        rePassword: rePassword.value
-    }
-    console.log(payload)
-    try {
-        const res = await axios.put('api/user/password', payload, {
-            withCredentials: true,
-            headers: {'Content-Type': 'application/json'}
-        })              
-        editMSG.value = res.data.msg
-    } catch (e) {
-        if (e.response && e.response.status === 400) {
-            alert(e.response.data.msg)
-        } else {
-            editMSG.value = 'Có rắc rối rồi đó!!'
-        }
-    }
+const resendTmpToken = async (item) => {
+    const res = await axios.put(`api/users/${item.id}/tmp_token`, {
+        withCredentials: true
+    })
+    editMSG.value = res.data.msg
 }
 </script>

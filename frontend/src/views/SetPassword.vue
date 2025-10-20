@@ -30,9 +30,11 @@ const message = ref('')
 const fetchUserInfo = async () => {
     try{
         const payload = {token: token}
-        await axios.post('api/user/tmp_token', payload, {
+        const res = await axios.post('api/user/tmp_token', payload, {
             headers: {'Content-Type': 'application/json'}
         })
+        userId.value = res.data.data.id
+        name.value = res.data.data.username
     } catch (e) {
         router.push('/')
     }
@@ -49,12 +51,11 @@ const handleSubmit = async () => {
     const payload = {
         password: password.value,
         repassword: rePassword.value,
-        user_id: userId.value,
         token: token
     }
 
     try {
-        await axios.post("/api/user/password", payload, {
+        await axios.post(`/api/users/${userId.value}/password`, payload, {
         headers: {"Content-Type": "application/json"}
         })
         

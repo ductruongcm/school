@@ -1,37 +1,35 @@
 <template>
-    <div>Công cụ</div>
-
-    <div @click.prevent="yearTool = true" style="cursor: pointer;">Thêm niên khóa</div>
-    <div v-if="yearTool">
+    <div>Công cụ: Niên khóa</div>
+    <div>
         <form>
+            <label> Thêm niên khóa </label>
             <input v-model="yearInput" type="text">
             <button @click.prevent="addYear">Thêm</button>
-            <button @click.prevent="yearTool = false">Đóng</button>
         </form>
     </div>
-
-    <div @click.prevent="semesterTool = true" style="cursor: pointer;">Thêm học kỳ</div>
-    <div v-if="semesterTool">
-        <form>
-            <input v-model="semesterInput" type="text">
-            <button @click.prevent="addSemester">Thêm</button>
-            <button @click.prevent="semesterTool = false">Đóng</button>
-        </form>
-    </div>
-
     <div>{{ resultMsg }}</div>
-
+    <div>Thiết lập niên khóa</div>
+    <form>
+        <select v-model="selectedYear">
+            <option selected disabled :value="null">-- Chọn niên khóa --</option>
+            <option v-for="item in yearList" :key="item.id" :value="item.id">{{ item.year }}</option>
+        </select>
+        <button @click.prevent="setYear">Xác nhận</button>
+    </form>
 </template>
 <script setup>
-import { ref, inject } from 'vue';
+import { ref, onMounted } from 'vue';
 import axios from 'axios';
-
-const yearTool = ref(false)
-const semesterTool = ref(false)
+import { userYearStore } from '../../stores/yearStore';
 const yearInput = ref('')
-const semesterInput = ref('')
 const resultMsg = ref('')
-const year = inject('year')
+const yearList = ref([])
+const selectedYear = ref(null)
+const yearStore = userYearStore()
+
+onMounted(() => {
+    fetchYear()
+})
 
 const addYear = async () => {
     const payload = {year: yearInput.value}
@@ -50,24 +48,22 @@ const addYear = async () => {
     }
 }
 
-const addSemester = async () => {
-    const payload = {
-        year: year.value,
-        semester: semesterInput.value
-    }
-    try {
-        const res = await axios.post('api/academic/semesters', payload, {
-            withCredentials: true,
-            headers: {'Content-Type': 'application/json'}
-        })
-        resultMsg.value = res.data.msg
-    } catch (e) {
-        if (e.response && e.response.status === 400 || 422 || 500) {
-            resultMsg.value = e.response.data.msg
-        } else {
-            resultMsg.value = 'Có vấn đề rồi!'
-        }
-    }
+const yearSearch = ref('')
+const fetchYear = async () => {
+    const res = await axios.get('api/academic/years', {
+        withCredentials: true,
+        params: {year: yearSearch.value}
+    })
+    yearList.value = res.data.data
+}
+
+
+const setYear = async () => {
+    const res = await axios.put(`api/academic/years/${selectedYear.value}`, {
+        withCredentials: true
+    })
+    resultMsg.value = res.data.msg
+    yearStore.setYear(res.data.data)
 }
 
 </script>
