@@ -8,6 +8,12 @@
         <button v-if="!editing" @click.prevent="edit">Điều chỉnh</button>
         <button v-else @click.prevent="saveEdit">Lưu</button>
         <button v-if="editing" @click.prevent="cancelEdit">Hủy</button>
+        <label> Thiết lập học kỳ </label>
+        <select v-model="selectedSemester">
+            <option value="" disabled>-- Chọn học kỳ --</option>
+            <option v-for="item in semesterList" :key="item.semester_id" :value="item.semester_id">{{ item.semester }}</option>
+        </select>
+        <button @click.prevent="setSemester">Xác nhận</button>
     <div>
         <table>
             <thead>
@@ -37,8 +43,10 @@
 import { onMounted, ref } from 'vue';
 import axios from 'axios';
 import { userYearStore } from '../../stores/yearStore';
+import { useSemesterStore } from '../../stores/semesterStore';
 
 const yearStore = userYearStore()
+const semesterStore = useSemesterStore()
 const semesterInput = ref('')
 const resultMsg = ref('')
 const editing = ref(false)
@@ -96,39 +104,45 @@ const saveEdit = async () => {
     const changedRows = semesterList.value.filter(semester => {
         semester['year_id'] = yearStore.year.id
         const original = originalSemester.value.find(o => o.semester_id === semester.semester_id)
-        return original.semester !== semester.semester
-    })
-    try {
-        const res = await axios.put('api/academic/semester', changedRows, {
-            withCredentials: true
-        })
-        resultMsg.value = res.data.msg
+        if (!original) return null;
+
+        const changedEntries = Object.entries(semester).filter(([k, v]) => v !== origin[k])
+        if (changedEntries.length === 0) return null;
+
+        const changedObject = Object.fromEntries(changedEntries)
+        changedObject.year_id = yearStore.year.id
+        return changedObject
+    }).filter(Boolean)
+
+    if (changedRows.length > 0) {
+        try {
+            const res = await axios.put('api/academic/semester', changedRows, {
+                withCredentials: true
+            })
+            resultMsg.value = res.data.msg
+            editing.value = false
+            fetchSemesterData()
+
+        } catch (e) {
+            if (e.response && [400,404,409,422,500].includes(e.response.status)) {
+                resultMsg.value = e.response.data.msg
+            }
+        }
+    } else {
         editing.value = false
-        fetchSemesterData()
-    } catch (e) {
-        if (e.response && e.response.status === 400 || 422 || 404 || 500) {
-            resultMsg.value = e.response.data.msg
-        }
     }
 }
 
-const setScoreBoard = async(item) => {
-    const payload = {
-        semester_id: item.semester_id,
-        semester: item.semester,
-        year_id: yearStore.year.id
+const selectedSemester = ref('')
+const setSemester = async () => {
+    if (!selectedSemester.value) {
+        alert('Chưa chọn học kỳ để thiết lập!')
+        return
     }
-    try {
-        const res = await axios.post('api/academic/scores', payload, {
-            withCredentials: true,
-            headers: {'Content-Type': 'application/json'}
-        })
-        resultMsg.value = res.data.msg
-    } catch (e) {
-        if (e.response && e.response.status) {
-            resultMsg.value = e.response.data.msg
-        }
-    }
+    const res = await axios.put(`api/academic/semesters/${selectedSemester.value}/status`, {
+        withCredentials: true
+    })
+    resultMsg.value = res.data.msg
+    semesterStore.setSemester(res.data.data)
 }
-
 </script>

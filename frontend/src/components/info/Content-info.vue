@@ -3,52 +3,50 @@
     <div>
         <div>
             <label>name: </label>
-            <span v-if="!editing">{{ info.name }} </span>
-            <input v-else v-model="changeName" type="text">
+            <span>{{ info.name }} </span>
         </div>
         <div>
             <label>role: </label>
-            <span>{{ role }}</span>
+            <span>{{ userStore.userInfo.role }}</span>
         </div>
         <div>
             <label>username: </label>
-            <span v-if="!editing">{{ username }}</span>
-            <input v-else v-model="changeUsername" type="text">
+            <span>{{ userStore.userInfo.username }}</span>
         </div>
         <div>
             <label>email: </label>
             <span v-if="!editing">{{ info.email }}</span>
-            <input v-else v-model="changeEmail" type="email">
+            <input v-else v-model="info.email" type="email">
         </div>
         <div>
             <label>tel: </label>
             <span v-if="!editing">{{ info.tel }}</span>
-            <input v-else v-model="changeTel" type="text">
+            <input v-else v-model="info.tel" type="text">
         </div>
         <div>
             <label>add: </label>
             <span v-if="!editing">{{ info.add }}</span>
-            <input v-else v-model="changeAdd" type="text">
+            <input v-else v-model="info.add" type="text">
         </div>
-        <button v-if="!editing" @click="changeInfo(info)">Sửa thông tin</button>
+        <button v-if="!editing" @click="editInfo">Sửa thông tin</button>
         <div v-else>        
-            <button @click="saveEdit">Xác nhận</button>
-            <button @click="editing = false">Hủy</button>
+            <button @click.prevent="saveEdit">Xác nhận</button>
+            <button @click="cancelEdit">Hủy</button>
         </div> <br>
         <button @click="setPassword = true">Đặt mật khẩu</button>
         <div v-if="setPassword" class="setPassword">
-            <form @submit.prevent="updatePassword">
+            <form>
                 <label>Password</label> <br>
-                <input type="password" v-model="password"> <br>
+                <input type="password" v-model="password" required> <br>
                 <label>Re-type password</label> <br>
-                <input type="password" v-model="re_password"> <br>
-                <div>
-                    <button>Xác nhận</button>
-                    <button @click="setPassword = false">Hủy</button>
-                </div>
+                <input type="password" v-model="re_password" required> <br>
+
+                <button @click.prevent="updatePassword">Xác nhận</button>
+                <button @click="cancelSetPassword">Hủy</button>
             </form>
         </div>
-        <div>{{ updatePasswordMsg }}</div>
+        <div>{{ resultMsg }}</div>
+
     </div>
 </template>
 <script setup>
@@ -56,86 +54,91 @@ import { ref, onMounted } from 'vue';
 import useUserStore from '../../stores/user';
 import axios from 'axios';
 
-
 const userStore = useUserStore() 
-const info = ref([])
-const username = ref(userStore.userInfo.username)
-const role = ref(userStore.userInfo.role)
-const editing = ref(userStore.userInfo.editing)
-const changeUsername = ref('')
-const changeName = ref('')
-const changeEmail = ref('')
-const changeTel = ref('')
-const changeAdd = ref('')
+const info = ref({})
 const password = ref('')
 const re_password = ref('')
-let updatePasswordMsg = ref('')
+const resultMsg = ref('')
 const setPassword = ref(false)
+const editing = ref(false)
 
-onMounted(async () => {
+onMounted(() => {
     fetchUserInfo()
 })
 
 const fetchUserInfo = async () => {
     try {const res = await axios.get(`api/users/me`, {
-        withCredentials: true,
+            withCredentials: true,
     })
-    info.value = res.data
+        info.value = res.data.data
     } catch (e) {
-        if (e.response && e.response.status === 400 || 422 || 500) {
-            updatePasswordMsg.value = e.response.data.msg
+        if (e.response && [400,404,409,422,500].includes(e.response.status)) {
+            resultMsg.value = e.response.data.msg
         } else {
-            updatePasswordMsg.value = 'Có vấn đề gì rồi!!'
+            resultMsg.value = 'Có vấn đề gì rồi!!'
         }
     }
 }
 
 async function updatePassword() {
-    try { const payload = {
+    const payload = {
         password: password.value,
-        re_password: re_password.value
+        repassword: re_password.value
     }
-    const res = await axios.put('api/user/password', payload, { withCredentials: true, headers: {"Content-Type": "application/json"}})
-    updatePasswordMsg.value = res.data.msg
-    } catch (err) {
-        if (err.response && err.response.status === 400) {
-            updatePasswordMsg.value = err.response.data.msg
+
+    try {
+        const res = await axios.put('api/users/me/password', payload, {
+            withCredentials: true, 
+            headers: {"Content-Type": "application/json"}
+        })
+            resultMsg.value = res.data.msg
+            setPassword.value = false
+    } catch (e) {
+        if (e.response && [400,404,409,422,500].includes(e.response.status)) {
+            resultMsg.value = e.response.data.msg
         } else {        
-            updatePasswordMsg.value = 'Có vấn đề rồi!!'
+            resultMsg.value = 'Có vấn đề rồi!!'
         }
     }
 }
 
-function changeInfo(info) {
-    changeUsername.value = username.value
-    changeName.value = info.name
-    changeEmail.value = info.email
-    changeTel.value = info.tel
-    changeAdd.value = info.add
-    editing.value = true
+const cancelSetPassword = () => {
+    setPassword.value = false
+    password.value = ''
+    re_password.value = '' 
 }
 
-async function saveEdit() {
-    const payload = {
-        id: userStore.userInfo.id,
-        name: changeName.value,
-        username: changeUsername.value,
-        email: changeEmail.value,
-        tel: changeTel.value,
-        add: changeAdd.value
-    }
+const cancelEdit = () => {
+    editing.value = false
+    info.value = original.value
+}
+
+const original = ref({})
+const editInfo = () => {
+    editing.value = true
+    original.value = JSON.parse(JSON.stringify(info.value))
+}
+
+const saveEdit = async () => {
+    const payload = Object.entries(info.value)
+    .filter(([k, v]) => v !== original.value[k])
+    .reduce((acc, [k, v]) => {
+      acc[k] = v
+      return acc
+    }, {})
     try {
-        const res = await axios.put('/api/user/user_info', payload, {
+        const res = await axios.put('/api/users/me', payload, {
             withCredentials: true,
             headers: {'Content-Type': 'application/json'}
         })
-        updatePasswordMsg.value = res.data.msg
-        window.location.reload()
+        resultMsg.value = res.data.msg
+        editing.value = false
+        fetchUserInfo()
     } catch (e) {
-        if (e.response && e.response.status === 400 || 422 || 500) {
-            updatePasswordMsg.value = e.response.data.msg
+        if (e.response && [400,404,409,422,500].includes(e.response.status)) {
+            resultMsg.value = e.response.data.msg
         } else {
-            updatePasswordMsg.value = 'Có vấn đề gì rồi!!'
+            resultMsg.value = 'Có vấn đề gì rồi!!'
         }
     }
 }

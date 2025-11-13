@@ -1,5 +1,6 @@
-from pydantic import BaseModel, field_validator
+from pydantic import BaseModel, field_validator, EmailStr
 import re
+
 
 class Username(BaseModel):
     username: str
@@ -18,7 +19,7 @@ class Password(BaseModel):
     password: str
     repassword: str
 
-    @field_validator('password', 'repassword')
+    @field_validator('password')
     def password_validator(cls, v):
         if not v:
             raise ValueError('Chưa nhập password')
@@ -39,6 +40,9 @@ class Password(BaseModel):
 
 class Register(Username, Password):
     name: str 
+    tel: str
+    email: EmailStr
+    add: str
 
     @field_validator('name')
     def name_validator(cls, v):
@@ -49,6 +53,9 @@ class Register(Username, Password):
             raise ValueError("Tên không được chứa số và ký tự đặc biệt!")
    
         return v
+
+class Tmp_token(BaseModel):
+    token: str
 
 class Login(Username):
     password: str

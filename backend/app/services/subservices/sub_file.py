@@ -1,4 +1,4 @@
-from app.exceptions import CustomException, NotFound_Exception
+from app.exceptions import NotFound_Exception, DuplicateException
 
 class File_Subservices:
     def __init__(self, repo):
@@ -21,7 +21,7 @@ class File_Subservices:
     def dup_filename(self, data):
         existing = self.repo.existing_file(data)
         if existing: 
-            raise CustomException('Tên file bị trùng!')
+            raise DuplicateException('Tên file bị trùng!')
 
     def folder_id(self, data):
         folder_id = self.repo.folder_id(data)

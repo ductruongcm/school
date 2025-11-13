@@ -1,5 +1,5 @@
-from pydantic import BaseModel, EmailStr, field_validator
-from typing import Optional
+from pydantic import BaseModel, EmailStr, field_validator, Field
+from typing import Optional, List
 from datetime import date
 import re
 
@@ -14,7 +14,7 @@ class UserSchemas:
                 raise ValueError('Chưa nhập họ và tên!')
             
             if re.search(r"[\d~!@#$%^&*()_+=`,.<>/?-]+", v):
-                raise ValueError("Thông tin không được chứa số và ký tự đặc biệt!")
+                raise ValueError("Họ và tên không được chứa số và ký tự đặc biệt!")
             return v
         
         @field_validator('add')
@@ -23,7 +23,7 @@ class UserSchemas:
                 raise ValueError('Chưa nhập thông tin địa chỉ!')
             
             if re.search(r"[~!@#$%^&*()_+=`,.<>/?-]+", v):
-                raise ValueError("Thông tin không được chứa ký tự đặc biệt!")
+                raise ValueError("Địa chỉ không được chứa ký tự đặc biệt!")
             return v
         
     class UserShowSchema(BaseModel):
@@ -36,7 +36,7 @@ class UserSchemas:
             if not v:
                 return
             if not re.match(r'^[a-z0-9_]+$', v):
-                raise ValueError('Tên đăng nhập không hợp lệ!')
+                raise ValueError('Username không hợp lệ!')
             return v
         
         @field_validator('role')
@@ -48,84 +48,191 @@ class UserSchemas:
             return v
         
     class UserInfoUpdateSchema(BaseModel):
-        id: int
-        name: str
-        username: str
-        email: EmailStr
-        tel: str
-        add: str
+        email: Optional[EmailStr] = None 
+        tel: Optional[str] = None   
+        add: Optional[str] = None
 
-        @field_validator('username')
-        def username_validator(cls, v):
-            if not re.match(r'^[a-z0-9_]{8,}$', v):
-                raise ValueError('Tên đăng nhập không hợp lệ!')
-            return v
-        
-        @field_validator('name', 'add')
-        def name_validator(cls, v):
-            if re.search(r"[\d~!@#$%^&*()_+=`,.<>/?-]+", v):
-                raise ValueError("Tên/địa chỉ không được chứa số và ký tự đặc biệt!")
+        @field_validator('add')
+        def add_validate(cls, v):
+            if not v:
+                raise ValueError('Địa chỉ không được bỏ trống!')
+            
+            elif re.search(r"[~!@#$%^&*()_+=`,.<>?-]+", v):
+                raise ValueError("địa chỉ không được chứa số và ký tự đặc biệt!")
             return v
         
         @field_validator('tel')
         def tel_validator(cls, v):
-            if not re.fullmatch(r'\d{10}', v):
+            if not v:
+                raise ValueError('Số điện thoại không được bỏ trống!')
+            
+            elif not re.fullmatch(r'\d{10}', v):
                 raise ValueError('Số điện thoại chỉ được chứa 10 chữ số')
             return v
     
 class StudentSchemas:
-        class StudentCreate(UserSchemas.User):
-            class_room_id: int | None
-            class_room: str | None
-            tel: Optional[str] | None
-            gender: str
-            bod: Optional[date] | None
-            year_id: int
-            year: str
-            grade_id: int
-            
-            @field_validator('grade_id', mode='before')
-            def class_validator(cls, v):
-                if v in ['', 'None', 'null']:
-                    raise ValueError('Chưa nhập thông tin khối lớp!')
-                return v
-            
-            @field_validator('bod', 'class_room_id', mode='before')
-            def bod_validator(cls, v):
-                if v in ['', 'None']:
-                    return None
-                
-                return v
-        
-        class StudentShow(BaseModel):
-            grade_id: Optional[int] | None
+    class StudentItem(BaseModel):
+        lesson_id: int
+        score_1: float
+        score_2: float
 
-            @field_validator('grade_id', mode='before')
-            def grade_id_validator(cls, v):
-                if v in ['', 'None', 'null']:
-                    return 
-                return v
+        @field_validator('score_1', 'score_2')
+        def score_validates(cls, v):
+            if 0 > v or v > 10:
+                raise ValueError('Điểm số phải từ 0 đến 10!')
+            return v
+
+    class StudentCreate(UserSchemas.User):
+        tel: Optional[str] | None
+        gender: str
+        bod: Optional[date] = None
+        year_id: int
+        year: str
+        grade: int
+        conduct: bool
+        lesson: List['StudentSchemas.StudentItem']
+        note: str
+        absent_day: Optional[int]
+        
+        @field_validator('bod', 'absent_day', mode='before')
+        def bod_cls_room_validate(cls, v):
+            if v in ['', 'null']:
+                return 
+            return v
+        
+        @field_validator('conduct', mode='before')
+        def conduct_bool_validate(cls, v):
+            if v in ['', 'null']:
+                raise ValueError('Chưa nhập hạnh kiểm của học sinh!')
+            
+            return v
+        
+        @field_validator('year_id', mode='before')
+        def validate_year_id(cls, v):
+            if v in ['', 'null']:
+                raise ValueError('Chưa chọn niên khóa đăng ký cho học sinh!')
+            
+            return v
+        
+        @field_validator('grade', mode='before')
+        def validate_grade(cls, v):
+            if v in ['', 'null']:
+                raise ValueError('Chưa chọn khối lớp đăng ký cho học sinh!')
+            
+            return v
+    
+    class StudentShow(BaseModel):
+        year_id: Optional[int] = Field(default = None)
+        grade: Optional[int] = Field(default = None)
+        class_room_id: Optional[int] = Field(default = None)
+       
+        @field_validator('grade', 'year_id', 'class_room_id', mode='before')
+        def int_validator(cls, v):
+            if v in ['', 'None', 'null']:
+                return 
+            return v
+        
+    class StudentShowForAssignment(BaseModel):
+        grade: Optional[int]
+        review_status: Optional[bool]
+        status: Optional[str] = None
+
+        @field_validator('grade', mode='before')
+        def int_validator(cls, v):
+            if v in ['', 'None', 'null']:
+                return 
+            return v
+        
+        @field_validator('status')
+        def validate_status(cls, v):
+            if v not in ['Lên lớp', 'Lưu ban', 'Bảo lưu', '']:
+                return None
+            return v
+    
+    class StudentShowForScores(BaseModel):
+        semester_id: Optional[int] = Field(default=None)
+        year_id: Optional[int] = Field(default=None)
+        class_room_id: Optional[int] = Field(default=None)
+        lesson_id: Optional[int] = Field(default=None)
+
+    class StudentUpdate(BaseModel):
+        student_id: int
+        name: Optional[str] = None
+        tel: Optional[str] = None
+        add: Optional[str] = None
+        BOD: Optional[date] = None
+        gender: Optional[str] = None
+        note: Optional[str] = None
+        class_room_id: Optional[int] = None
+        year_id: Optional[int] = None
+
+        @field_validator('name')
+        def name_validator(cls, v):
+            if not v:
+                raise ValueError('Chưa nhập họ và tên!')
+            
+            elif re.search(r"[\d~!@#$%^&*()_+=`,.<>/?-]+", v):
+                raise ValueError("Họ và tên không được chứa số và ký tự đặc biệt!")
+            
+            return v
+        
+        @field_validator('BOD', mode='before')
+        def bod_validator(cls, v):
+            if v in ['', 'null']:
+                raise ValueError('Chưa chọn ngày sinh!')
+            
+            return v
+        
+        @field_validator('add')
+        def str_validator(cls, v):
+            if not v:
+                raise ValueError('Chưa nhập thông tin địa chỉ!')
+            
+            elif re.search(r"[~!@#$%^&*()_+=`,.<>/?-]+", v):
+                raise ValueError("Địa chỉ không được chứa ký tự đặc biệt!")
+            return v
+        
+        @field_validator('tel')
+        def tel_validator(cls, v):
+            if not v:
+                raise ValueError('Chưa nhập thông tin địa chỉ!')
+            elif not re.fullmatch(r'\d{10}', v):
+                raise ValueError('Số điện thoại chỉ được chứa 10 chữ số')
+            return v
+    
+    class StudentReview(BaseModel):
+        student_id: int
+        status: str
+
+        @field_validator('status')
+        def status_validate(cls, v):
+            if v not in ['Chờ xét duyệt', 'Chờ xếp lớp', '', 'Lên lớp', 'Lưu ban', 'Bảo lưu']:
+                return ValueError('Status không hợp lệ!')
+            return v
+
+    class StudentAssignmentItem(BaseModel):
+        class_room_id: int
+        student_id: int
+
+    class StudentAssignment(BaseModel):
+        year_id: int
+        student_assign_list: List['StudentSchemas.StudentAssignmentItem']
+    
+    class TransferStudent(BaseModel):
+        class_room_id: int
+        class_room: str
+        year_id: int
     
 class TeacherSchemas:    
     class TeacherCreateSchema(UserSchemas.User):
         username: str
         tel: str
-        teach_class: list
+        teaching_class_ids: Optional[list]
         class_room: Optional[str] | None
         class_room_id: Optional[int] | None
         email: EmailStr
         lesson_id: int
-        lesson: str
         year_id: int
-
-        @field_validator('lesson')
-        def name_validator(cls, v):
-            if not v:
-                raise ValueError('Chưa nhập họ và tên!')
-            
-            if re.search(r"[\d~!@#$%^&*()_+=`,.<>/?-]+", v):
-                raise ValueError("Thông tin không được chứa số và ký tự đặc biệt!")
-            return v
 
         @field_validator('class_room_id', mode='before')
         def class_room_validation(cls, v):
@@ -160,12 +267,7 @@ class TeacherSchemas:
             elif not re.match(r'^[a-z0-9_]{8,}$', v):
                 raise ValueError('Tên đăng nhập không hợp lệ!')
             return v
-        
-        @field_validator('teach_class')
-        def teach_room_validation(cls, v):
-            if not v:
-                raise ValueError('Chưa nhập thông tin lớp giảng dạy!')
-            return v
+
         
         @field_validator('email')
         def email_validation(cls, v):
@@ -178,7 +280,7 @@ class TeacherSchemas:
         lesson: Optional[str] = None
         class_room: Optional[str] = None
         year_id: Optional[int] = None
-        grade_id: Optional[int] = None
+        grade: Optional[int] = None
 
         @field_validator('name', 'lesson')
         def name_validator(cls, v):
@@ -207,7 +309,7 @@ class TeacherSchemas:
                 raise ValueError("Thông tin môn học không chứa số và ký tự đặc biệt!")
             return v
 
-        @field_validator('year_id', 'grade_id', mode='before')
+        @field_validator('year_id', 'grade', mode='before')
         def int_validation(cls, v):
             if v in ['', None]:
                 return 
@@ -215,13 +317,13 @@ class TeacherSchemas:
             return v
 
     class TeacherUpdateSchema(BaseModel):
-        name: str
-        lesson_id: int
-        class_room_id: Optional[int] | None
-        teach_class: list
-        tel: str
-        add: str
-        email: EmailStr
+        name: Optional[str] = None
+        lesson_id: Optional[int] = None
+        class_room_id: Optional[int] = None
+        teach_class: Optional[list] = None
+        tel: Optional[str] = None
+        add: Optional[str] = None
+        email: Optional[EmailStr] = None
         year_id: int
 
         @field_validator('name')
@@ -238,13 +340,6 @@ class TeacherSchemas:
                 raise ValueError('Chưa nhập thông tin số điện thoại!')
             elif not re.fullmatch(r'\d{10}', v):
                 raise ValueError('Số điện thoại chỉ được chứa 10 chữ số!')
-            return v
-
-        @field_validator('teach_class')
-        def class_room_validator(cls, v):
-            if not v:
-                raise ValueError('Chưa nhập thông tin lớp giảng dạy!')
-            
             return v
         
         @field_validator('add')

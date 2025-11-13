@@ -14,12 +14,12 @@ def token_set_password(length = 32):
     chars = string.ascii_uppercase + string.ascii_uppercase + string.punctuation + string.digits
     return ''.join(secrets.choice(chars) for _ in range(length))
 
-def set_access_token(data, user):
-    return create_access_token(identity = data['username'],
+def set_access_token(user):
+    return create_access_token(identity = user.username,
                                expires_delta = timedelta(minutes = 15),
                                additional_claims = {'role': user.role, 'id': user.id})
 
-def set_refresh_token(data, user):
-    return create_refresh_token(identity = data['username'],
+def set_refresh_token(user):
+    return create_refresh_token(identity = user.username,
                                 expires_delta = timedelta(hours = 10),
                                 additional_claims = {'role': user.role, 'id': user.id})

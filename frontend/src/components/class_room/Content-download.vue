@@ -17,7 +17,7 @@
                 <label>{{ downloadMsg }}</label>
             </form>
         </div>
-        <table>
+        <table border="1" style="border-collapse: collapse; text-align: center;">
             <thead>
                 <tr>
                     <th style="width: 3em;">STT</th>
@@ -66,15 +66,15 @@ onMounted( () => {
     fetchTeachRoom()
 })
 
-const class_roomSearch = ref('')
+const classSearch = ref('')
 const gradeSearch = ref('')
 const fetchTeachRoom = async () => {
-    const res = await axios.get('api/academic/teach_classes', {
+    const res = await axios.get('api/academic/me/class-rooms', {
         withCredentials: true,
         headers: {'Content-Type': 'application/json'},
         params: {
             year_id: yearStore.year.id,
-            class_room: class_roomSearch.value,
+            class_room: classSearch.value,
             grade_id: gradeSearch.value
         }
     })
@@ -82,11 +82,13 @@ const fetchTeachRoom = async () => {
 }
 
 const fetchFolder = async () => {
-    const res = await axios.get('api/academic/lessons', {
+    const res = await axios.get('api/academic/me/lessons', {
         params: {
-            class_room_id: classFolder.value.class_room_id,
-            grade_id: classFolder.value.grade_id,
-            year_id: yearStore.year.id
+            grade_id: gradeSearch.value,
+            year_id: yearStore.year.id,
+            is_visible: false,
+            is_folder: true,
+            is_schedule: false
         },
         withCredentials: true
     })

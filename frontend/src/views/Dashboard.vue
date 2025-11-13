@@ -15,7 +15,7 @@ import ContentInfo from '../components/info/Content-info.vue';
 import ContentMonitoring from '../components/monitoring/Content-monitoring.vue';
 import ContentReport from '../components/report/Content-report.vue';
 import ContentAddStudent from '../components/student/Content-addStudent.vue';
-import ContentStudent from '../components/student/Content-Student.vue';
+import ContentAssignStudent from '../components/student/Content-assignStudent.vue';
 import ContentAddTeacher from '../components/teacher/Content-addTeacher.vue';
 import ContentTeacher from '../components/teacher/Content-teacher.vue';
 import ContentClass from '../components/class_room/Content-class.vue';
@@ -29,6 +29,10 @@ import axios from 'axios';
 import { ref, onMounted, shallowRef } from 'vue';
 import  useUserStore  from '../stores/user';
 import ContentClassTool from '../components/tool/Content-classTool.vue';
+import ContentStudent from '../components/class_room/Content-student.vue';
+import ContentScoreTool from '../components/tool/Content-scoreTool.vue';
+import ContentYearSummary from '../components/class_room/Content-YearSummary.vue';
+import ContentPeriodSummary from '../components/class_room/Content-PeriodSummary.vue';
 
 const username = ref('')
 const role = ref('')
@@ -43,7 +47,7 @@ function switchComponent(name) {
         ContentLessonTool,
         ContentTeacher,
         ContentAddTeacher,
-        ContentStudent,
+        ContentAssignStudent,
         ContentAddStudent,
         ContentInfo,
         ContentDownload,
@@ -53,7 +57,11 @@ function switchComponent(name) {
         ContentClass,
         ContentSemesterTool,
         ContentFolder,
-        ContentScheduleTool
+        ContentScheduleTool,
+        ContentStudent,
+        ContentScoreTool,
+        ContentYearSummary,
+        ContentPeriodSummary
     }
     activeComponent.value = map[name]
 }

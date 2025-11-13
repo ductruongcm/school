@@ -4,8 +4,10 @@ import { ref, computed, onMounted } from 'vue';
 import useUserStore from './stores/user';
 import { userYearStore } from './stores/yearStore';
 import axios from 'axios';
+import { useSemesterStore } from './stores/semesterStore';
 
 const userStore = useUserStore()
+const semesterStore = useSemesterStore()
 const username = computed(() => userStore.userInfo?.username ?? '')
 const role = computed(() => userStore.userInfo?.role ?? '')
 const yearUse = userYearStore()
@@ -13,7 +15,7 @@ const yearSearch = ref('')
 const yearList = ref([])
 
 const fetchYear = async () => {
-  const res = await axios.get('api/academic/years', {
+  const res = await axios.get('http://127.0.0.1:5000/api/academic/years', {
     params: {
       year: yearSearch.value,
       is_active: true
@@ -23,8 +25,25 @@ const fetchYear = async () => {
   yearUse.setYear(yearList.value[0])
 }
 
-onMounted(()=> {
-  fetchYear()
+const semesterSearch = ref('')
+const semesterList = ref([])
+const fetchSemester = async () => {
+  const res = await axios.get('http://127.0.0.1:5000/api/academic/semesters', {
+    withCredentials: true, 
+    params: {
+      semester: semesterSearch.value,
+      is_active: true
+    }
+  })
+  semesterList.value = res.data.data
+  semesterStore.setSemester(semesterList.value[0])
+}
+
+onMounted(async () => {
+  await Promise.all([
+    fetchYear(),
+    fetchSemester()
+  ])
 })
 
 function logout() {
@@ -41,6 +60,7 @@ function logout() {
       <div>
         <div>Trường THPT BVD</div>
         <div v-for="year in yearList" :key="year.id" :value="year.id">Niên khóa {{ year.year }}</div> 
+        <div v-for="semester in semesterList" :key="semester.semester_id" :value="semester.semester_id">{{ semester.semester }}</div>
       </div>
       <div class="topPopup"><TopPopup /></div>
       <div v-if="userStore.userInfo" class="userInfo">

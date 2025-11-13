@@ -1,5 +1,5 @@
 from flask import jsonify
-from app.repositories import AuditRepo
+from app.repositories import AuditLogRepo
 from app.utils import get_client_ip
 from flask_jwt_extended import get_jwt_identity
 
@@ -11,12 +11,19 @@ class NotFound_Exception(Exception):
     def __init__(self, message):
         self.message = message
 
+class DuplicateException(Exception):
+    def __init__(self, message):
+        self.message = message
+
 class Errors:
     def __init__(self, message):
         self.message = message
 
     def error_400(self):
         return {'status': 'Logic_error', 'msg': str(self.message)} 
+    
+    def error_409(self):
+        return {'status': 'Dup_error', 'msg': str(self.message)} 
     
     def error_422(self):
         try:
@@ -35,7 +42,7 @@ class Errors:
         return {'status': 'Validation_error', 'msg': msg}
     
     def error_404(self):
-        return {'status': '404_error', 'msg': f'{str(self.message)}'}
+        return {'status': 'Not_found_error', 'msg': f'{str(self.message)}'}
     
     def error_500(self):
         return {'status': 'Unexpected_error', 'msg': f'{str(self.message)}'}
@@ -44,7 +51,7 @@ class Errors_with_log(CustomException):
     def __init__(self, message, db, action):
         super().__init__(message)
         self.db = db
-        self.repo = AuditRepo(db)
+        self.repo = AuditLogRepo(db)
         try:
             username = get_jwt_identity() 
         except:
@@ -56,7 +63,7 @@ class Errors_with_log(CustomException):
                     'info': str(self.message)}
 
     def _log(self):
-        self.repo.add_log(self.log)
+        self.repo.add_audit_log(self.log)
         self.db.session.commit()
 
     def error_400(self):
@@ -83,6 +90,10 @@ class Errors_with_log(CustomException):
     def error_404(self):
         self._log()
         return {'status': '404_error', 'msg': f'{str(self.message)}'}
+    
+    def error_409(self):
+        self._log()
+        return {'status': '409_error', 'msg': f'{str(self.message)}'}
     
     def error_500(self):
         self._log()

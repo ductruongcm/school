@@ -1,12 +1,16 @@
-from app.routes import user, student, teacher, oauth2, cloud, academic, auth, audit, export
+from app.routes import user, student, teacher, oauth2, cloud, auth, audit, export
+from app.routes.academic import core, relation, entity
+
 
 routes = [oauth2.oauth2_bp, 
           user.user_bp, 
-          academic.academic_bp,
+          core.academic_bp,
           student.student_bp,
           teacher.teacher_bp,
           cloud.cloud_bp,
           audit.audit_bp,
           auth.auth_bp,
-          export.export_bp]
+          export.export_bp,
+          relation.academic_relation_bp,
+          entity.academic_entity_bp]
           

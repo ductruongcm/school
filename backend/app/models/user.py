@@ -17,6 +17,7 @@ class Users(db.Model):
     teachers = db.relationship('Teachers', back_populates = 'users', lazy = True)
     files = db.relationship('Files', back_populates = 'users', lazy = True)
     tmp_token = db.relationship('Tmp_token', back_populates = 'users', lazy = True)
+    activity_log = db.relationship('Activity_Log', back_populates = 'users', lazy = True)
 
     @validates('username')
     def username_validates(self, key, value):
@@ -38,3 +39,4 @@ class Tmp_token(db.Model):
     expire_at = db.Column(db.DateTime, default = lambda: datetime.utcnow() + timedelta(hours=7))
     set_password_status = db.Column(db.Boolean, default = False)
     users = db.relationship('Users', back_populates = 'tmp_token', lazy = True)
+

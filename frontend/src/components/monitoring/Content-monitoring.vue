@@ -22,7 +22,7 @@
         <button>Search</button>
         <button @click="onReset()" type="reset">Reset</button>
     </form>
-    <table>
+    <table border="1" style="border-collapse: collapse; text-align: center;">
         <thead>
             <tr>
                 <th style="width: 2em;">STT</th>

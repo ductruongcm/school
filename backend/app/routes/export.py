@@ -4,12 +4,12 @@ from app.utils import required_role, with_log, validate_input
 from app.schemas import AcademicShowSchemas
 from app.services import ExportService
 from app.extensions import db
-from app.repositories import Export_Repo
+from app.repositories import ExportRepo
 
 export_bp = Blueprint('export_bp', __name__, url_prefix='/api')
-export_service = ExportService(db, Export_Repo)
+export_service = ExportService(db, ExportRepo)
 
-@export_bp.get('/export/class_rooms/<int:class_room_id>')
+@export_bp.get('/export/class-rooms/<int:class_room_id>')
 @jwt_required()
 @required_role('admin')
 @with_log(True)

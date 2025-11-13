@@ -13,7 +13,7 @@ import ContentInfo from '../components/info/Content-info.vue'
 import ContentMonitoring from '../components/monitoring/Content-monitoring.vue'
 import ContentReport from '../components/report/Content-report.vue'
 import ContentAddStudent from '../components/student/Content-addStudent.vue'
-import ContentStudent from '../components/student/Content-Student.vue'
+import ContentAssignStudent from '../components/student/Content-assignStudent.vue'
 import ContentAddTeacher from '../components/teacher/Content-addTeacher.vue'
 import ContentTeacher from '../components/teacher/Content-teacher.vue'
 import ContentClassTool from '../components/tool/Content-classTool.vue'
@@ -23,6 +23,10 @@ import ContentUser from '../components/user/Content-user.vue'
 import ContentSemesterTool from '../components/tool/Content-semesterTool.vue'
 import ContentFolder from '../components/class_room/Content-folder.vue'
 import ContentScheduleTool from '../components/tool/Content-scheduleTool.vue'
+import ContentStudent from '../components/class_room/Content-student.vue'
+import ContentScoreTool from '../components/tool/Content-scoreTool.vue'
+import ContentPeriodSummary from '../components/class_room/Content-PeriodSummary.vue'
+import ContentYearSummary from '../components/class_room/Content-YearSummary.vue'
 
 const routes = [
     {path: '/', component: Login},
@@ -34,7 +38,7 @@ const routes = [
             {path: 'report', component: ContentReport},
             {path: 'info', component: ContentInfo},
             {path: 'class', component: ContentClass},
-            {path: 'student', component: ContentStudent},
+            {path: 'assignStudent', component: ContentAssignStudent},
             {path: 'teacher', component: ContentTeacher},
             {path: 'lessonTool', component: ContentLessonTool},
             {path: 'yearTool', component: ContentYearTool},
@@ -47,7 +51,11 @@ const routes = [
             {path: 'monitoring', component: ContentMonitoring},
             {path: 'semesterTool', component: ContentSemesterTool},
             {path: 'folder', component: ContentFolder},
-            {path: 'scheduleTool', component: ContentScheduleTool}
+            {path: 'scheduleTool', component: ContentScheduleTool},
+            {path: 'student', component: ContentStudent},
+            {path: 'scoreTool', component: ContentScoreTool},
+            {path: 'periodsummary', component: ContentPeriodSummary},
+            {path: 'yearsummary', component: ContentYearSummary}
         ]}
     ]}
 ]

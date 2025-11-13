@@ -4,7 +4,10 @@
 
         <div @click="classControlStatus = true">Quản lý lớp học</div>
             <div v-if="classControlStatus" class="classControl">
+                <div v-if="role === 'admin' || 'Teacher'" @click="$emit('change', 'ContentStudent')">Danh sách học sinh</div>
                 <div v-if="role === 'admin' || 'Teacher'" @click="$emit('change', 'ContentClass')">Cho điểm học sinh</div>
+                <div v-if="role === 'admin' || 'Teacher'" @click="$emit('change', 'ContentPeriodSummary')">Tổng kết học kỳ</div>
+                <div  v-if="role === 'admin' || 'Teacher'" @click="$emit('change', 'ContentYearSummary')">Tổng kết năm học</div>
                 <div>Cloud lưu trữ</div>
                 <div class="cloudControl">
                     <div v-if="role === 'admin' || 'Teacher'"  @click="$emit('change', 'ContentUpload')">Upload</div>
@@ -13,9 +16,9 @@
                     <div @click="classControlStatus = false">Đóng</div>
                 </div>
             </div>
-        <div v-if="role === 'admin' || 'Teacher'" @click="studentControlStatus = true">Quản lý học sinh</div>
+        <div v-if="role === 'admin'" @click="studentControlStatus = true">Quản lý học sinh</div>
             <div v-if="studentControlStatus" class="studentControl">
-                <div @click="$emit('change', 'ContentStudent')">Xếp lớp</div>
+                <div @click="$emit('change', 'ContentAssignStudent')">Xếp lớp</div>
                 <div @click="$emit('change', 'ContentAddStudent')">Thêm học sinh</div>
                 <div @click="studentControlStatus = false">Đóng</div>
             </div>
@@ -34,6 +37,7 @@
                 <div @click="$emit('change', 'ContentClassTool')">Lớp học</div>
                 <div @click="$emit('change', 'ContentLessonTool')">Môn học</div>
                 <div @click="$emit('change', 'ContentScheduleTool')">Thời khóa biểu</div>
+                <div @click="$emit('change', 'ContentScoreTool')">Điểm số</div>
                 <div @click="toolStatus = false">Đóng</div>
             </div>
 

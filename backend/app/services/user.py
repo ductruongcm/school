@@ -1,44 +1,81 @@
-from .subservices.sub_user import User_Subservices
 from werkzeug.security import generate_password_hash
-from app.utils import token_set_password
+from app.utils import token_set_password, generate_password
 from datetime import datetime, timedelta
 from app.tasks import send_email_task
+from .validation import User_Validation
 
 class UserService:
     def __init__(self, db, repo):
         self.db = db
         self.repo = repo(db)
-        self.user_subservices = User_Subservices(self.repo)
+        self.user_repo = self.repo.user
+        self.user_validation = User_Validation(db, repo)
+
+    def new_student_data_for_user(self, student_code):
+        #Create username/password/role
+        password = generate_password(length=8)
+        user_data = {'username': student_code.lower(),
+                    'password': generate_password_hash(password),
+                    'tmp_password': password,
+                    'role': 'Student'}
+        
+        return user_data
+
+    def new_teacher_data_for_user(self, data):
+        password = generate_password(length=32)
+        user_data = {'username': data['username'],
+                     'password': generate_password_hash(password),
+                     'role': 'Teacher'}
+        return user_data
+
+    def new_admin_data_for_user(self, data):
+        self.user_validation.validate_password(data)
+        password = generate_password_hash(data['password'])
+
+        user_data = {'username': data['username'],
+                     'password': password,
+                     'role': 'admin'
+                     }
+        
+        return user_data
+
+    def handle_add_user(self, data):
+        #username, password, role, tmp_password
+        self.user_validation.check_dup_username(data)
+        user = self.user_repo.insert_user(data)
+
+        return user
+
+    def handle_add_tmp_token(self, data):
+        tmp_token = generate_password_hash(generate_password(length=32))
+        self.user_repo.insert_tmp_token({'user_id': data['user_id'],
+                                         'token': tmp_token})
+        
+        return tmp_token
 
     def handle_show_user(self, data):
-        if result:= self.repo.show_user(data):
+        if result:= self.user_repo.show_user(data):
             return result
         
     def handle_show_user_info(self, data):
         if data['role'] in ['Teacher', 'admin']:
-            result = [self.repo.show_teacher_info(data)]
+            result = [self.user_repo.show_teacher_info(data)]
             keys = ['name', 'email', 'tel', 'add']
 
         elif data['role'] == 'Student':
-            result = [self.repo.show_student_info(data)]
+            result = [self.user_repo.show_student_info(data)]
             keys = ['name', 'tel', 'add']
 
         return [dict(zip(keys, values)) for values in result][0]
-    
-    def handle_update_user_info(self, data):
-        self.repo.update_user_info(data)
-        self.db.session.commit()
-        return {'status': 'Success', 'msg': 'Đã cập nhật thông tin cá nhân!'}
         
     def handle_reset_password(self, data):
         user = self.user_subservices.check_user(data)
 
-        self.user_subservices.check_password(data)
+        self.auth_subservices.check_password(data)
   
         user.password = generate_password_hash(data['password'])
         self.db.session.commit()
         return user
-        
         
     def handle_renew_tmp_token(self, data):
         #Make new tmp token
@@ -59,18 +96,16 @@ class UserService:
 
         return user_info
 
-    def handle_check_tmp_token(self, data):
-        user = self.user_subservices.check_tmp_token(data)
-        return {'id': user.user_id,'username': user.username}
-        
     def handle_set_password(self, data):        
-        self.user_subservices.check_password(data)
+        self.auth_subservices.check_password(data)
 
-        user = self.user_subservices.check_tmp_token(data)
+        user = self.auth_subservices.check_tmp_token(data)
        
-        self.repo.set_password({'hashed_password': generate_password_hash(data['password']), 'id': user.user_id})
+        self.user_repo.set_password({'password': generate_password_hash(data['password']), 'user_id': user.user_id})
         self.db.session.commit()
         return user
+
+  
         
 
         

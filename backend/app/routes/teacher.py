@@ -1,13 +1,14 @@
-from flask import jsonify, Blueprint
-from flask_jwt_extended import jwt_required
+from flask import Blueprint
+from flask_jwt_extended import jwt_required, get_jwt
 from app.utils import required_role, validate_input, with_log, ResponseBuilder
 from app.extensions import db
 from app.schemas import TeacherSchemas
-from app.services import TeacherService
-from app.repositories import UsersRepo, TeachersRepo, AcademicGetRepo, AcademicAddRepo, AcademicUpdateRepo
+from app.services import TeacherService, Teacher_Workflow
+from app.repositories import Repositories
 
 teacher_bp = Blueprint('teacher_bp', __name__, url_prefix='/api')
-teacher_service = TeacherService(db, UsersRepo, TeachersRepo, AcademicGetRepo, AcademicAddRepo, AcademicUpdateRepo)
+teacher_service = TeacherService(db, Repositories)
+teacher_workflow = Teacher_Workflow(db, Repositories)
 
 @teacher_bp.post('/teachers')
 @jwt_required()
@@ -15,16 +16,17 @@ teacher_service = TeacherService(db, UsersRepo, TeachersRepo, AcademicGetRepo, A
 @with_log(True)
 @validate_input(TeacherSchemas.TeacherCreateSchema)
 def add_teacher(validated_data):
-    result = teacher_service.handle_add_teacher(validated_data)
+    result = teacher_workflow.process_create_teacher(validated_data)
     msg = f'Đã thêm giáo viên {result['name']}!'
     return ResponseBuilder.post(msg)
   
-@teacher_bp.get('/teachers')
+@teacher_bp.get('me/teachers')
 @jwt_required()
 @required_role('admin', 'Teacher')
 @validate_input(TeacherSchemas.TeacherShowSchema)
 def show_teacher(validated_data):
-    result = teacher_service.handle_show_teacher(validated_data)
+    validated_data.update({'role': get_jwt().get('role')})
+    result = teacher_service.handle_show_teachers(validated_data)
     msg = 'Thông tin tìm kiếm không có!'
     return ResponseBuilder.get(msg, result)
 
@@ -35,8 +37,11 @@ def show_teacher(validated_data):
 @validate_input(TeacherSchemas.TeacherUpdateSchema)
 def update_info(id: int, validated_data):
     validated_data['teacher_id'] = id
-    result = teacher_service.handle_update_info(validated_data)
-    msg = f'Đã cập nhật thông tin giáo viên {result['name']}'
+    result = teacher_workflow.process_update_teacher(validated_data)
+    if result:
+        msg = f'Đã cập nhật lại thông tin của giáo viên {result.name}!'
+    else:
+        msg = 'Không có cập nhật gì!'
     return ResponseBuilder.put(msg)
 
 @teacher_bp.put('/teachers/<int:id>/status')

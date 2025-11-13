@@ -1,6 +1,5 @@
 from app.models import Class_room, Users, Files, Lesson, Teach_class
 from .base import BaseRepo
-from sqlalchemy.orm import aliased
 
 class CloudRepo(BaseRepo):
     def upload(self, data: dict):

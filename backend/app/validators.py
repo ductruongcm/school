@@ -10,11 +10,6 @@ class Validation_helpers:
         if not user or not check_password_hash(user.password, data['password']):
             raise ValueError('Sai tên đăng nhập hoặc không đúng mật khẩu!')
         return user
-
-    @staticmethod
-    def password_validation(v, re_v):
-        if v != re_v:
-            raise ValueError('Xác nhận mật khấu không đúng')
       
     @staticmethod
     def score_validation(v: float):

@@ -1,5 +1,6 @@
 from app.extensions import db
 from sqlalchemy.orm import validates
+from sqlalchemy import UniqueConstraint
 import re
 
 class Students(db.Model):
@@ -10,10 +11,11 @@ class Students(db.Model):
     student_code = db.Column(db.String, unique = True)
     status = db.Column(db.Boolean, default = True)
     users = db.relationship('Users', back_populates = 'students', lazy = True)
-    student_class = db.relationship('Student_Class', back_populates = 'students', lazy = True)
-    rank = db.relationship('Rank', back_populates = 'students', lazy = True)
     student_info = db.relationship('Student_info', back_populates = 'students', lazy = True)
     student_lesson_period = db.relationship('Student_Lesson_Period', back_populates = 'students', lazy = True)
+    student_lesson_annual = db.relationship('Student_Lesson_Annual', back_populates = 'students', lazy = True)
+    student_year_summary = db.relationship('Student_Year_Summary', back_populates = 'students', lazy = True)
+    student_period_summary = db.relationship('Student_Period_Summary', back_populates = 'students', lazy = True)
 
     @validates('name')
     def name_validates(self, key, value):
@@ -41,6 +43,7 @@ class Student_info(db.Model):
     add = db.Column(db.String, default = 'Update later')
     gender = db.Column(db.String, nullable = False)
     BOD = db.Column(db.Date)
+    note = db.Column(db.String(100))
     students = db.relationship('Students', back_populates = 'student_info', lazy = True)
 
     @validates('name')
@@ -56,42 +59,62 @@ class Student_info(db.Model):
         elif not re.fullmatch(r'\d{10}', value):
             raise ValueError('Số điện thoại chỉ được chứa 10 số!')
         return value
-
-class Student_Class(db.Model):
-    __tablename__ = 'student_class'
+    
+class Student_Lesson_Period(db.Model):
+    __tablename__ = 'student_lesson_period'
     id = db.Column(db.Integer, primary_key = True)
     student_id = db.Column(db.Integer, db.ForeignKey('students.id', ondelete = 'CASCADE'))
-    class_room_id = db.Column(db.Integer, db.ForeignKey('class_room.id', ondelete = 'CASCADE'))
-    grade_id = db.Column(db.Integer, db.ForeignKey('grade.id', ondelete = 'CASCADE'))
-    year_id = db.Column(db.Integer, db.ForeignKey('year.id', ondelete = 'CASCADE'))
-    students = db.relationship('Students', back_populates = 'student_class', lazy = True)
-    class_room = db.relationship('Class_room', back_populates = 'student_class', lazy = True)
-
-class Rank(db.Model):
-    __tablename__ = 'rank'
-    id = db.Column(db.Integer, primary_key = True)
-    students_id = db.Column(db.Integer, db.ForeignKey('students.id', ondelete = 'CASCADE'))
-    rank = db.Column(db.String(10))
-    students = db.relationship('Students', back_populates = 'rank', lazy = True)    
-
-class Score(db.Model):
-    __tablename__ = 'score'
-    id = db.Column(db.Integer, db.ForeignKey('student_lesson_period.id', ondelete = 'CASCADE'), primary_key = True)
-    score_oral = db.Column(db.Float)
-    score_15m = db.Column(db.Float)
-    score_45m = db.Column(db.Float)
-    score_final = db.Column(db.Float)
+    lesson_id = db.Column(db.Integer, db.ForeignKey('lesson.id', ondelete = 'SET NULL'))
+    period_id = db.Column(db.Integer, db.ForeignKey('period.id', ondelete = 'CASCADE'))
     total = db.Column(db.Float)
-    remark = db.Column(db.String)
-    student_lesson_period = db.relationship('Student_Lesson_Period', back_populates = 'score', lazy = True)
+    status = db.Column(db.String(15))
+    note = db.Column(db.Text)
+    students = db.relationship('Students', back_populates = 'student_lesson_period', lazy = True)
+    lesson = db.relationship('Lesson', back_populates = 'student_lesson_period', lazy = True)
+    period = db.relationship('Period', back_populates = 'student_lesson_period', lazy = True)
+    score = db.relationship('Score', back_populates = 'student_lesson_period', lazy = True)
+    __table_args__ = (UniqueConstraint('student_id', 'period_id', 'lesson_id', name='stu_ls_per_uniq'),)
 
-    @validates('score_oral', 'score_15m', 'score_45m',
-               'score_final', 'total')
-    def score_validates(self, key, value):
-        if value < 0 or value > 10:
-            raise ValueError('điểm số không được âm với lớn hơn 10!!')
-        if not re.fullmatch(r'\d.', value):
-            raise ValueError('Chỉ được chứa số!!')
-        return value
-    
+class Student_Lesson_Annual(db.Model):
+    __tablename__ = 'student_lesson_annual'
+    id = db.Column(db.Integer, primary_key = True)
+    student_id = db.Column(db.Integer, db.ForeignKey('students.id', ondelete='CASCADE'))
+    lesson_id = db.Column(db.Integer, db.ForeignKey('lesson.id', ondelete = 'SET NULL'))
+    year_id = db.Column(db.Integer, db.ForeignKey('year.id', ondelete = 'CASCADE'))
+    avg_annual = db.Column(db.Float)
+    status = db.Column(db.String(15))
+    students = db.relationship('Students', back_populates = 'student_lesson_annual', lazy = True)
+    lesson = db.relationship('Lesson', back_populates = 'student_lesson_annual', lazy = True)
+    __table_args__ = (UniqueConstraint('student_id', 'lesson_id', 'year_id', name = 'stu_ls_year_uniq'),)
 
+class Student_Period_Summary(db.Model):
+    __tablename__ = 'student_period_summary'
+    id = db.Column(db.Integer, primary_key = True)
+    student_id = db.Column(db.Integer, db.ForeignKey('students.id', ondelete = 'CASCADE'), nullable = False)
+    period_id = db.Column(db.Integer, db.ForeignKey('period.id', ondelete = 'CASCADE'), nullable = False)
+    class_room_id = db.Column(db.Integer, db.ForeignKey('class_room.id', ondelete = 'NO ACTION'), nullable = False)
+    score = db.Column(db.Float)
+    conduct = db.Column(db.String(15))
+    absent_day = db.Column(db.Integer, default = 0)
+    status = db.Column(db.String(20))
+    note = db.Column(db.String(100))
+    students = db.relationship('Students', back_populates = 'student_period_summary', lazy = True)
+    __table_agrs__ = (UniqueConstraint('student_id', 'period_id', name = 'stu_per_uniq'),)
+
+class Student_Year_Summary(db.Model):
+    __tablename__ = 'student_year_summary'
+    id = db.Column(db.Integer, primary_key = True)
+    student_id = db.Column(db.Integer, db.ForeignKey('students.id', ondelete = 'CASCADE'))
+    year_id = db.Column(db.Integer, db.ForeignKey('year.id', ondelete = 'CASCADE'))
+    class_room_id = db.Column(db.Integer, db.ForeignKey('class_room.id', ondelete = 'SET NULL'))
+    grade = db.Column(db.Integer, db.ForeignKey('grade.grade', ondelete = 'NO ACTION'))
+    score = db.Column(db.Float)
+    conduct = db.Column(db.String(15))
+    learning_status = db.Column(db.String(15))
+    absent_day = db.Column(db.Integer, default = 0)
+    status = db.Column(db.String(20))
+    review_status = db.Column(db.Boolean, default = False)
+    assign_status = db.Column(db.Boolean, default = False)
+    note = db.Column(db.String(100))
+    students = db.relationship('Students', back_populates = 'student_year_summary', lazy = True)
+    __table_args__ = (UniqueConstraint('student_id', 'year_id', name='stu_year_uniq'),)

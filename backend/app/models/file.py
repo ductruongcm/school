@@ -6,7 +6,7 @@ import re
 class Files(db.Model):
     __tablename__ = 'files'
     id = db.Column(db.Integer, primary_key = True)
-    folder_id = db.Column(db.Integer, db.ForeignKey('teach_class.id', ondelete = 'CASCADE'), nullable = False)
+    folder_id = db.Column(db.Integer, db.ForeignKey('teach_class.id', ondelete = 'NO ACTION'), nullable = False)
     filename = db.Column(db.String, nullable = False)
     filetype = db.Column(db.String, nullable = False)
     filesize = db.Column(db.String, nullable = False)

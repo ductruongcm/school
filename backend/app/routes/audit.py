@@ -1,14 +1,14 @@
-from flask import Blueprint, jsonify
+from flask import Blueprint
 from flask_jwt_extended import jwt_required
 from app.utils import required_role, validate_input, ResponseBuilder
 from app.extensions import db
-from app.repositories import AuditRepo
-from app.services import AuditService
+from app.repositories import AuditLogRepo
+from app.services import AuditLog_Service
 from app.schemas import AuditShowSchema
 
 
 audit_bp = Blueprint('audit_bp', __name__, url_prefix='/api')
-audit_service = AuditService(db, AuditRepo)
+audit_service = AuditLog_Service(db, AuditLogRepo)
 
 @audit_bp.get('/audit')
 @jwt_required()

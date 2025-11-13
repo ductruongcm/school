@@ -14,9 +14,9 @@ class ResponseBuilder:
         return jsonify({'msg': msg, 'data': data}), 200
 
     @staticmethod
-    def post(msg = None, data = None):
+    def post(msg, data = None):
         if data:
-            return jsonify({'msg': msg,'data': data}), 201
+            return jsonify({'msg': msg, 'data': data}), 201
         
         else:
             return jsonify({'msg': msg}), 201

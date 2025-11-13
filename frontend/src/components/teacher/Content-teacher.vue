@@ -12,12 +12,12 @@
     <div class="main">
         <div>
             <form @submit.prevent="fetchdata">
-                <label>Tìm theo môn học: </label>
+                <label> Tìm theo tên: </label>
+                <input v-model="filterName" placeholder="Nhập tên giáo viên">
+                <label> Tìm theo môn học: </label>
                 <input type="text" v-model="lessonSearch" placeholder="Nhập môn học">
                 <label> Tìm theo lớp: </label>
                 <input type="text" v-model="classSearch" placeholder="Nhập tên lớp">
-                <label> Tìm theo tên: </label>
-                <input v-model="filterName" placeholder="Nhập tên giáo viên">
                 <label> Khối lớp: </label>
                 <select v-model="selectedGrade">
                     <option value="" disabled>--Chọn khối--</option>
@@ -30,19 +30,19 @@
         </div>
         <div> {{ teacherSearchMsg }}</div>
         <div>
-            <table>
+            <table border="1" style="border-collapse: collapse; text-align: center;">
                 <thead>
                     <tr>
                         <th>STT</th>
-                        <th style="width: 11em;">Họ và tên</th>
-                        <th style="width: 7em;">Chuyên môn</th>
+                        <th style="width: 10em;">Họ và tên</th>
+                        <th style="width: 8em;">Chuyên môn</th>
                         <th style="width: 7em;">Chủ nhiệm</th>
-                        <th style="width: 10em;">Phụ trách</th>
-                        <th style="width: 7em;">Số điện thoại</th>
-                        <th style="width: 10em;">Địa chỉ</th>
+                        <th style="width: 14em;">Phụ trách</th>
+                        <th style="width: 8em;">Số điện thoại</th>
+                        <th style="width: 15em;">Địa chỉ</th>
                         <th style="width: 13em;">Email</th>
-                        <th style="width: 6em;">Trạng thái</th>
-                        <th style="width: 15em;"></th>
+                        <th style="width: 8em;" v-if="userStore.userInfo.role === 'admin'">Trạng thái</th>
+                        <th style="width: 8em;">Thao tác</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -55,10 +55,9 @@
                         <td>{{ item.tel }}</td>
                         <td>{{ item.add }}</td>
                         <td>{{ item.email }}</td>
-                        <td>{{ item.status ? 'Hiện' : 'Ẩn' }} </td>
+                        <td v-if="userStore.userInfo.role === 'admin'">{{ item.status ? 'Hiện' : 'Ẩn' }} </td>
                         <td v-if="userStore.userInfo.role === 'admin'">
                             <button @click="openPopup(item)">Chỉnh sửa</button>
-                            <button @click.prevent="status(item)">Hiện/Ẩn</button>
                         </td>
                     </tr>
                 </tbody>
@@ -75,11 +74,10 @@
     />
 </template>
 <script setup>
-import { ref, onMounted} from 'vue';
+import { ref, onMounted } from 'vue';
 import axios from 'axios';
 import useUserStore from '../../stores/user';
 import { message } from '../../stores/usePopup';
-import { userYearStore } from '../../stores/yearStore';
 
 const teacherList = ref([])
 const teacherSearchMsg = ref('')
@@ -96,16 +94,17 @@ onMounted(() => {
 
 const fetchdata = async () => {
     try {
-        const res = await axios.get('api/teachers', {
+        const res = await axios.get('api/me/teachers', {
             params: {
                 year_id: selectedYear.value,
-                grade_id: selectedGrade.value,
+                grade: selectedGrade.value,
                 lesson: lessonSearch.value,
                 class_room: classSearch.value,
                 name: filterName.value
             },
             withCredentials: true
         })     
+
         teacherList.value = res.data.data
         teacherSearchMsg.value = res.data.msg
         
@@ -130,7 +129,6 @@ const fetchYearData = async () => {
         }
     })
     yearList.value = res.data.data
-    selectedYear.value = yearList.value[0]?.id
 }
 
 const selectedGrade = ref('')
@@ -147,14 +145,6 @@ const fetchGradeData = async () => {
     gradeList.value = res.data.data
 }
 
-const status = async (item) => {
-    const res = await axios.put(`api/teachers/${item.id}/status`, {
-        withCredentials: true
-    })
-    item.status = !item.status
-    teacherSearchMsg.value = res.data.msg
-}
-
 const editPopup = ref(false)
 const selectedItem = ref(null)
 import ContentEditTeacher from './Content-editTeacher.vue';
@@ -163,9 +153,10 @@ const openPopup = (item) => {
      editPopup.value = true
 }
 
-const updateTeacher = () => {
+const updateTeacher = async (msg) => {
     editPopup.value = false
-    fetchdata()
+    await fetchdata()
+    teacherSearchMsg.value = msg
 }
 
 const onReset = () => {
@@ -173,7 +164,6 @@ const onReset = () => {
     filterName.value =''
     selectedGrade.value = ''
     lessonSearch.value = ''
-    selectedYear.value = yearList.value[0]?.id
     fetchdata()
 }
 </script>

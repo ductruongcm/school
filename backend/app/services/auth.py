@@ -1,50 +1,61 @@
 from app.utils import set_access_token, set_refresh_token
-from app.exceptions import CustomException
-from app.validators import Validation_helpers
+from app.exceptions import NotFound_Exception
 from werkzeug.security import generate_password_hash
-from .base import BaseService
-from .subservices.sub_auth import AuthSub_service
+from .subservices.sub_auth import Auth_Subservices
+from .validation import User_Validation
 
-class AuthService(BaseService):
+class AuthService:
     def __init__(self, db, repo):
-        super().__init__(db)
+        self.db = db
         self.repo = repo(db)
+        self.user_repo = self.repo.user
+        self.auth_subservices = Auth_Subservices(db, repo)
+        self.user_validation = User_Validation(db, repo)
 
     def handle_login(self, data):    
-        user = AuthSub_service(self.repo).check_user(data)
+        user = self.auth_subservices.check_login(data)
 
-        access_token = set_access_token(data, user)
-        refresh_token = set_refresh_token(data, user)
+        access_token = set_access_token(user)
+        refresh_token = set_refresh_token(user)
         
-        return {'status': 'Success', 
-                'access_token': access_token, 'refresh_token': refresh_token, 
+        return {'access_token': access_token, 'refresh_token': refresh_token, 
                 'role': user.role, 'id': user.id, 'username': user.username}
     
-    def handle_register(self, data):        
-        if self.repo.get_user(data): 
-            raise CustomException('Username đã được sử dụng!')
+    def handle_add_user(self, data):      
+        #check dup user
+        self.user_validation.check_dup_username(data)
 
-        elif logic_error:= Validation_helpers.password_validation(data['password'], data['repassword']): 
-            raise CustomException(logic_error) 
-
-        else:
-            data['hashed_password'] = generate_password_hash(data['password'])
-            self.repo.add_user(data)
-            self.db.session.commit()
-            return {'status': 'Success', 'username': data['username']}
+        #check xác nhận mật khẩu
+        self.user_validation.validate_password(data)
+     
+        user = self.user_repo.add_user({'username': data['username'],
+                                   'password': generate_password_hash(data['password']),
+                                   'role': 'admin',
+                                   'changed_password': True})
+        return user
+    
+    def get_user_by_id(self, data):
+        user = self.user_repo.get_user_by_id(data)
+        if not user:
+            raise NotFound_Exception('Không tìm thấy ID user!')
         
+        return user
+
     def handle_refresh_token(self, data):
-        user = self.repo.get_user(data)
-        if not user: 
-            raise CustomException('User không tồn tại!')
+        user = self.get_user_by_id(data)
 
-        access_token = set_access_token(data, user)
+        access_token = set_access_token(user)
         
-        return {'status': 'Success', 
-                'access_token': access_token, 
+        return {'access_token': access_token, 
                 'role': user.role, 
                 'id': user.id, 
                 'username': user.username}
+    
+    def handle_check_tmp_token(self, data):
+        user = self.auth_subservices.check_tmp_token(data)
+        return {'id': user.user_id,'username': user.username}
+
+        
 
     
 

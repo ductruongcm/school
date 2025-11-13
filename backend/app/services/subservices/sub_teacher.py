@@ -1,27 +1,7 @@
-from app.exceptions import CustomException
 
 class Teacher_Subservices:
-    def __init__(self, user_repo, teacher_repo, academic_get_repo):
+    def __init__(self, teacher_repo):
         self.teacher_repo = teacher_repo
-        self.academic_get_repo = academic_get_repo
-        self.user_repo = user_repo
-
-    def check_teach_class(self, data):
-        check_teach_class = self.teacher_repo.check_teach_class(data)
-        if bool(any(check_teach_class)): 
-            raise CustomException('Lớp học đã có giáo viên bộ môn này!')
-        
-    def check_home_class(self, data):
-        home_class = self.academic_get_repo.class_room_by_id(data)
-        if home_class:
-            raise CustomException(f"Lớp {data['class_room']} đã có giáo viên chủ nhiệm!")
-        
-        return home_class
-
-    def check_dup_user(self, data):
-        user = self.user_repo.get_user(data)
-        if user:
-            raise CustomException('Username đã được sử dụng!')
         
     def update_name(self, update_data):
         teacher = self.teacher_repo.get_teacher(update_data)
@@ -59,10 +39,7 @@ class Teacher_Subservices:
             #check dup
             self.check_teach_class(update_data)
             
-            teach_classes = self.academic_get_repo.teach_class_by_class_room_id(update_data)
-            
-            for teach_class in teach_classes:
-                teach_class.teacher_id = update_data['teacher_id']   
+            self.add_teacher_id_to_teach_class(update_data)
 
         if to_del:= current_teach_rooms - new_teach_rooms:
             update_data['teach_class'] = to_del

@@ -10,3 +10,5 @@ class BaseRepo:
     def obj_by_obj_id(self, model, obj_id):
         return model.query.get(obj_id)
 
+    def obj_by_obj_name(self, model, obj_name, field):
+        return model.query.filter(obj_name == field).first()

@@ -23,8 +23,7 @@ import { userYearStore } from '../../stores/yearStore';
 
 const yearStore = userYearStore()
 const classList = ref([])
-const class_roomSearch = ref('')
-const lessonSearch = ref('')
+const classSearch = ref('')
 const selectedClass_room = ref('')
 const selectedFolder = ref('')
 const resultMsg = ref('')
@@ -35,10 +34,10 @@ onMounted(() => {
 
 const gradeSearch = ref('')
 const fetchClassData = async () => {
-    const res = await axios.get('api/academic/class_rooms', {
+    const res = await axios.get('api/academic/me/class_rooms', {
         withCredentials: true,
         params: {
-            class_room: class_roomSearch.value,
+            class_room: classSearch.value,
             year_id: yearStore.year.id,
             grade_id: gradeSearch.value
         }
@@ -48,14 +47,12 @@ const fetchClassData = async () => {
 
 const folderList = ref(null)
 const fetchFolderData = async () => {
-    console.log(selectedClass_room)
     const res = await axios.get('api/cloud/folders', {
         withCredentials: true,
         params: {
             grade_id: selectedClass_room.grade_id,
         }
     })
-    console.log(res.data.data)
     folderList.value = res.data.data
 }
 

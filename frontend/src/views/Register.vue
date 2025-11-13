@@ -10,6 +10,12 @@
             <input type="password" v-model="rePassword" required> <br>
             <label>Name</label> <br>
             <input type="text" v-model="name" required> <br>
+            <label >SDT</label> <br>
+            <input v-model="tel" type="text"> <br>
+            <label >Email</label>  <br>
+            <input v-model="email" type="email"> <br>
+            <label >Add</label> <br>
+            <input v-model="add" type="text"> <br>
   
          
             <button type="submit">Đăng ký</button>
@@ -29,13 +35,18 @@ const password = ref('')
 const rePassword = ref('')
 const name = ref('')
 const message = ref('')
-
+const email = ref('')
+const tel = ref('')
+const add = ref('')
 const handleSubmit = async () => {
     const payload = {
         username: username.value,
         password: password.value,
         repassword: rePassword.value,
-        name: name.value
+        name: name.value,
+        email: email.value,
+        tel: tel.value,
+        add: add.value
     }
 
     try {

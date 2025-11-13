@@ -2,8 +2,14 @@
     <div>Công cụ: Niên khóa</div>
     <div>
         <form>
-            <label> Thêm niên khóa </label>
-            <input v-model="yearInput" type="text">
+            <div> Thêm niên khóa mới </div>
+            <label>Ngày dự kiến khai giảng 
+                <input v-model="start_date" type="date">
+            </label> <br>
+            <label> Ngày dự kiến bế giảng
+                <input v-model="end_date" type="date">
+            </label>
+            
             <button @click.prevent="addYear">Thêm</button>
         </form>
     </div>
@@ -21,7 +27,8 @@
 import { ref, onMounted } from 'vue';
 import axios from 'axios';
 import { userYearStore } from '../../stores/yearStore';
-const yearInput = ref('')
+const start_date = ref('')
+const end_date = ref('')
 const resultMsg = ref('')
 const yearList = ref([])
 const selectedYear = ref(null)
@@ -32,16 +39,22 @@ onMounted(() => {
 })
 
 const addYear = async () => {
-    const payload = {year: yearInput.value}
+    const payload = {
+                     start_date: start_date.value,
+                     end_date: end_date.value
+                    }
     try {
         const res = await axios.post('/api/academic/years', payload, {
             withCredentials: true,
             headers: {'Content-Type': 'application/json'}
         })
+
         resultMsg.value = res.data.msg
+
     } catch (e) {
-        if (e.response && e.response.status === 400 || 422 || 500) {
+        if (e.response && [400,404,409,422,500].includes(e.response.status)) {
             resultMsg.value = e.response.data.msg
+            
         } else {
             resultMsg.value = 'Có vấn đề rồi!'
         }
@@ -57,9 +70,12 @@ const fetchYear = async () => {
     yearList.value = res.data.data
 }
 
-
 const setYear = async () => {
-    const res = await axios.put(`api/academic/years/${selectedYear.value}`, {
+    if (!selectedYear.value) {
+        alert('Chưa chọn niên khóa để thiết lập!')
+        return
+    }
+    const res = await axios.put(`api/academic/years/${selectedYear.value}/status`, {
         withCredentials: true
     })
     resultMsg.value = res.data.msg

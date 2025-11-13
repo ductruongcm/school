@@ -1,7 +1,6 @@
 <template>
     <div class="setPassword">
         <form @submit.prevent="handleSubmit">
-            <label>Username</label> <br>
             <div>Xin chào {{ name }}! Hãy thiết lập mật khẩu để đăng nhập</div>
             <label>Password</label> <br>
             <input type="password" v-model="password" required> <br>
@@ -30,7 +29,7 @@ const message = ref('')
 const fetchUserInfo = async () => {
     try{
         const payload = {token: token}
-        const res = await axios.post('api/user/tmp_token', payload, {
+        const res = await axios.post('api/auth/tmp_token', payload, {
             headers: {'Content-Type': 'application/json'}
         })
         userId.value = res.data.data.id

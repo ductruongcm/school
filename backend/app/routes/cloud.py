@@ -1,4 +1,4 @@
-from flask import Blueprint, jsonify
+from flask import Blueprint
 from app.utils import required_role, validate_input, ResponseBuilder
 from flask_jwt_extended import jwt_required, get_jwt
 from app.services import CloudService
@@ -12,7 +12,7 @@ cloud_service = CloudService(db, CloudRepo)
 
 @cloud_bp.post('/files')
 @jwt_required()
-@required_role('admin', 'teacher')
+@required_role('admin', 'Teacher')
 @validate_input(CloudSchemas.Upload)
 def upload(validated_data):
     validated_data['upload_by'] = get_jwt().get('id')
@@ -22,7 +22,7 @@ def upload(validated_data):
 
 @cloud_bp.get('/files')
 @jwt_required()
-@required_role('admin', 'teacher')
+@required_role('admin', 'Teacher')
 @validate_input(CloudSchemas.ShowFileSchema)
 def show_file(validated_data):
     result = cloud_service.handle_show_file(validated_data)
@@ -36,7 +36,7 @@ def download(id: int):
 
 @cloud_bp.put('/files/<int:id>/hide')
 @jwt_required()
-@required_role('admin', 'teacher')
+@required_role('admin', 'Teacher')
 def hide_files(id: int):
     file = cloud_service.handle_status({'file_id': id})
     msg = f"Đã ẩn file {file['filename']}!" if not file['status'] else f"Đã hiện file {file['filename']}!"
@@ -44,7 +44,7 @@ def hide_files(id: int):
 
 @cloud_bp.delete('/files/<int:id>')
 @jwt_required()
-@required_role('admin', 'teacher')
+@required_role('admin', 'Teacher')
 def delete(id: int):
     file = cloud_service.handle_delete({'file_id': id})
     msg = f"Đã xóa file {file['filename']}!"

@@ -44,7 +44,7 @@ const filename = ref('')
 const gradeSearch = ref('')
 
 const fetchTeachClass = async () => {
-    const res = await axios.get('api/academic/teach_classes', {
+    const res = await axios.get('api/academic/me/class-rooms', {
         withCredentials: true,
         headers: {'Content-Type': 'application/json'},
         params: {
@@ -58,14 +58,16 @@ const fetchTeachClass = async () => {
 
 const lessonSearch = ref('')
 const teachRoom = ref(null)
-
+const selectedGrade = ref('')
 const fetchFolderData = async () => {
-    const res = await axios.get('api/academic/lessons', {
+    const res = await axios.get('api/academic/me/lessons', {
         withCredentials: true,
         params: {
-            grade_id: teachRoom.value.grade_id,
+            grade_id: selectedGrade.value,
             year_id: yearStore.year.id,
-            lesson: lessonSearch.value
+            is_visible: false,
+            is_folder: true,
+            is_schedule: false
         }
     })
     lessonList.value = res.data.data

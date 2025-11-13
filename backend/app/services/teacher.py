@@ -1,77 +1,83 @@
 from app.tasks import send_email_task
 from .subservices.sub_teacher import Teacher_Subservices
-from app.exceptions import CustomException
-from app.utils import generate_password, token_set_password, get_updated_fields
-from werkzeug.security import generate_password_hash
+from app.exceptions import NotFound_Exception
 
 class TeacherService:
-    def __init__(self, db, user_repo=None, teacher_repo=None, academic_get_repo=None, academic_add_repo=None, academic_update_repo=None):
+    def __init__(self, db, repo):
         self.db = db
-        self.teacher_repo = teacher_repo(db)
-        self.academic_get_repo = academic_get_repo(db)
-        self.academic_add_repo = academic_add_repo(db)
-        self.academic_update_repo = academic_update_repo(db)
-        self.user_repo = user_repo(db)
-        self.teacher_subservices = Teacher_Subservices(self.user_repo, self.teacher_repo, self.academic_get_repo)
+        self.repo = repo(db)
+        self.teacher_repo = self.repo.teacher
+        self.teacher_subservices = Teacher_Subservices(self.teacher_repo)
 
-    def handle_add_teacher(self, data):
-        #check user
-        self.teacher_subservices.check_dup_user(data)
-
-        data['password'] = generate_password_hash(generate_password(length=32))
-        data['token'] = generate_password_hash(token_set_password(length=32))
-        data['role'] = 'Teacher'
-        teacher = self.teacher_repo.add_user(data)
-
-        if data['class_room_id']:
-            class_room = self.teacher_subservices.check_home_class(data)
-            class_room.teacher_id = teacher.id
-
-        #check teach class
-        self.teacher_subservices.check_teach_class(data)
+    def handle_get_teacher_by_id(self, data):
+        teacher = self.teacher_repo.get_teacher_by_id(data)
+        if not teacher:
+            raise NotFound_Exception('Không tìm thấy ID giáo viên!')
         
-        data['teacher_id'] = teacher.id
-        self.teacher_repo.assign_teach_class(data)
-        self.db.session.commit()
+        return teacher
 
+    def handle_add_teacher(self, data):    
+        teacher = self.teacher_repo.add_teacher({'user_id': data['user_id'],
+                                                 'name': data['name'],
+                                                 'lesson_id': data['lesson_id'],
+                                                 'email': data['email'],
+                                                 'tel': data['tel'],
+                                                 'add': data['add']})
+        return teacher
+        
+    def send_set_password_mail(self, data):    
         link = f'http://localhost:5173/setpassword?token={data['token']}'
-        send_email_task.delay(data['email'], 'Set password', f'Click following link to set password: {link}')
-        return data
+        body = f"""
+Xin chào {data['name']},
+
+Tài khoản của bạn đã được tạo tại hệ thống trường BVD.
+
+Vui lòng nhấn vào liên kết sau để đặt mật khẩu (hiệu lực trong 7 giờ):
+{link}
+
+Trân trọng,
+Phòng quản trị hệ thống
+(Đây là email tự động, vui lòng không trả lời.)
+"""
+        send_email_task.delay(data['email'], 'Set password', body.encode('utf-8').decode('utf-8'))
         
-    def handle_show_teacher(self, data):
-        result = self.teacher_repo.show_teacher(data)
-        keys = ['id', 'name','lesson_id', 'lesson', 'class_room_id', 'class_room', 'teach_room_ids', 'teach_room', 'tel', 'email', 'add', 'status']
-        return [dict(zip(keys, values)) for values in result]
-
-    def handle_update_info(self, data):
-        current_info_query = self.teacher_repo.get_info(data)
-        if not current_info_query:
-            raise CustomException('Không truy xuất được dữ liệu') 
-        
-        keys = ['teacher_id', 'name', 'lesson_id', 'class_room_id','teach_class', 'tel', 'add', 'email', 'year_id']
-        current_info = dict(zip(keys, current_info_query))
-
-        update_fields = get_updated_fields(data, current_info)
-        if 'name' in update_fields:
-            self.teacher_subservices.update_name(data)
-
-        if 'lesson_id' in update_fields:
-            self.teacher_subservices.update_lesson(current_info, data)
-
-        if 'add' or 'tel' or 'email' in update_fields:
-            self.teacher_subservices.update_info(update_fields, data)
-
-        if 'class_room_id' in update_fields:
-            self.teacher_subservices.update_home_class(update_fields, data)
-
-        if 'teach_class' in update_fields:
-            self.teacher_subservices.update_teach_class(current_info, data)
+    def handle_update_teacher_info(self, data):
+        if any(key for key in data if key in ['email', 'tel', 'add']):
+            detail_changes = []
+            teacher_info = self.teacher_repo.get_teacher_info_by_teacher(data)
+            if not teacher_info:
+                raise NotFound_Exception('ID giáo viên không hợp lệ!')
             
-        self.db.session.commit()
-        return current_info
-    
+            if data.get('email'):
+                old_email = teacher_info.email
+                teacher_info.email = data['email']
+                detail_changes.append(f'email: {old_email} => {data['email']}')
+
+            if data.get('tel'):
+                old_tel = teacher_info.tel
+                teacher_info.tel = data['tel']
+                detail_changes.append(f'SĐT: {old_tel} => {data['tel']}')
+
+            if data.get('add'):
+                old_add = teacher_info.add
+                teacher_info.add = data['add']
+                detail_changes.append(f'Địa chỉ: {old_add} => {data['add']}')
+            
+            return ', '.join(detail_changes)
+                
+    def handle_show_teachers(self, data):
+        if data['role'] == 'admin':
+            data['status'] = None
+            result = self.teacher_repo.show_teachers(data)
+            keys = ['id', 'name','lesson_id', 'lesson', 'class_room_id', 'class_room', 'teach_room_ids', 'teach_room', 'tel', 'email', 'add', 'status']
+        else:
+            data['status'] = True
+            result = self.teacher_repo.show_teacher(data)
+            keys = ['id', 'name','lesson_id', 'lesson', 'class_room_id', 'class_room', 'teach_room_ids', 'teach_room', 'tel', 'email', 'add']
+        return [dict(zip(keys, values)) for values in result]
+   
     def handle_status_teacher(self, data):
-        teacher = self.teacher_repo.get_teacher(data)
+        teacher = self.teacher_repo.get_teacher_by_id(data)
         teacher.status = not teacher.status
         self.db.session.commit()
         return teacher
@@ -80,3 +86,7 @@ class TeacherService:
         self.teacher_repo.delete(data)
         return {'status': 'Success', 'msg': 'Đã xóa giáo viên!'}
         
+    def handle_show_teacher_info(self, data):
+        result = [self.teacher_repo.show_teacher_info_by_user(data)]
+        keys = ['name', 'email', 'tel', 'add']
+        return [dict(zip(keys, values)) for values in result]

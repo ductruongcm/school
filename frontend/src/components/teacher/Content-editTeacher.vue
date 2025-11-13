@@ -4,23 +4,24 @@
       <div class="popup">
         <h3>Điều chỉnh thông tin giáo viên</h3>
         <label>Họ và tên: </label>
-        <input v-model="data.name" type="text"/>
+        <input style="width: 10em;" v-model="data.name" type="text"/>
+ 
+        <label> Email: </label>
+        <input style="width: 20.7em;" v-model="data.email" type="text"> <br>
+        <label> Số điện thoại: </label>
+        <input style="width: 8em;" v-model="data.tel" type="text">
+        <label> Địa chỉ: </label>
+        <input style="width: 20em;" v-model="data.add" type="text"> <br>
         <label> Chuyên môn: </label>
         <select v-model="data.lesson_id" @change="fetchTeachClassData">
             <option disabled>--Chọn môn học--</option>
             <option v-for="lesson in lessonList" :key="lesson.lesson_id" :value="lesson.lesson_id">{{ lesson.lesson }}</option>
         </select>
-        <label> Email: </label>
-        <input v-model="data.email" type="text"> 
-        <label> Số điện thoại: </label>
-        <input v-model="data.tel" type="text">
-        <label> Địa chỉ: </label>
-        <input v-model="data.add" type="text"> <br>
         <label> Chủ nhiệm lớp: </label>
         <select v-model="data.class_room_id">
-            <option value.number="1" disabled>--Chọn lớp--</option>
-            <option value="">Bỏ chọn</option>
-            <option v-for="cls in homeClassList" :key="cls.id" :value="cls.id">{{ cls.class_room }}</option>
+            <option :value='null' disabled>--Chọn lớp--</option>
+            <option :value="null">Bỏ chọn</option>
+            <option v-for="cls in homeClassList" :key="cls.class_room_id" :value="cls.class_room_id">{{ cls.class_room }}</option>
         </select> <br>
         <label>Phụ trách lớp </label> <br>
         <div style="display: flex; gap: 20px">
@@ -52,7 +53,7 @@
         </div> 
         <div>{{ resultMsg }}</div>
         <div class="actions">
-          <button @click="del">Xóa</button>
+          <button @click="status">Hiện/Ẩn</button>
           <button @click="save">Lưu</button>
           <button @click="close">Đóng</button>
         </div>
@@ -62,7 +63,7 @@
 </template>
 
 <script setup>
-import { ref, defineEmits, defineProps, onMounted, watch } from 'vue'
+import { ref, onMounted, toRaw } from 'vue'
 import axios from 'axios'
 import { userYearStore } from '../../stores/yearStore'
 
@@ -87,15 +88,19 @@ onMounted(() => {
   fetchTeachClassData()
 })
 
+const original = JSON.parse(JSON.stringify(props.data))
+
 const lessonSearch = ref('')
 const selectedGrade = ref('')
 const lessonList = ref(null)
 const fetchLessonData = async () => {
-  const res = await axios.get('api/academic/lessons', {
+  const res = await axios.get('api/academic/me/lessons', {
         params: {
             lesson: lessonSearch.value,
-            grade_id: selectedGrade.value,
-            year_id: yearStore.year.id
+            grade: selectedGrade.value,
+            is_visible: true,
+            is_schedule: false,
+            is_folder: false
         },
         withCredentials: true
     })
@@ -105,11 +110,10 @@ const fetchLessonData = async () => {
 const homeClassList = ref(null)
 const class_roomSearch = ref('')
 const fetchClassList = async () => {
-  const res = await axios.get('api/academic/class_rooms', {
+  const res = await axios.get(`api/academic/years/${yearStore.year.id}/class-rooms`, {
     withCredentials: true,
     params: {
-      year_id: yearStore.year.id,
-      grade_id:selectedGrade.value,
+      grade: selectedGrade.value,
       class_room: class_roomSearch.value
     }
   })
@@ -140,53 +144,69 @@ const removeFromRight = () => {
 
 const teachClassList = ref([])
 const fetchTeachClassData = async () => {
-  const res = await axios.get(`api/academic/teach_classes/${props.data.lesson_id}`, {
+  const res = await axios.get(`api/academic/lessons/${props.data.lesson_id}/class-rooms`, {
     withCredentials: true,
     params: {
-      year_id: yearStore.year.id
+      year_id: yearStore.year.id,
+      teacher_id: props.data.id
     }
   })
-  
   teachClassList.value = res.data.data
-  leftList.value = teachClassList.value.filter(item => !props.data.teach_room_ids.includes(item.class_room_id))
-  rightList.value = teachClassList.value.filter(item => props.data.teach_room_ids.includes(item.class_room_id))
-  newIds.value.push(... rightList.value.map(i => i.class_room_id))
-}
-
-const del = async () => {
-    const res = await axios.delete(`api/teachers/${item.id}`, {
-        withCredentials: true
-    })
-    teacherSearchMsg.value = res.data.msg
-}
-
-const resultMsg = ref('')
-const save = async () => {
-  const payload = {
-    name: props.data.name,
-    lesson_id: props.data.lesson_id,
-    class_room_id: props.data.class_room_id,
-    teach_class: newIds.value,
-    tel: props.data.tel,
-    add: props.data.add,
-    email: props.data.email,
-    year_id: yearStore.year.id
+  leftList.value = teachClassList.value.filter(item => item.teacher_id === null)
+  if (props.data.lesson_id === original.lesson_id) {
+    rightList.value = teachClassList.value.filter(item => props.data.teach_room_ids.includes(item.class_room_id))
+  } else {
+    rightList.value = []
   }
-  try {
-    const res = await axios.put(`api/teachers/${props.data.id}`, payload,{
-      withCredentials: true
+  newIds.value = rightList.value.map(i => i.class_room_id)
+}
+
+const status = async () => {
+    const res = await axios.put(`api/teachers/${props.data.id}/status`, {
+        withCredentials: true
     })
     resultMsg.value = res.data.msg
     emit('save', resultMsg.value)
     close()
-  } catch (err) {
-    if (err.response && err.response.status === 400 || 422 || 500) {
-        resultMsg.value = err.response.data.msg
-    } else {
-      resultMsg.value = 'Có vấn đề khác!'
-    }    
+}
+
+const resultMsg = ref('')
+
+const data = toRaw(props.data)
+const save = async () => {
+  const changedEntries = Object.entries(data)
+    .filter(([k, v]) => v !== original[k]).filter(Boolean) // chỉ lấy field bị thay đổi
+
+  if (changedEntries.length === 0) return null;
+
+  const payload = {
+    ...Object.fromEntries(changedEntries), 
+    year_id: yearStore.year.id,
+    lesson_id: data.lesson_id,
+    teach_class: newIds.value
+    }
+
+  if (Object.keys(payload).length > 0) {
+    try {
+      const res = await axios.put(`api/teachers/${props.data.id}`, payload, {
+        withCredentials: true
+      })
+      resultMsg.value = res.data.msg
+      emit('save', resultMsg.value)
+      close()
+
+    } catch (err) {
+      if (err.response && [400, 404, 409, 422, 500].includes(err.response.status)) {
+          resultMsg.value = err.response.data.msg
+      } else {
+        resultMsg.value = 'Có vấn đề khác!'
+      }    
+    }
+  } else {
+    close()
   }
 }
+
 
 
 

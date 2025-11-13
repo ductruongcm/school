@@ -16,13 +16,7 @@
         <select v-model="selectedClassRoom">
             <option value="null" selected disabled>--Chọn lớp học--</option>
             <option value="null"> Bỏ chọn </option>
-            <option v-for="classRoom in classList" :key="classRoom.id" :value="classRoom">Lớp {{ classRoom.class_room }}</option>
-        </select> 
-        <label> Chọn khối lớp: </label> 
-        <select v-model="selectedGrade" @change.prevent="fetchClassLessonData">
-            <option value="null" disabled>--Chọn khối lớp--</option>
-            <option value="">Toàn bộ</option>
-            <option v-for="grade in gradeList" :key="grade.id" :value="grade.id">Khối lớp {{ grade.grade }}</option>
+            <option v-for="classRoom in classList" :key="classRoom.class_room_id" :value="classRoom">Lớp {{ classRoom.class_room }}</option>
         </select> 
          <label> Chuyên môn: </label> 
         <select v-model="selectedLesson">
@@ -81,62 +75,32 @@ const yearStore = userYearStore()
 
 onMounted( () => {
     fetchClassData()
-    fetchGradeData()
+    fetchLessonData()
 })
 
-const gradeList = ref(null)
-const gradeSearch = ref('')
-const fetchGradeData = async () => {
-    const res = await axios.get('api/academic/grades', {
-        params: {
-            grade: gradeSearch.value
-        },
-        withCredentials: true
-    })
-    gradeList.value = res.data.data
-}
-
-const lessonSearch = ref('')
-const selectedGrade = ref(null)
+const selectedGrade = ref('')
 const fetchLessonData = async () => {
-    const res = await axios.get('api/academic/lessons', {
+    const res = await axios.get('api/academic/me/lessons', {
         withCredentials: true,
         params: {
-            lesson: lessonSearch.value,
-            grade_id: selectedGrade.value,
-            year_id: yearStore.year.id
+            grade: selectedGrade.value,
+            is_schedule: false,
+            is_visible: true,
+            is_folder: false
         }
     })
     lessonList.value = res.data.data
 }
 
-const fetchTeachClass = async () => {
-    const res = await axios.get('api/academic/teach_classes', {
-        withCredentials: true,
-        params: {
-            year_id: yearStore.year.id,
-            grade_id: selectedGrade.value
-        }
-    })
-    teachClassList.value = res.data.data
-}
-
-const fetchClassLessonData = () => {
-    fetchLessonData()
-    fetchTeachClass()
-}
-
-const class_roomSearch = ref('')
 const fetchClassData = async () => {
-    const res = await axios.get('api/academic/class_rooms', {
+    const res = await axios.get(`api/academic/years/${yearStore.year.id}/class-rooms`, {
         withCredentials: true,
         params: {
-            year_id: yearStore.year.id,
-            grade_id: gradeSearch.value,
-            class_room: class_roomSearch.value
+            grade: selectedGrade.value
         }
     })
     classList.value = res.data.data
+    teachClassList.value = JSON.parse(JSON.stringify(classList.value))
 }
 
 const classList = ref([])
@@ -162,24 +126,25 @@ const removeFromRight = () => {
 const addTeacher = async () => {
     const payload = {
         name: name.value,
-        lesson_id: selectedLesson.value.lesson_id,
-        lesson: selectedLesson.value.lesson,
-        class_room_id: selectedClassRoom.value?.id || null,
+        lesson_id: selectedLesson.value?.lesson_id || null,
+        lesson: selectedLesson.value?.lesson || null,
+        class_room_id: selectedClassRoom.value?.class_room_id || null,
         class_room: selectedClassRoom.value?.class_room || null,
-        teach_class: newIds.value,
+        teaching_class_ids: newIds.value,
         tel: tel.value,
         add: add.value,
         email: email.value,
         username: username.value,
         year_id: yearStore.year.id
     }
+
     try {
-        console.log(payload)
         const res = await axios.post('api/teachers', payload, {
             withCredentials: true,
             headers: {'Content-Type': 'application/json'}
         })
-        teacherMsg.value = 'Thêm giáo viên thành công!'
+        teacherMsg.value = res.data.msg
+
     } catch (e) {
         if (e.response && e.response.status === 400 || 422 || 500) {
             teacherMsg.value = e.response.data.msg

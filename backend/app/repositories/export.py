@@ -1,7 +1,7 @@
 from .base import BaseRepo
 from app.models import Students, Student_info, Users, Class_room
 
-class Export_Repo(BaseRepo):
+class ExportRepo(BaseRepo):
    def user_list(self, data: dict):
         fields = self.filter_context('class_room_id', 'year_id', context=data)
         return self.db.session.query(Students.name,

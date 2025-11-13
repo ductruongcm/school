@@ -12,7 +12,7 @@
         </form>
     </div>
     <div>
-        <table>
+        <table border="1" style="border-collapse: collapse; text-align: center;">
             <thead>
                 <tr>
                     <th style="width: 3em;">STT</th>
