@@ -16,5 +16,12 @@ class ActivityLog_Service:
 
     def handle_record_activity_log(self, data):
         #check user id
-        self.user_validation.validate_user_id(data)
         self.activity_log_repo.add_activity_log(data)
+
+    def handle_show_activity_logs(self, data, username):
+        if data['role'] == 'Teacher':
+            data['username'] = username
+
+        result = self.activity_log_repo.show_activity_log(data)
+        
+        return result

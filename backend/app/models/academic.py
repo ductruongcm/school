@@ -26,9 +26,13 @@ class Schedule(db.Model):
     day_of_week = db.Column(db.Integer, nullable = False)
     lesson_time = db.Column(db.Integer, nullable = False)
     lesson_id = db.Column(db.Integer, db.ForeignKey('lesson.id', ondelete = 'CASCADE'), nullable = False)
+    teacher_id = db.Column(db.Integer, db.ForeignKey('teachers.id', ondelete = 'CASCADE'))
     lesson = db.relationship('Lesson', back_populates = 'schedule', lazy = True)
     period = db.relationship('Period', back_populates = 'schedule', lazy = True)
-    __table_args__ = (UniqueConstraint('class_room_id', 'period_id', 'day_of_week', 'lesson_time', name = 'unq_cls_period'),)
+    attendence = db.relationship('Attendence', back_populates = 'schedule', lazy = True)
+    teachers = db.relationship('Teachers', back_populates = 'schedule', lazy = True)
+    __table_args__ = (UniqueConstraint('class_room_id', 'period_id', 'day_of_week', 'lesson_time', name = 'cls_period_day_les_uniq'),
+                      UniqueConstraint('teacher_id', 'period_id', 'day_of_week', 'lesson_time', name='tea_per_day_les_uniq'),)
 
 class Notification(db.Model):
     __tablename__ = 'notification'
@@ -88,6 +92,7 @@ class LessonTag(db.Model):
     is_folder = db.Column(db.Boolean)
     is_visible = db.Column(db.Boolean,)
     is_schedule = db.Column(db.Boolean)
+    is_homeroom_teacher = db.Column(db.Boolean)
     lesson = db.relationship('Lesson', back_populates = 'lessontag', lazy = True)
 
 class Grade(db.Model):
@@ -113,7 +118,7 @@ class Score(db.Model):
     student_lesson_period_id = db.Column(db.Integer, db.ForeignKey('student_lesson_period.id', ondelete='CASCADE'), nullable = False)
     score_type_id = db.Column(db.Integer, db.ForeignKey('score_type.id', ondelete='NO ACTION'))
     attempt = db.Column(db.Integer, nullable = False)
-    score = db.Column(db.Float)
+    score = db.Column(db.Float, nullable = False)
     created_at = db.Column(db.Date, default = date.today)
     score_type = db.relationship('Score_Type', back_populates = 'score', lazy = True)
     student_lesson_period = db.relationship('Student_Lesson_Period', back_populates = 'score', lazy = True)

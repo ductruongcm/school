@@ -1,6 +1,7 @@
-from app.models import Users, Tmp_token
-from app.extensions import db
-from datetime import datetime
+from app.models import Users, Tmp_token, Teachers, Students
+from datetime import datetime, timedelta
+from sqlalchemy.dialects.postgresql import insert
+from sqlalchemy import text
 import math
 
 class UserRepo:
@@ -13,9 +14,15 @@ class UserRepo:
         self.db.session.flush()
         return new_user
     
-    def insert_tmp_token(self, data: dict):
+    def upsert_tmp_token(self, data: dict):
         #user_id, tmp_token
-        self.db.session.add(Tmp_token(**data))
+        stmt = insert(Tmp_token).values(**data)
+        stmt = stmt.on_conflict_do_update(index_elements= [Tmp_token.user_id],
+                                          set_ = {Tmp_token.token: stmt.excluded.token,
+                                                  Tmp_token.expire_at: timedelta(hours=7) + datetime.utcnow(),
+                                                  Tmp_token.set_password_status: False},
+                                          where = text('excluded.token IS DISTINCT FROM tmp_token.token'))
+        self.db.session.execute(stmt)
 
     def get_user_by_username(self, data: dict):
         return self.db.session.query(Users).filter(Users.username == data['username']).first()
@@ -25,9 +32,9 @@ class UserRepo:
     
     def get_user_by_tmp_token(self, data: dict):
         return self.db.session.query(Tmp_token.user_id,
-                                     Users.username).join(Users).filter(Tmp_token.token == data['token'], 
-                                                                        Tmp_token.expire_at > datetime.utcnow(), 
-                                                                        Tmp_token.set_password_status == False).first()
+                                     Users.username).join(Users.tmp_token).filter(Tmp_token.token == data['token'],
+                                                                                  Tmp_token.set_password_status == False,
+                                                                                  Tmp_token.expire_at > datetime.utcnow()).first()
        
     def get_tmp_token_by_user_id(self, data: dict):
         return self.db.session.query(Tmp_token).filter(Tmp_token.user_id == data['user_id']).first()
@@ -41,7 +48,7 @@ class UserRepo:
         role = data['role']
         page = data['page']
 
-        query = self.db.session.query(Users.id, Users.username, Users.role)
+        query = self.db.session.query(Users.id, Users.username, Users.role, Teachers.name, Students.name).outerjoin(Users.teachers).outerjoin(Users.students)
 
         if username:
             query = query.filter(Users.username.ilike(f'%{username}%'))
@@ -55,13 +62,11 @@ class UserRepo:
 
         query = query.order_by(Users.username).limit(limit).offset(offset).all()
 
-        keys = ['id', 'username', 'role']
+        keys = ['id', 'username', 'role', 'teacher_name', 'student_name']
         data = [dict(zip(keys, values)) for values in query]
         return {'data': data, 'total_pages': total_pages, 'page': page}
     
-def db_update_role(username, role):
-    user = Users.query.filter(Users.username == username).first()
-    user.role = role
-    db.session.commit()
+
+
 
     

@@ -3,6 +3,7 @@ from app.utils import token_set_password, generate_password
 from datetime import datetime, timedelta
 from app.tasks import send_email_task
 from .validation import User_Validation
+from app.exceptions import NotFound_Exception
 
 class UserService:
     def __init__(self, db, repo):
@@ -46,9 +47,9 @@ class UserService:
 
         return user
 
-    def handle_add_tmp_token(self, data):
+    def handle_upsert_tmp_token(self, data):
         tmp_token = generate_password_hash(generate_password(length=32))
-        self.user_repo.insert_tmp_token({'user_id': data['user_id'],
+        self.user_repo.upsert_tmp_token({'user_id': data['user_id'],
                                          'token': tmp_token})
         
         return tmp_token
@@ -67,15 +68,36 @@ class UserService:
             keys = ['name', 'tel', 'add']
 
         return [dict(zip(keys, values)) for values in result][0]
-        
-    def handle_reset_password(self, data):
-        user = self.user_subservices.check_user(data)
-
-        self.auth_subservices.check_password(data)
-  
-        user.password = generate_password_hash(data['password'])
-        self.db.session.commit()
+    
+    def get_user_by_id(self, data):
+        user = self.user_repo.get_user_by_id(data)
+        if not user:
+            raise NotFound_Exception('Không tìm thấy User ID!')
         return user
+    
+    def get_user_info_by_id(self, data):
+        user_info = self.user_repo.get_user_info(data)
+        if not user_info:
+            raise NotFound_Exception('Không tìm thấy thông tin!')
+        return user_info
+    
+    def get_tmp_token_by_user(self, data):
+        tmp_token = self.user_repo.get_tmp_token_by_user_id(data)
+        if not tmp_token:
+            raise NotFound_Exception('Không tìm thấy tmp_Token!')
+        return tmp_token
+    
+    def get_user_by_tmp_token(self, data):
+        user  = self.user_repo.get_user_by_tmp_token(data)
+        if not user:
+            raise NotFound_Exception('Không tìm thấy User ID!')
+        return user
+    
+    def handle_check_tmp_token_for_set_password(self, data):
+        user_id, name = self.get_user_by_tmp_token(data)
+
+        return {'id': user_id,
+                'username': name}
         
     def handle_renew_tmp_token(self, data):
         #Make new tmp token
@@ -83,11 +105,11 @@ class UserService:
         #Get email in Info and send
         new_tmp_token = generate_password_hash(token_set_password(length = 32))
 
-        tmp_token = self.user_subservices.check_tmp_token_by_user_id(data)
+        tmp_token = self.get_tmp_token_by_user(data)
         tmp_token.token = new_tmp_token
         tmp_token.expire_at = datetime.utcnow() + timedelta(hours = 7)
 
-        user_info = self.user_subservices.check_user_info(data)
+        user_info = self.get_user_info_by_id(data)
 
         self.db.session.commit()
 

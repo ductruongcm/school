@@ -1,4 +1,4 @@
-from pydantic import BaseModel, field_validator
+from pydantic import BaseModel, field_validator, Field
 from datetime import date, datetime
 from typing import Optional, Union
 import re
@@ -65,3 +65,19 @@ class AuditShowSchema(BaseModel):
         if v and v > datetime.utcnow().date():
             raise ValueError('End date không hợp lệ!')
         return v
+    
+class ActivityShowSchema(BaseModel):
+    username: Optional[str] = Field(default=None)
+    action: Optional[str] = Field(default=None)
+    module: Optional[str] = Field(default=None)
+    start_date: Optional[Union[date, str]] = Field(default=None)
+    end_date: Optional[Union[date, str]] = Field(default=None)
+    page: Optional[int] = Field(default=None)
+
+    @field_validator('start_date', 'end_date', 'page', mode='before')
+    def validate_space(cls, v):
+        if v in ['', 'null']:
+            return 
+        
+        return v
+    

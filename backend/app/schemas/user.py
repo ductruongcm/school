@@ -134,8 +134,7 @@ class StudentSchemas:
         
     class StudentShowForAssignment(BaseModel):
         grade: Optional[int]
-        review_status: Optional[bool]
-        status: Optional[str] = None
+        assign_status: Optional[bool]
 
         @field_validator('grade', mode='before')
         def int_validator(cls, v):
@@ -143,10 +142,15 @@ class StudentSchemas:
                 return 
             return v
         
-        @field_validator('status')
-        def validate_status(cls, v):
-            if v not in ['Lên lớp', 'Lưu ban', 'Bảo lưu', '']:
-                return None
+    class StudentShowForApproval(BaseModel):
+        grade: Optional[int]
+        review_status: Optional[bool]
+        status: Optional[str] = Field(default=None)
+
+        @field_validator('grade', mode='before')
+        def int_validator(cls, v):
+            if v in ['', 'None', 'null']:
+                return 
             return v
     
     class StudentShowForScores(BaseModel):
@@ -154,6 +158,12 @@ class StudentSchemas:
         year_id: Optional[int] = Field(default=None)
         class_room_id: Optional[int] = Field(default=None)
         lesson_id: Optional[int] = Field(default=None)
+        grade: Optional[int] = Field(default=None)
+
+    class StudentTransferClass(BaseModel):
+        student_id: int
+        year_id: int
+        class_room_id: int
 
     class StudentUpdate(BaseModel):
         student_id: int
@@ -281,6 +291,7 @@ class TeacherSchemas:
         class_room: Optional[str] = None
         year_id: Optional[int] = None
         grade: Optional[int] = None
+        status: Optional[bool] = Field(default = None)
 
         @field_validator('name', 'lesson')
         def name_validator(cls, v):
@@ -309,7 +320,7 @@ class TeacherSchemas:
                 raise ValueError("Thông tin môn học không chứa số và ký tự đặc biệt!")
             return v
 
-        @field_validator('year_id', 'grade', mode='before')
+        @field_validator('year_id', 'grade', 'status',mode='before')
         def int_validation(cls, v):
             if v in ['', None]:
                 return 

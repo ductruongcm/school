@@ -15,9 +15,11 @@ class Academic_Relation_Service:
     def handle_link_lesson_class_by_year(self, data, id):
         # check year_id, get all lesson with is_visible, get all class by grade on lesson and year
         self.academic_validation.validate_year_id(data)
-        lessons = self.academic_get_repo.get_lesson_by_is_visible()
-        for lesson in lessons:
-            self.create_lessons_class(data['year_id'], lesson.id, lesson.grade)
+        class_lessons = self.academic_get_repo.get_class_lessons_by_year(data)
+        for class_lesson in class_lessons:
+            self.academic_relation_repo.insert_lessons_class({'year_id': data['year_id'],
+                                                              'lesson_id': class_lesson[1],
+                                                              'class_room_id': class_lesson[0]})
                 
         self.activity_log_service.handle_record_activity_log({'user_id': id,
                                                               'module': 'academic/relation',
@@ -25,17 +27,7 @@ class Academic_Relation_Service:
                                                               'detail': 'Tạo liên kết môn học - lớp cho bảng Teach Class'})
         
         self.db.session.commit()
-
-    def create_lessons_class(self, year_id, lesson_id, grade):
-        #find all classes that grade >= lesson.grade
-        class_room_ids = self.academic_relation_repo.get_class_room_ids_by_grade_of_lesson_and_year({'lesson_grade': grade,
-                                                                                                     'year_id': year_id})
-
-        for class_room_id in class_room_ids:
-            self.academic_relation_repo.insert_lessons_class({'year_id': year_id,
-                                                              'lesson_id': lesson_id,
-                                                              'class_room_id': class_room_id})
-            
+        
     def handle_remove_lessons_class(self, data):
         self.academic_relation_repo.delete_lesson_id_in_teach_class(data)
             

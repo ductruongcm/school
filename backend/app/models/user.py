@@ -34,7 +34,7 @@ class Users(db.Model):
 class Tmp_token(db.Model):
     __tablename__ = 'tmp_token'
     id = db.Column(db.Integer, primary_key = True)
-    user_id = db.Column(db.Integer, db.ForeignKey('users.id', ondelete = 'CASCADE'))    
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id', ondelete = 'CASCADE'), unique = True)    
     token = db.Column(db.String)
     expire_at = db.Column(db.DateTime, default = lambda: datetime.utcnow() + timedelta(hours=7))
     set_password_status = db.Column(db.Boolean, default = False)

@@ -39,7 +39,7 @@ class CloudSchemas:
     class ShowFolderSchema(BaseModel):
         class_room_id: Optional[int] | None
         year_id: Optional[int] | None
-        grade_id: Optional[int] | None
+        grade: Optional[int] | None
 
     class ShowFileSchema(BaseModel):
         lesson_id: Optional[int] | None

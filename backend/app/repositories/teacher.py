@@ -1,6 +1,5 @@
-from app.models import Teachers, Teacher_info, Lesson, Teach_class, Users, Class_room, Tmp_token
-from sqlalchemy import text, func, cast, String
-from sqlalchemy.orm import aliased
+from app.models import Teachers, Teacher_info, Lesson, Teach_class, Users, Class_room, Tmp_token, LessonTag
+from sqlalchemy import func, cast, String, and_
 from .base import BaseRepo
 
 class TeacherRepo(BaseRepo):
@@ -27,58 +26,63 @@ class TeacherRepo(BaseRepo):
         new_teacher.teacher_info = Teacher_info(**info_fields)
 
         self.db.session.add(new_teacher)
+        self.db.session.flush()
+        return new_teacher
 
     def show_teachers(self, data: dict):
         fields = self.filter_context('lesson', 'class_room', 'name','year_id', 'grade', 'status', context=data)
         lesson = fields['lesson']
         class_room = fields['class_room']
         name = fields['name']
-        year_id = fields['year_id']
         grade = fields['grade']
-        status = fields['status']
 
-        Teachclass = aliased(Class_room)                                                    #Tạo 1 bảng phụ để lấy thông tin class_room
+        sub_query = (self.db.session.query(Teach_class.teacher_id.label('teacher_id'),
+                                           cast(Teach_class.class_room_id, String).label('class_room_id'),
+                                           Class_room.class_room.label('class_room'),
+                                           Class_room.grade.label('grade'))
+                                                                .join(Teach_class.class_room)
+                                                                .join(LessonTag, LessonTag.lesson_id == Teach_class.lesson_id)
+                                                                .filter(LessonTag.is_visible == True,
+                                                                        Teach_class.year_id == data['year_id'])
+                                                                .order_by(Teach_class.class_room_id)
+                                                                .subquery())
         query = self.db.session.query(Teachers.id,
-                                Teachers.name,
-                                Lesson.id,
-                                Lesson.lesson,
-                                Class_room.id,
-                                Class_room.class_room,
-                                func.array_agg(Teachclass.id),
-                                func.string_agg(cast(Teachclass.class_room, String),        #func.string_agg(str, ', ') để gộp row thành chuỗi với type str - cast(int, String) chuyển int về str
-                                text("', ' ORDER BY class_room_1.class_room")),                 
-                                Teacher_info.tel,
-                                Teacher_info.email,
-                                Teacher_info.add,
-                                Teachers.status).join(Lesson)\
-                                                .outerjoin(Class_room, Class_room.teacher_id == Teachers.id)\
-                                                .outerjoin(Teach_class, Teach_class.teacher_id == Teachers.id)\
-                                                .outerjoin(Teachclass, Teachclass.id == Teach_class.class_room_id)\
-                                                .join(Teacher_info)
-        
+                                      Teachers.name,
+                                      Lesson.id,
+                                      Lesson.lesson,
+                                      Class_room.id,
+                                      Class_room.class_room,
+                                      func.aggregate_strings(sub_query.c.class_room_id, ', '), 
+                                      func.aggregate_strings(sub_query.c.class_room, ', '),             
+                                      Teacher_info.tel,
+                                      Teacher_info.email,
+                                      Teacher_info.add,
+                                      Teachers.status).join(Lesson)\
+                                                      .join(Teacher_info)\
+                                                      .outerjoin(sub_query, sub_query.c.teacher_id == Teachers.id)\
+                                                      .outerjoin(Class_room, and_(Class_room.teacher_id == Teachers.id,
+                                                                                  Class_room.year_id == data['year_id']))                                       
+                                                        
         if lesson:
             query = query.filter(Lesson.lesson.ilike(f'%{lesson}%'))
-        if class_room:
-            query = query.filter(Teachclass.class_room.ilike(f'%{class_room}%'))
+
         if name:
             query = query.filter(Teachers.name.ilike(f'%{name}%'))
-        if year_id:
-            query = query.filter(Teachclass.year_id == year_id)
+
         if grade:
-            query = query.filter(Teachclass.grade == grade)
-        if status:
-            query = query.filter(Teachers.status == status)
+            query = query.filter(sub_query.c.grade == grade)
+
+        if class_room:
+            query = query.filter(sub_query.c.class_room.ilike(f'%{class_room}%'))
+
+        if 'status' in fields and fields['status'] is not None:
+            query = query.filter(Teachers.status == fields.get('status'))
             
-        return query.order_by(Class_room.class_room,
-                              Teachers.status).group_by(Teachers.id, 
-                                                        Teachers.name, 
-                                                        Lesson.id,
-                                                        Lesson.lesson, 
-                                                        Class_room.id,
-                                                        Class_room.class_room, 
-                                                        Teacher_info.tel, 
-                                                        Teacher_info.email, 
-                                                        Teacher_info.add).all()  
+        return query.order_by(sub_query.c.grade, Lesson.id, Teachers.status).group_by(Teachers.id, Teachers.name, Teachers.status,
+                                                                                      Lesson.id, Lesson.lesson,
+                                                                                      Class_room.id, Class_room.class_room,
+                                                                                      Teacher_info.tel, Teacher_info.email, Teacher_info.add, sub_query.c.grade
+                                                                                      ).all()  
 
     def get_info(self, data: dict):
         return self.db.session.query(Teachers.id,

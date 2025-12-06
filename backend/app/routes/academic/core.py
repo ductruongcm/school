@@ -1,5 +1,5 @@
 from flask import Blueprint
-from app.utils import required_role, validate_input, ResponseBuilder, with_log
+from app.utils import required_role, validate_input, ResponseBuilder
 from flask_jwt_extended import jwt_required, get_jwt
 from app.schemas import AcademicShowSchemas, AcademicSchemas, AcademicUpdateSchemas
 from app.services import AcademicAddService, AcademicShowService, AcademicUpdateService, Academic_Relation_Workflow
@@ -29,13 +29,16 @@ def show_year_route(validated_data):
     msg = 'Không tìm thấy dữ liệu!'   
     return ResponseBuilder.get(msg, result)
 
-@academic_bp.get('/prev-year-code')
+@academic_bp.get('/me/years')
 @jwt_required()
-@required_role('admin')
-def get_prev_year_code():
-    result = academic_show_service.handle_show_prev_year_code()
+@validate_input(AcademicShowSchemas.YearShow)
+def show_my_year_route(validated_data):
+    validated_data.update({'role': get_jwt().get('role'),
+                           'user_id': get_jwt().get('user_id')})
+    
+    result = academic_show_service.handle_show_year(validated_data)
     msg = 'Không tìm thấy dữ liệu!'   
-    return ResponseBuilder.get(msg, result) 
+    return ResponseBuilder.get(msg, result)
 
 @academic_bp.put('/years/<int:id>/status')
 def set_year_route(id):
@@ -117,7 +120,7 @@ def add_lesson_route(validated_data):
 
 @academic_bp.get('/me/lessons')
 @jwt_required()
-@required_role('admin', 'Teacher')
+@required_role('admin', 'Teacher', 'Student')
 @validate_input(AcademicShowSchemas.LessonShow)
 def show_lesson_route(validated_data):
     validated_data.update({'role': get_jwt().get('role'),
@@ -163,16 +166,6 @@ def update_class_room_route(validated_data):
     msg = f"Đã cập nhật lại các lớp {result['class_room']}"
     return ResponseBuilder.put(msg)
 
-@academic_bp.get('/years/<int:id>/class-rooms')
-@jwt_required()
-@required_role('admin', 'Teacher')
-@validate_input(AcademicShowSchemas.ClassroomShow)
-def show_class_by_grade_route(id, validated_data):
-    validated_data['year_id'] = id
-    result = academic_show_service.handle_show_class_room_by_year_and_grade(validated_data)
-    msg = 'Không tìm thấy dữ liệu!'   
-    return ResponseBuilder.get(msg, result)
-
 @academic_bp.get('/years/<int:id>/class-rooms/assignable')
 @jwt_required()
 @required_role('admin')
@@ -186,26 +179,16 @@ def show_class_for_assignment(id, validated_data):
 @academic_bp.get('/years/<int:id>/me/class-rooms')
 @jwt_required()
 @required_role('admin', 'Teacher', 'Student')
-def class_room_show(id):   
-    result = academic_show_service.handle_show_class_room({'user_id': get_jwt().get('id'),
-                                                           'role': get_jwt().get('role'),
-                                                           'year_id': id})
+@validate_input(AcademicShowSchemas.ClassroomShow)
+def class_room_show(id, validated_data): 
+    validated_data.update({'user_id': get_jwt().get('id'),
+                           'role': get_jwt().get('role'),
+                           'year_id': id})  
+    result = academic_relation_workflow.process_show_class_room(validated_data)
     msg = 'Không tìm thấy dữ liệu!'   
     return ResponseBuilder.get(msg, result)
 
-# @academic_bp.get('/me/teach_classes')
-# @jwt_required()
-# @required_role('Teacher', 'admin')
-# @validate_input(AcademicShowSchemas.ClassroomShow)
-# def teach_room_show(validated_data):
-#     #lấy lớp dạy theo ID
-#     validated_data['role'] = get_jwt().get('role')
-#     validated_data['teacher_id'] = get_jwt().get('id')
-#     result = academic_show_service.handle_show_teach_room(validated_data)
-#     msg = 'Không tìm thấy dữ liệu!'   
-#     return ResponseBuilder.get(msg, result)
-
-@academic_bp.get('/lessons/<int:lesson_id>/class_rooms')
+@academic_bp.get('/lessons/<int:lesson_id>/class-rooms')
 @jwt_required()
 @required_role('admin')
 @validate_input(AcademicShowSchemas.TeachLessClass)
@@ -241,6 +224,7 @@ def update_score_types(validated_data):
     academic_update_service.handle_update_score_types(validated_data, get_jwt().get('id'))
     msg = f"Đã cập nhật lại điểm số!"
     return ResponseBuilder.put(msg)
+
 
 
 

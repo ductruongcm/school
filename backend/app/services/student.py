@@ -14,6 +14,13 @@ class StudentServices:
             raise NotFound_Exception('ID học sinh không hợp lệ!')
         return student
     
+    def handle_get_student_by_user(self, data):
+        student = self.student_repo.get_student_by_user(data)
+        if not student:
+            raise NotFound_Exception('Không tìm thấy student!')
+        
+        return student
+
     def handle_get_student_ids_by_year_and_class_room(self, data):
         students = self.student_repo.get_student_ids_by_year_and_class_room(data)
         if not students:
@@ -65,8 +72,8 @@ class StudentServices:
 
     def handle_show_student_info(self, data):
         result = self.student_repo.show_student_info_by_user(data)
-        keys = ['name', 'tel', 'add']
 
+        keys = ['name', 'student_code', 'tel', 'add', 'class_room', 'class_room_id', 'grade', 'transfer_info']
         return [dict(zip(keys, values)) for values in result]
     
 

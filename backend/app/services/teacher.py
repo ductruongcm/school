@@ -12,9 +12,22 @@ class TeacherService:
     def handle_get_teacher_by_id(self, data):
         teacher = self.teacher_repo.get_teacher_by_id(data)
         if not teacher:
-            raise NotFound_Exception('Không tìm thấy ID giáo viên!')
+            raise NotFound_Exception('Không tìm thấy teacher!')
         
         return teacher
+    
+    def handle_get_teacher_by_user(self, data):
+        teacher = self.teacher_repo.get_teacher_by_user(data)
+        if not teacher:
+            raise NotFound_Exception('Không tìm thấy teacher!')
+        
+        return teacher
+    
+    def handle_get_teacher_info_by_teacher(self, data):
+        teacher_info = self.teacher_repo.get_teacher_info_by_teacher(data)
+        if not teacher_info:
+            raise NotFound_Exception('Không tìm thấy teacher info!')
+        return teacher_info
 
     def handle_add_teacher(self, data):    
         teacher = self.teacher_repo.add_teacher({'user_id': data['user_id'],
@@ -66,14 +79,9 @@ Phòng quản trị hệ thống
             return ', '.join(detail_changes)
                 
     def handle_show_teachers(self, data):
-        if data['role'] == 'admin':
-            data['status'] = None
-            result = self.teacher_repo.show_teachers(data)
-            keys = ['id', 'name','lesson_id', 'lesson', 'class_room_id', 'class_room', 'teach_room_ids', 'teach_room', 'tel', 'email', 'add', 'status']
-        else:
-            data['status'] = True
-            result = self.teacher_repo.show_teacher(data)
-            keys = ['id', 'name','lesson_id', 'lesson', 'class_room_id', 'class_room', 'teach_room_ids', 'teach_room', 'tel', 'email', 'add']
+        result = self.teacher_repo.show_teachers(data)
+        keys = ['id', 'name','lesson_id', 'lesson', 'class_room_id', 'class_room', 'teach_room_ids', 'teach_room', 'tel', 'email', 'add', 'status']
+    
         return [dict(zip(keys, values)) for values in result]
    
     def handle_status_teacher(self, data):

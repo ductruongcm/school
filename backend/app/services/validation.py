@@ -80,7 +80,7 @@ class Academic_Teacher_Validation:
         self.repo = repo(db)
         self.academic_teacher_repo = self.repo.academic_teacher
 
-    def check_existing_teacher_in_teaching_class(self, data):
+    def check_existing_teacher_in_teaching_classes(self, data):
         check_teaching_class = self.academic_teacher_repo.get_teacher_by_lesson_class_year(data)
         if bool(any(check_teaching_class)): 
             raise DuplicateException('Lớp học đã có giáo viên bộ môn này!')

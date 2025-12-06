@@ -1,4 +1,4 @@
-from app.models import Class_room, Year, Teachers, Teach_class, Semester, Lesson, Grade, Period, LessonTag, Score_Type
+from app.models import Class_room, Year, Teachers, Teach_class, Semester, Lesson, Grade, Period, LessonTag, Score_Type, Student_Year_Summary, Students
 from ..base import BaseRepo
 from sqlalchemy import select, func
 from datetime import date
@@ -9,6 +9,9 @@ class AcademicGetRepo(BaseRepo):
     
     def get_prev_year_id(self, data: dict):
         return self.db.session.query(Year.id).filter(Year.year_code.like(f"%{data['year_code']}")).scalar()
+    
+    def get_new_year_id(self, data):
+        return self.db.session.query(Year.id).filter(Year.year_code.like(f'{data}%')).scalar()
             
     def check_lesson(self, data: dict):
         return self.obj_by_obj_name(Lesson, Lesson.lesson, data['lesson'])
@@ -38,9 +41,6 @@ class AcademicGetRepo(BaseRepo):
     def get_year_by_id(self, data: dict):
         fields = self.filter_context('year_id', context=data)
         return self.obj_by_obj_id(Year, fields['year_id'])
-
-    def get_lesson_by_id(self, data: dict):
-        return self.db.session.query(Lesson).filter(Lesson.id == data['lesson_id']).scalar()
     
     def get_lesson_tag_by_lesson(self, data: dict):
         return self.db.session.query(LessonTag).filter(LessonTag.lesson_id==data['lesson_id']).first()
@@ -55,31 +55,55 @@ class AcademicGetRepo(BaseRepo):
         return self.db.session.query(Period.id).filter(Period.year_id == data['year_id'],
                                                        Period.semester_id == data['semester_id']).scalar()
     
-    def score_id(self, data):
-        return self.db.session.query(Score).filter(Score.id == data['score_id']).scalar()
-    
-    def get_lesson_by_is_visible(self):
-        return self.db.session.query(Lesson).join(Lesson.lessontag).filter(LessonTag.is_visible == True).all()
-    
     def get_class_room_by_year(self, data):
         return self.db.session.query(Class_room).filter(Class_room.year_id == data['year_id']).all()
     
     def get_class_rooms_by_grade(self, data: dict):
         return self.db.session.scalars(select(Class_room).filter(Class_room.grade == data['grade'])).all()
+    
+    def get_class_room_by_teacher_id(self, data: dict):
+        return self.db.session.query(Class_room).filter(Class_room.teacher_id == data['teacher_id'],
+                                                        Class_room.year_id == data['year_id']).first()
 
     def get_teaching_class_by_class_rooms(self, data: dict):
-        fields = self.filter_context('teach_class', 'lesson_id', 'year_id', context=data)
-        return self.db.session.query(Teach_class).filter(Teach_class.class_room_id.in_(fields['teach_class']),
+        fields = self.filter_context('teaching_class_ids', 'lesson_id', 'year_id', context=data)
+        return self.db.session.query(Teach_class).filter(Teach_class.class_room_id.in_(fields['teaching_class_ids']),
                                                          Teach_class.lesson_id == fields['lesson_id'],
                                                          Teach_class.year_id == fields['year_id']).all()
     
-    def get_lesson_ids_by_grade_and_is_visible(self, data):
-        return self.db.session.scalars(select(Lesson.id).join(Lesson.lessontag).filter(Lesson.grade <= data['grade'],
-                                                                                       LessonTag.is_visible == True)).all()
+    def get_teaching_class_by_class_room_year_general_folder(self, data):
+        return (self.db.session.query(Teach_class)
+                .join(LessonTag, LessonTag.lesson_id == Teach_class.lesson_id)
+                .filter(Teach_class.year_id == data['year_id'],
+                        Teach_class.class_room_id == data['class_room_id'],
+                        LessonTag.is_folder == True, 
+                        LessonTag.is_visible == False).scalar())
+    
+    def get_general_folder_id(self):
+        return self.db.session.query(Lesson.id).join(Lesson.lessontag).filter(LessonTag.is_folder == True, 
+                                                                              LessonTag.is_visible == False).scalar()
+    
+    def get_class_lessons_by_year(self, data):
+        return (self.db.session.query(Class_room.id, Lesson.id)
+                               .join(Lesson, Class_room.grade >= Lesson.grade)
+                               .join(Lesson.lessontag)
+                               .filter(Class_room.year_id == data['year_id'],
+                                       LessonTag.is_folder == True).all())
     
     def get_lessons_by_grade_and_is_visible(self, data):
-        return self.db.session.query(func.jsonb_build_object(Lesson.id, Lesson.lesson).join(Lesson.lessontag).filter(Lesson.grade <= data['grade'],
-                                                                                                                     LessonTag.is_visible == True)).all()
+        rows = self.db.session.query(func.jsonb_build_object(Lesson.id, Lesson.lesson)).join(LessonTag.lesson).filter(Lesson.grade <= data['grade'],
+                                                                                                                      LessonTag.is_visible == True).all()
+        return [row[0] for row in rows]
+
+    def get_lesson_ids_by_grade_and_is_visible(self, data):
+        return (self.db.session.scalars(select(Lesson.id).join(Lesson.lessontag).filter(LessonTag.is_visible == True,
+                                                                                        Lesson.grade <= data['grade'])).all())
+    
+    def get_lesson_by_id(self, data: dict):
+        return self.db.session.query(Lesson).filter(Lesson.id == data['lesson_id']).scalar()
+    
+    def get_period_ids_by_year(self, data):
+        return self.db.session.scalars(select(Period.id).filter(Period.year_id == data['year_id'])).all()
 
 class AcademicAddRepo(BaseRepo):
     def insert_year(self, data: dict):
@@ -123,13 +147,19 @@ class AcademicAddRepo(BaseRepo):
 class AcademicShowRepo(BaseRepo):
     def show_years(self, data: dict):
         query = self.db.session.query(Year.id, Year.year_code)
-        if data['year']:
-            query = query.filter(Year.year.ilike(f'%{data['year']}%'))
 
         if data.get('is_active'):
             query = query.filter(Year.is_active == data['is_active'])
    
         return query.order_by(Year.is_active.desc()).all()
+    
+    def show_years_for_student(self, data):
+        return (self.db.session.query(Student_Year_Summary.year_id, Year.year_code)
+                               .join(Student_Year_Summary, Student_Year_Summary.year_id == Year.id)
+                               .join(Student_Year_Summary.students)
+                               .filter(Students.user_id == data['user_id'])
+                               .order_by(Year.id)
+                               .all())
     
     def show_prev_year_code(self):
         return self.db.session.query(Year.id, Year.year_code).filter(Year.end_date < date.today()).order_by(Year.year_code.desc()).limit(1).first()
@@ -164,15 +194,9 @@ class AcademicShowRepo(BaseRepo):
         return query.filter(Lesson.status == True).order_by(Lesson.id).all()            
 
     def show_lesson_by_user(self, data: dict):
-        lesson = data['lesson']
-        query = self.db.session.query(Lesson.id,
-                                      Lesson.lesson
-                                      ).join(Lesson.teachers).filter(Teachers.user_id == data['user_id'])
-        if lesson:
-            query = query.filter(Lesson.lesson.ilike(f'%{lesson}%'))
-            
-        return query.all()
-                
+        return self.db.session.query(Lesson.id,
+                                     Lesson.lesson).join(Lesson.teachers).filter(Teachers.user_id == data['user_id']).all()
+                     
     def show_grades(self, data: dict):
         query = self.db.session.query(Grade.grade, Grade.grade_status)
 
@@ -182,7 +206,7 @@ class AcademicShowRepo(BaseRepo):
         return query.order_by(Grade.grade).all()
     
     def show_class_room_by_year_and_grade(self, data: dict):
-        query = self.db.session.query(Class_room.id, Class_room.class_room)
+        query = self.db.session.query(Class_room.id, Class_room.class_room, Class_room.grade)
 
         if data.get('grade'):
             query = query.filter(Class_room.grade == data['grade'])
@@ -192,17 +216,18 @@ class AcademicShowRepo(BaseRepo):
 
         return query.order_by(Class_room.class_room).all()
     
-    def teach_class(self, data: dict):
+    def show_teach_class_by_user(self, data: dict):
         fields = self.filter_context('user_id', 'year_id', context=data)
         year_id = fields['year_id']
         query = self.db.session.query(Teach_class.class_room_id,
-                                      Class_room.class_room).join(Teach_class.class_room)\
-                                                            .join(Teach_class.teachers).filter(Teachers.user_id == fields['user_id'])
+                                      Class_room.class_room,
+                                      Class_room.grade).join(Teach_class.class_room)\
+                                                       .join(Teach_class.teachers).filter(Teachers.user_id == fields['user_id'])
 
         if year_id:
             query = query.filter(Teach_class.year_id == year_id)
         
-        return query.all()
+        return query.distinct(Teach_class.class_room_id).order_by(Teach_class.class_room_id).all()
         
     def teach_class_with_teacher_id_by_lesson_id(self, data: dict):
         fields = self.filter_context('year_id', 'lesson_id', context=data)

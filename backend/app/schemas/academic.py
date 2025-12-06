@@ -142,7 +142,24 @@ class AcademicSchemas:
             if v in ['', 'null']:
                 raise ValueError('Chưa chọn lớp để tạo thời khóa biểu!')
             return v
+
+    class AttendenceItem(BaseModel):
+        student_id: int
+        status: str
+        note: Optional[str]
+
+        @field_validator('status')
+        def validate_status(cls, v):
+            if v not in ['P', 'E', 'A']:
+                raise ValueError('Dữ liệu không hợp lệ!')
+            return v
         
+    class Attendence(BaseModel):
+        class_room_id: int
+        day: date
+        lesson_time: int
+        students: List['AcademicSchemas.AttendenceItem']
+
     class Scores(Semester, SemesterID):
         pass
 
@@ -209,15 +226,13 @@ class AcademicSchemas:
 
 class AcademicShowSchemas:
     class YearShow(BaseModel):
-        year: Optional[str] = None
-        is_active: Optional[bool] = None
+        is_active: Optional[bool] = Field(default=None)
 
-        @field_validator('year')
-        def year_validator(cls, v):
-            if not v:  # None hoặc ''
+        @field_validator('is_active', mode='before')
+        def validate_bool(cls, v):
+            if v in ['', 'null']:
                 return None
-            if not re.fullmatch(r'[\d\s-]+', v):
-                raise ValueError('Niên khóa không được chứa ký tự đặc biệt và chữ cái. VD: 2025 - 2026')
+            
             return v
         
     class YearId(BaseModel):
@@ -240,6 +255,15 @@ class AcademicShowSchemas:
      
             return v
 
+    class ClassroomId(BaseModel):
+        class_room_id: int
+
+        @field_validator('class_room_id', mode='before')
+        def class_room_id_validator(cls, v):
+            if v in ['', 'null']:
+                raise ValueError('Chưa chọn lớp học!')
+            return v
+
     class LessonId(BaseModel):
         lesson_id: int
 
@@ -259,7 +283,7 @@ class AcademicShowSchemas:
             return v
 
     class ClassroomShow(Grade):
-        pass
+        semester_id: Optional[int] = Field(default=None)
         
     class ClassRoomShowForAssignment(ClassroomShow):
         status: Optional[str]
@@ -314,20 +338,25 @@ class AcademicShowSchemas:
             if v in ['', None]:
                 raise ValueError('ID giáo viên không được bỏ trống')
             return v
-    
-    class Scores(BaseModel):
-        year_id: int
-        semester_id: int
-        class_room_id: int
+
+    class Scores(YearId, SemesterId, ClassroomId):
+        pass
 
     class Schedule(YearId, SemesterId):
-        class_room_id: int
+        class_room_id: Optional[int] = Field(default=None)
 
         @field_validator('class_room_id', mode='before')
-        def class_room_id_validator(cls, v):
+        def validate_class_id(cls, v):
             if v in ['', 'null']:
-                raise ValueError('Chưa chọn lớp học!')
+                return
+            
             return v
+
+    class ScheduleForDashBoard(YearId, SemesterId):
+        pass
+
+    class StudentScores(YearId, SemesterId):
+        pass
 
 class AcademicUpdateSchemas:
     class YearId(BaseModel):
@@ -449,13 +478,18 @@ class AcademicUpdateSchemas:
             for score_type_id, attempts in v.items():
                 for attempt, score in attempts.items():
                     try:
-                        score = float(score)
+                        if score == '':
+                            attempts[attempt] = None
+                        
+                        else:
+                            score = float(score)
 
+                            if not (0 <= score <= 10):
+                                raise ValueError('Điểm sổ nằm trong dãy từ 0 đến 10!')
+                            
+                            attempts[attempt] = score
                     except:
                         raise ValueError('Điểm số phải là số!')
-                    
-                    if not (0 <= score <= 10):
-                        raise ValueError('Điểm sổ nằm trong dãy từ 0 đến 10!')
                     
             return v
         

@@ -20,7 +20,7 @@ def add_teacher(validated_data):
     msg = f'Đã thêm giáo viên {result['name']}!'
     return ResponseBuilder.post(msg)
   
-@teacher_bp.get('me/teachers')
+@teacher_bp.get('/teachers')
 @jwt_required()
 @required_role('admin', 'Teacher')
 @validate_input(TeacherSchemas.TeacherShowSchema)
@@ -36,12 +36,10 @@ def show_teacher(validated_data):
 @with_log(True)
 @validate_input(TeacherSchemas.TeacherUpdateSchema)
 def update_info(id: int, validated_data):
+    print(validated_data)
     validated_data['teacher_id'] = id
     result = teacher_workflow.process_update_teacher(validated_data)
-    if result:
-        msg = f'Đã cập nhật lại thông tin của giáo viên {result.name}!'
-    else:
-        msg = 'Không có cập nhật gì!'
+    msg = f'Đã cập nhật lại thông tin của giáo viên {result.name}!'
     return ResponseBuilder.put(msg)
 
 @teacher_bp.put('/teachers/<int:id>/status')
@@ -59,4 +57,13 @@ def delete_teacher(id: int, validated_data):
     validated_data['teacher_id'] = id
     result = teacher_service.handle_delete_teacher(validated_data)
     return result
+
+@teacher_bp.post('/teachers/<int:id>/password/reset-email')
+@jwt_required()
+@required_role('admin')
+def send_reset_email_to_teacher(id):
+    teacher_workflow.process_send_reset_email_to_teacher({'teacher_id': id,
+                                                          'user_id': get_jwt().get('id')})
+    msg = 'Đã gởi email reset mật khẩu!'
+    return ResponseBuilder.post(msg)
 

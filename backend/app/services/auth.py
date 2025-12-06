@@ -15,11 +15,19 @@ class AuthService:
     def handle_login(self, data):    
         user = self.auth_subservices.check_login(data)
 
-        access_token = set_access_token(user)
-        refresh_token = set_refresh_token(user)
+        if data['password'] == user.tmp_password and user.changed_password == False:
+            active_status = user.changed_password
+            
+        else:
+            active_status = True
+
+        # access_token = set_access_token(user)
+        # refresh_token = set_refresh_token(user)
         
-        return {'access_token': access_token, 'refresh_token': refresh_token, 
-                'role': user.role, 'id': user.id, 'username': user.username}
+        return {'username': user.username, 
+                'id': user.id,
+                'role': user.role,
+                'active_status': active_status}
     
     def handle_add_user(self, data):      
         #check dup user
@@ -44,16 +52,21 @@ class AuthService:
     def handle_refresh_token(self, data):
         user = self.get_user_by_id(data)
 
-        access_token = set_access_token(user)
+        access_token = set_access_token({'role': user.role, 
+                                        'id': user.id, 
+                                        'username': user.username,
+                                        'is_homeroom_teacher': data.get('is_homeroom_teacher'),
+                                        'homeroom_id': data.get('homeroom_id')})
         
         return {'access_token': access_token, 
                 'role': user.role, 
                 'id': user.id, 
                 'username': user.username}
-    
-    def handle_check_tmp_token(self, data):
-        user = self.auth_subservices.check_tmp_token(data)
-        return {'id': user.user_id,'username': user.username}
+
+    def handle_get_access_token(self, data):
+        access_token = set_access_token(data)
+        refresh_token = set_refresh_token(data)
+        return access_token, refresh_token
 
         
 

@@ -9,11 +9,13 @@ class Teachers(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey('users.id', ondelete = 'CASCADE'))
     name = db.Column(db.String, nullable = False)
     status = db.Column(db.Boolean, default = True)
+    is_homeroom_teacher = db.Column(db.Boolean, default = False)
     teacher_info = db.relationship('Teacher_info', back_populates = 'teacher', lazy = True, uselist = False)
     users = db.relationship('Users', back_populates = 'teachers', lazy = True)
     lesson = db.relationship('Lesson', back_populates = 'teachers', lazy = True)
     class_room = db.relationship('Class_room', back_populates = 'teachers', lazy = True)
     teach_class = db.relationship('Teach_class', back_populates = 'teachers', lazy = True)
+    schedule = db.relationship('Schedule', back_populates = 'teachers', lazy = True)
     @validates('name')
     def name_validates(self, key, value):
         if not re.fullmatch(r'[a-zA-ZÀ-ỹ\s]+', value):
@@ -45,5 +47,4 @@ class Teacher_info(db.Model):
         if re.search('[!#$%^&*-+=(),;:]', value):
             return ValueError('Email không hợp lệ!!')
         return value
-
 

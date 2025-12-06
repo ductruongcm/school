@@ -22,14 +22,24 @@ def add_student(validated_data):
     msg = f"Đã thêm học sinh {result['name']} vào hệ thống!"
     return ResponseBuilder.post(msg, result)
     
-@student_bp.get('/years/<int:id>/students')
+@student_bp.get('/years/<int:id>/students/assignment')
 @jwt_required()
 @required_role('admin')
 @validate_input(StudentSchemas.StudentShowForAssignment)
-def get_students_by_year(id, validated_data):
+def get_students_by_year_for_assignment(id, validated_data):
     validated_data['year_id'] = id
     result = academic_student_service.handle_show_students_for_class_assignment(validated_data)
     msg = f'Không còn học sinh chờ xếp lớp của khối!'
+    return ResponseBuilder.get(msg, result)
+
+@student_bp.get('/years/<int:id>/students/approval')
+@jwt_required()
+@required_role('admin')
+@validate_input(StudentSchemas.StudentShowForApproval)
+def show_students_by_year_for_approval(id, validated_data):
+    validated_data['year_id'] = id
+    result = academic_student_service.handle_show_students_for_approval(validated_data)
+    msg = f'Không còn học sinh chờ xét duyệt!'
     return ResponseBuilder.get(msg, result)
 
 @student_bp.get('/students')
@@ -44,6 +54,7 @@ def show_students_route(validated_data):
 @student_bp.put('years/<int:id>/students/review')
 @jwt_required()
 @required_role('admin')
+@with_log(True)
 @validate_input(StudentSchemas.StudentReview)
 def review_students(id, validated_data):
     student_workflow.process_review_students(validated_data, id, get_jwt().get('id'))
@@ -53,15 +64,27 @@ def review_students(id, validated_data):
 @student_bp.post('/students/assignment')
 @jwt_required()
 @required_role('admin')
+@with_log(True)
 @validate_input(StudentSchemas.StudentAssignment)
 def assign_student_for_new_year(validated_data):
     student_workflow.process_assign_students_for_new_year(validated_data, get_jwt().get('id'))
     msg = 'Đã hoàn thành xếp lớp cho học sinh!'
     return ResponseBuilder.post(msg)
 
+@student_bp.put('/students/assignment')
+@jwt_required()
+@required_role('admin')
+@with_log(True)
+@validate_input(StudentSchemas.StudentTransferClass)
+def transfer_class_for_student(validated_data):
+    academic_student_service.handle_transfer_class_for_students(validated_data)
+    msg = 'Đã chuyển lớp cho học sinh!'
+    return ResponseBuilder.put(msg)
+
 @student_bp.put('/students')
 @jwt_required()
 @required_role('admin', 'Teacher')
+@with_log(True)
 @validate_input(StudentSchemas.StudentUpdate)
 def update_students(validated_data):
     student_workflow.process_update_students(validated_data, get_jwt().get('id'))
@@ -87,5 +110,3 @@ def get_students_for_semester_summary(id, validated_data):
     result = academic_student_service.handle_show_student_for_semester_summary(validated_data)
     msg = 'Không tìm thấy thông tin!'
     return ResponseBuilder.get(msg, result)
-
-

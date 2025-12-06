@@ -1,6 +1,6 @@
 from .base import BaseRepo
 from sqlalchemy import func, select
-from app.models import Students, Lesson, Student_info, Student_Year_Summary
+from app.models import Students, Student_info, Student_Year_Summary, Class_room
 
 class StudentsRepo(BaseRepo):
     def get_student_by_student_code(self, data):
@@ -9,11 +9,6 @@ class StudentsRepo(BaseRepo):
     def get_student_ids_by_year_and_class_room(self, data):
         return self.db.session.scalars(select(Students.id).join(Students.student_year_summary).filter(Student_Year_Summary.class_room_id == data['class_room_id'],
                                                                                                       Student_Year_Summary.year_id == data['year_id'])).all()
-    
-    def get_lesson_ids_by_student(self, data):
-        fields = self.filter_context('grade', 'year_id', context=data)
-        return self.db.session.scalars(select(Lesson.id).filter(Lesson.year_id == fields['year_id'],
-                                                                Lesson.grade <= fields['grade_id'])).all()
 
     def get_student_by_user(self, data: dict): 
         return self.db.session.query(Students).filter(Students.user_id == data['user_id']).scalar()
@@ -68,8 +63,19 @@ class StudentsRepo(BaseRepo):
         return query.all()
     
     def show_student_info_by_user(self, data: dict):
-        return self.db.sesson.query(Students.name,
-                                    Student_info.tel,
-                                    Student_info.add).join(Student_info).filter(Students.user_id == data['id']).first()
-    
+        return (self.db.session.query(Students.name,
+                                      Students.student_code,
+                                      Student_info.tel,
+                                      Student_info.add,
+                                      Class_room.class_room,
+                                      Class_room.id,
+                                      Class_room.grade,
+                                      Student_Year_Summary.transfer_info)
+                                            .join(Students.student_info)
+                                            .join(Students.student_year_summary)
+                                            .outerjoin(Class_room, Class_room.id == Student_Year_Summary.class_room_id)
+                                                    .filter(Students.id == data['student_id'],
+                                                            Student_Year_Summary.year_id == data['year_id']).all())
+ 
+
    

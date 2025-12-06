@@ -7,10 +7,15 @@ from .academic.relation import AcademicRelationRepo
 from .file import CloudRepo
 from .student import StudentsRepo
 from .export import ExportRepo
+from .dashboard import DashboardRepo
 
 class Repositories:
     def __init__(self, db):
         self.db = db
+
+    @property
+    def dashboard(self):
+        return DashboardRepo(self.db)
     
     @property
     def teacher(self):

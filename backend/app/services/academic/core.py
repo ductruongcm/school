@@ -21,6 +21,18 @@ class AcademicGetService:
             raise NotFound_Exception('Year code không hợp lệ!')
         
         return prev_year_id
+    
+    def handle_get_new_year_id(self, data):
+        year = self.academic_get_repo.get_year_by_id(data)
+        if not year:
+            raise NotFound_Exception('Id Niên khóa không hợp lệ!')
+        
+        year_key_for_search = year.year_code[-4::]
+        new_year_id = self.academic_get_repo.get_new_year_id(year_key_for_search)
+        if not new_year_id:
+            raise NotFound_Exception('Không tìm thấy new year id!')
+        
+        return new_year_id
 
     #class
     def handle_get_class_room_by_id(self, data):
@@ -28,6 +40,12 @@ class AcademicGetService:
         if not class_room:
             raise NotFound_Exception('ID lớp học không hợp lệ!')
 
+        return class_room
+    
+    def handle_get_class_room_by_teacher_id(self, data):
+        class_room = self.academic_get_repo.get_class_room_by_teacher_id(data)
+        if not class_room:
+            raise NotFound_Exception('Không tìm thấy class room!')
         return class_room
 
     def handle_get_teaching_class_by_class_rooms(self, data):
@@ -37,6 +55,19 @@ class AcademicGetService:
         
         return teaching_classes
     
+    def handle_get_teaching_class_by_class_room_year_general_folder(self, data):
+        teaching_class = self.academic_get_repo.get_teaching_class_by_class_room_year_general_folder(data)
+        if not teaching_class:
+            raise NotFound_Exception('Không tìm thấy teaching class!')
+        
+        return teaching_class
+    
+    def handle_get_teaching_class_by_teacher_year_general_folder(self, data):
+        teaching_class = self.academic_get_repo.get_teaching_class_by_teacher_year_general_folder(data)
+        if not teaching_class:
+            raise NotFound_Exception('Không tìm thấy teaching class!')
+        
+        return teaching_class
     #grade
     def handle_get_grade_by_class_room(self, data):
         grade = self.academic_get_repo.get_grade_by_class_room(data)
@@ -58,6 +89,13 @@ class AcademicGetService:
         
         return period_id
     
+    def handle_get_period_ids_by_year(self, data):
+        period_ids = self.academic_get_repo.get_period_ids_by_year(data)
+        if not period_ids:
+            raise NotFound_Exception('Không tìm thấy period ids!')
+        
+        return period_ids
+    
     def handle_get_lesson_ids_by_grade_and_is_visible(self, data):
         lesson_ids = self.academic_get_repo.get_lesson_ids_by_grade_and_is_visible({'grade': data['grade']})
         if not lesson_ids:
@@ -78,7 +116,7 @@ class AcademicGetService:
             raise NotFound_Exception('ID lesson không hợp lệ!')
         
         return lesson
-    
+
     def handle_get_lesson_tag_by_lesson(self, data):
         lesson_tag = self.academic_get_repo.get_lesson_tag_by_lesson(data)
         if not lesson_tag:
@@ -195,6 +233,13 @@ class AcademicShowService(BaseService):
         keys = ['id', 'year']
         if result: return [dict(zip(keys, values)) for values in result]
 
+    def handle_show_years_for_student(self, data):
+        if data['role'] == 'Student':
+            result = self.show_repo.show_years_for_student(data)
+
+        keys = ['id', 'year']
+        return [dict(zip(keys, values)) for values in result]
+
     def handle_show_prev_year_code(self):
         result = [self.show_repo.show_prev_year_code()]
         keys = ['id', 'year_code']
@@ -215,30 +260,16 @@ class AcademicShowService(BaseService):
         keys = ['score_type_id', 'score_type', 'weight']
 
         return [dict(zip(keys, values)) for values in result]
-
-#show class room
-    def handle_show_class_room(self, data: dict): 
-        if data['role'] == 'admin':
-            result = self.show_repo.show_class_room_by_year_and_grade(data)
-        
-        elif data['role'] == 'Teacher':
-            result = self.show_repo.teach_class(data)
-        
-        else:
-            result = self.show_repo.student_class(data)
-
-        keys = ['class_room_id', 'class_room']
-        return [dict(zip(keys, values)) for values in result]
         
     def handle_show_teach_room(self, data: dict):
         if data['role'] == 'admin': 
             result = self.show_repo.show_class_room_by_year_and_grade(data)
         
         elif data['role'] == 'Teacher': 
-            result = self.show_repo.teach_class(data) 
+            result = self.show_repo.show_teach_class_by_user(data) 
         
         keys = ['class_room_id', 'class_room', 'grade', 'teacher_id']
-
+        
         if result: return [dict(zip(keys, values)) for values in result]
 
     def handle_show_teach_class_with_teacher_id_by_lesson_id(self, data: dict):
@@ -252,7 +283,7 @@ class AcademicShowService(BaseService):
         self.academic_validation.validate_year_id(data)
 
         result = self.show_repo.show_class_room_by_year_and_grade(data)
-        keys = ['class_room_id', 'class_room']
+        keys = ['class_room_id', 'class_room', 'grade']
         return [dict(zip(keys, values)) for values in result]
     
     def handle_show_class_room_for_assignment(self, data):
@@ -270,17 +301,16 @@ class AcademicShowService(BaseService):
 #show lesson
     def handle_show_lessons(self, data:dict):
         keys = ['lesson_id', 'lesson', 'grade', 'is_visible', 'is_folder', 'is_schedule']
-        if data['role'] == 'admin': 
-            result = self.show_repo.show_lessons(data) 
-            return [dict(zip(keys, values)) for values in result]
         
-        elif data['role'] == 'Teacher':
+        if data['role'] == 'Teacher':
             result = self.show_repo.show_lesson_by_user(data)
             keys = ['lesson_id', 'lesson']
-            return [dict(zip(keys, values)) for values in result]
-            # elif role == 'Teacher':
-            #     if result:= self.show_repo_repo.show_lesson_by_id(id, lesson_data.lesson): 
-            #         return {'status': 'Success', 'data': [dict(zip(keys, values)) for values in result]}
+
+        else:
+            result = self.show_repo.show_lessons(data)
+        
+        return [dict(zip(keys, values)) for values in result]
+
     
     def handle_show_lessons_by_grade(self, data):
         #lấy grade -1 cho năm ngoài và check 

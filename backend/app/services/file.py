@@ -49,5 +49,16 @@ class CloudService(BaseService):
         self.repo.delete(data)
         self.db.session.commit()
         return {'filename': file.filename}
+    
+    def handle_show_folders(self, data):
+        if data['role'] == 'Teacher':
+            result = self.repo.show_folder_for_teacher(data)
+
+        else:
+            result = self.repo.show_folders_for_student_and_admin(data)
+        
+        keys = ['lesson_id', 'lesson']
+
+        return [dict(zip(keys, values)) for values in result]
 
   

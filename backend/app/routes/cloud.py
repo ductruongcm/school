@@ -22,7 +22,7 @@ def upload(validated_data):
 
 @cloud_bp.get('/files')
 @jwt_required()
-@required_role('admin', 'Teacher')
+@required_role('admin', 'Teacher', 'Student')
 @validate_input(CloudSchemas.ShowFileSchema)
 def show_file(validated_data):
     result = cloud_service.handle_show_file(validated_data)
@@ -50,5 +50,14 @@ def delete(id: int):
     msg = f"Đã xóa file {file['filename']}!"
     return ResponseBuilder.delete(msg)
 
+@cloud_bp.get('/me/folders')
+@jwt_required()
+@required_role('admin', 'Teacher', 'Student')
+@validate_input(CloudSchemas.ShowFolderSchema)
+def show_folder(validated_data):
+    validated_data.update({'user_id': get_jwt().get('id'),
+                           'role': get_jwt().get('role')})
+    result = cloud_service.handle_show_folders(validated_data)
+    return ResponseBuilder.get('Không có dữ liệu!', result)
 
 

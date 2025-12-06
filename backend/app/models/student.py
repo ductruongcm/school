@@ -1,6 +1,7 @@
 from app.extensions import db
 from sqlalchemy.orm import validates
 from sqlalchemy import UniqueConstraint
+from datetime import datetime
 import re
 
 class Students(db.Model):
@@ -16,6 +17,7 @@ class Students(db.Model):
     student_lesson_annual = db.relationship('Student_Lesson_Annual', back_populates = 'students', lazy = True)
     student_year_summary = db.relationship('Student_Year_Summary', back_populates = 'students', lazy = True)
     student_period_summary = db.relationship('Student_Period_Summary', back_populates = 'students', lazy = True)
+    attendence = db.relationship('Attendence', back_populates = 'students', lazy = True)
 
     @validates('name')
     def name_validates(self, key, value):
@@ -92,7 +94,8 @@ class Student_Period_Summary(db.Model):
     id = db.Column(db.Integer, primary_key = True)
     student_id = db.Column(db.Integer, db.ForeignKey('students.id', ondelete = 'CASCADE'), nullable = False)
     period_id = db.Column(db.Integer, db.ForeignKey('period.id', ondelete = 'CASCADE'), nullable = False)
-    class_room_id = db.Column(db.Integer, db.ForeignKey('class_room.id', ondelete = 'NO ACTION'), nullable = False)
+    class_room_id = db.Column(db.Integer, db.ForeignKey('class_room.id', ondelete = 'NO ACTION'))
+    grade = db.Column(db.Integer, db.ForeignKey('grade.grade', ondelete = 'NO ACTION'), nullable = False)
     score = db.Column(db.Float)
     conduct = db.Column(db.String(15))
     absent_day = db.Column(db.Integer, default = 0)
@@ -116,5 +119,32 @@ class Student_Year_Summary(db.Model):
     review_status = db.Column(db.Boolean, default = False)
     assign_status = db.Column(db.Boolean, default = False)
     note = db.Column(db.String(100))
+    transfer_info = db.Column(db.String(100))
     students = db.relationship('Students', back_populates = 'student_year_summary', lazy = True)
     __table_args__ = (UniqueConstraint('student_id', 'year_id', name='stu_year_uniq'),)
+
+class Attendence(db.Model):
+    __tablename__ = 'attendence'
+    id = db.Column(db.Integer, primary_key = True)
+    student_id = db.Column(db.Integer, db.ForeignKey('students.id', ondelete = 'CASCADE'), nullable = False)
+    schedule_id = db.Column(db.Integer, db.ForeignKey('schedule.id', ondelete = 'CASCADE'), nullable = False)
+    status = db.Column(db.String(1), default = 'P')
+    datetime = db.Column(db.DateTime, default = datetime.utcnow)
+    students = db.relationship('Students', back_populates = 'attendence', lazy = True)
+    schedule = db.relationship('Schedule', back_populates = 'attendence', lazy = True)
+    attendence_note = db.relationship('Attendence_Note', back_populates = 'attendence', lazy = True)
+    __table_args__ = (UniqueConstraint('student_id', 'schedule_id', name='stu_sch_uniq'),)
+
+    @validates('status')
+    def validate_status(self, key, value):
+        if value not in ['P', 'A', 'E']:
+            raise ValueError('Thông tin input không chính xác!')
+        
+        return value
+    
+class Attendence_Note(db.Model):
+    __table_name__ = 'attendence_note'
+    id = db.Column(db.Integer, primary_key = True)
+    attendence_id = db.Column(db.Integer, db.ForeignKey('attendence.id', ondelete = 'CASCADE'), nullable = False)
+    note = db.Column(db.String(100))
+    attendence = db.relationship('Attendence', back_populates = 'attendence_note', lazy = True)

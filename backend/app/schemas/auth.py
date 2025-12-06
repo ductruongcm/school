@@ -59,6 +59,7 @@ class Tmp_token(BaseModel):
 
 class Login(Username):
     password: str
+    year_id: int
 
     @field_validator('password')
     def password_validator(cls, v):
@@ -72,5 +73,6 @@ class Login(Username):
 
 class SetPassword(Password):
     token: str
+    user_id: int
 
     

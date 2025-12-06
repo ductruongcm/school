@@ -1,4 +1,4 @@
-from app.models import Class_room, Users, Files, Lesson, Teach_class
+from app.models import Class_room, Users, Files, Lesson, Teach_class, LessonTag, Teachers
 from .base import BaseRepo
 
 class CloudRepo(BaseRepo):
@@ -49,3 +49,18 @@ class CloudRepo(BaseRepo):
                                                     .join(Teach_class.class_room)\
                                                     .join(Teach_class.lesson)\
                                                         .filter(Files.id == fields['file_id']).first()
+    
+    def show_folder_for_teacher(self, data):
+        return (self.db.session.query(Teach_class.lesson_id, Lesson.lesson)
+                               .join(Teach_class.lesson)
+                               .join(Teach_class.teachers)
+                               .join(Teachers.users).filter(Teach_class.year_id == data['year_id'],
+                                                            Teach_class.class_room_id == data['class_room_id'],
+                                                            Users.id == data['user_id']).all())
+
+    def show_folders_for_student_and_admin(self, data):
+        return (self.db.session.query(Lesson.id, Lesson.lesson)
+                    .join(Class_room, Class_room.grade >= Lesson.grade)
+                    .join(Lesson.lessontag)
+                    .filter(Class_room.id == data['class_room_id'],
+                            LessonTag.is_folder == True).all())

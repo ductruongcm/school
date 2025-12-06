@@ -8,4 +8,5 @@ from .file import CloudService
 from .auth import AuthService
 from .student import StudentServices
 from .export import ExportService
-from .workflow import Student_Workflow, Teacher_Workflow, User_Workflow, Score_Workflow, Academic_Relation_Workflow
+from .workflow import Student_Workflow, Teacher_Workflow, User_Workflow, Score_Workflow, Academic_Relation_Workflow, Auth_Workflow
+from .dashboard import Dashboard_Service

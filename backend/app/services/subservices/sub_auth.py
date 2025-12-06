@@ -16,12 +16,6 @@ class Auth_Subservices:
             raise NotFound_Exception('Username hoặc mật khẩu không đúng!')
         
         return user
-
-    def check_tmp_token(self, data):
-        user  = self.user_repo.get_user_by_tmp_token(data)
-        if not user:
-            raise NotFound_Exception('Không tìm thấy User ID!')
-        return user
           
     def check_password(self, data):
         if errors:= Validation_helpers.password_validation(data['password'], data['repassword']):
