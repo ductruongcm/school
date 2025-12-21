@@ -28,6 +28,13 @@ class StudentServices:
         
         return students
     
+    def handle_get_student_ids_by_period_and_class_room(self, data):
+        students = self.student_repo.get_student_ids_by_period_and_class_room(data)
+        if not students:
+            raise NotFound_Exception('Không lấy được danh sách học sinh!')
+        
+        return students
+    
     def handle_get_student_info_by_student(self, data):
         student_info = self.student_repo.get_student_info_by_student(data)
         if not student_info:

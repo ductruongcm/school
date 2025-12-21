@@ -1,6 +1,6 @@
 from .base import BaseRepo
 from sqlalchemy import func, select
-from app.models import Students, Student_info, Student_Year_Summary, Class_room
+from app.models import Students, Student_info, Student_Year_Summary, Class_room, Student_Period_Summary
 
 class StudentsRepo(BaseRepo):
     def get_student_by_student_code(self, data):
@@ -9,6 +9,10 @@ class StudentsRepo(BaseRepo):
     def get_student_ids_by_year_and_class_room(self, data):
         return self.db.session.scalars(select(Students.id).join(Students.student_year_summary).filter(Student_Year_Summary.class_room_id == data['class_room_id'],
                                                                                                       Student_Year_Summary.year_id == data['year_id'])).all()
+    
+    def get_student_ids_by_period_and_class_room(self, data):
+        return self.db.session.scalars(select(Student_Period_Summary.student_id).filter(Student_Period_Summary.period_id == data['period_id'],
+                                                                                        Student_Period_Summary.class_room_id == data['class_room_id'])).all()
 
     def get_student_by_user(self, data: dict): 
         return self.db.session.query(Students).filter(Students.user_id == data['user_id']).scalar()

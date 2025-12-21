@@ -4,7 +4,7 @@ from .student import StudentServices
 from .teacher import TeacherService
 from .log import ActivityLog_Service
 from .auth import AuthService
-from .academic.entity import Academic_Student_Service, Academic_Teacher_Service, Academic_Score_Service
+from .academic.entity import Academic_Student_Service, Academic_Teacher_Service, Academic_Score_Service, Academic_Schedule_Service
 from .academic.core import AcademicGetService, AcademicShowService
 from .academic.relation import Academic_Relation_Service
 from .user import UserService
@@ -28,8 +28,7 @@ class Student_Workflow:
         self.academic_validation.check_year(data)
         self.academic_validation.validate_year_id(data)
         self.academic_validation.validate_grade(data)
-
-        data['class_room_id'] = None
+  
         #add student
         student = self.student_service.handle_add_student(data)
 
@@ -45,11 +44,11 @@ class Student_Workflow:
         student.user_id = user.id
         data['student_id'] = student.id
         #add lich su hoc tap từng môn học
-        self.academic_student_service.handle_record_prev_year_academic_semesters_results(data)
-        
+        self.academic_student_service.handle_record_prev_year_lessons_result(data)
+
         #add lich su hoc tap tong ket hoc ky va ca năm
-        self.academic_student_service.handle_record_prev_year_academic_semester_result(data)
-        self.academic_student_service.handle_record_prev_year_academic_year_result(data)
+        self.academic_student_service.handle_record_prev_year_academic_semesters_summary(data)
+        self.academic_student_service.handle_record_prev_year_academic_year_summary(data)
 
         self.activity_log_service.handle_record_activity_log({'user_id': user_id,
                                                               'module': 'student',
@@ -62,11 +61,11 @@ class Student_Workflow:
     def process_review_students(self, data, year_id, user_id:int):
         detail_changes = []
         self.academic_validation.validate_year_id({'year_id': year_id})
-  
+        next_year_id = self.academic_get_service.handle_get_new_year_id({'year_id': year_id})
         for item in data:
             #review current year for approval and insert next year student sum
-            item['year_id'] = year_id
-            item['next_year_id'] = self.academic_get_service.handle_get_new_year_id({'year_id': year_id})
+            item.update({'year_id': year_id,
+                         'next_year_id': next_year_id})
             
             student = self.student_service.handle_get_student_by_id(item)
             
@@ -83,11 +82,10 @@ class Student_Workflow:
 
     def process_assign_students_for_new_year(self, data, user_id):
         self.academic_validation.validate_year_id(data)
-        self.academic_validation.validate_semester_id(data)
 
         detail_changes = []
         for item in data['student_assign_list']:
-            grade = self.academic_get_service.handle_get_grade_by_class_room(item)
+            data['grade'] = self.academic_get_service.handle_get_grade_by_class_room(item)
             student = self.student_service.handle_get_student_by_id(item)
 
             #Bật True cho assign status cho prev year
@@ -99,26 +97,17 @@ class Student_Workflow:
                                                                                            'student_id': item['student_id']})
             student_year_summary.class_room_id = item['class_room_id']
             
-            #get lesson ids by grade
-            lesson_ids = self.academic_get_service.handle_get_lesson_ids_by_grade_and_is_visible({'grade': grade})
-            
             #insert new row in student period class_room_id
-            for semester_id in [1, 2]:
-                period_id = self.academic_get_service.handle_get_period_id({'year_id': data['year_id'],
-                                                                              'semester_id': semester_id})
-            
-                self.academic_student_service.handle_add_student_period_summary({'student_id': item['student_id'],
-                                                                                 'period_id': period_id,
-                                                                                 'class_room_id': item['class_room_id'],
-                                                                                 'grade': grade})
+            self.academic_student_service.handle_add_student_period_summary_for_new_year({'student_id': item['student_id'],
+                                                                                          'year_id': data['year_id'],
+                                                                                          'class_room_id': item['class_room_id'],
+                                                                                          'grade': data['grade']})
 
-                #tạo liên kết học sinh và môn học của học kỳ 1: mỗi student_id + 1 period_id + all of lesson
-                for lesson_id in lesson_ids:
-                    self.academic_student_service.handle_add_student_lesson_period({'student_id': item['student_id'],
-                                                                                    'period_id': period_id,
-                                                                                    'lesson_id': lesson_id})
+            #insert new row in student lesson period
+            self.academic_student_service.handle_add_student_lesson_period_for_new_year({'student_id': item['student_id'],
+                                                                                         'year_id': data['year_id'],
+                                                                                         'grade': data['grade']})
             
-
             detail_changes.append(f'{student.name}')
 
         self.activity_log_service.handle_record_activity_log({'user_id': user_id,
@@ -170,6 +159,7 @@ class Teacher_Workflow:
         self.teacher_service = TeacherService(db, repo)
         self.academic_teacher_service = Academic_Teacher_Service(db, repo)
         self.activity_log_service = ActivityLog_Service(db, repo)
+        self.schedule_service = Academic_Schedule_Service(db, repo)
    
     def process_create_teacher(self, data):
         #check dup username, check lesson id, year id
@@ -229,8 +219,9 @@ class Teacher_Workflow:
         #update lesson_id
         if data.get('lesson_id') != teacher.lesson_id:
             teacher.lesson_id = data['lesson_id']
-            #remove all of teacher_id by year_id out of teach class and re add
-            self.academic_teacher_service.handle_update_teaching_class_by_lesson(data)
+            #remove all of teacher_id by year_id out of teach class, schedule and re add
+            self.academic_teacher_service.handle_remove_teacher_from_teaching_class(data)
+            self.schedule_service.handle_remove_teacher_from_schedules(data)
 
         #update homeclass
         if 'class_room_id' in data:
@@ -253,8 +244,10 @@ class Teacher_Workflow:
         #update teaching class
         if 'teach_class' in data:
             self.academic_validation.validate_year_id(data)
-            self.academic_teacher_service.handle_update_teaching_class(data)
 
+            data['period_id'] = self.academic_get_service.handle_get_period_id(data)
+            self.academic_teacher_service.handle_update_teaching_class(data)
+            
         self.db.session.commit()
         return teacher
     
@@ -324,15 +317,6 @@ class User_Workflow:
             result = self.student_services.handle_show_student_info(data)
 
         return result
-    
-    def process_register_account_for_admin(self, data):
-        user_data = self.user_services.new_admin_data_for_user(data)
-        user = self.user_services.handle_add_user(user_data)
-        data['user_id'] = user.id
-        data['lesson_id'] = None
-        self.teacher_services.handle_add_teacher(data)
-        
-        self.db.session.commit()
 
     def process_change_password(self, data):
         #get user
@@ -353,6 +337,17 @@ class User_Workflow:
 
         self.db.session.commit()
 
+    def process_update_role_for_user(self, data):
+        user = self.user_services.get_user_by_id({'user_id': data['target_id']})
+        user.role = data['role']
+        
+        self.activity_log_service.handle_record_activity_log({'user_id': data['user_id'],
+                                                              'target_id': data['target_id'],
+                                                              'module': 'user',
+                                                              'action': 'UPDATE',
+                                                              'detail': f"Cập nhật role {data['role']} cho {user.username}!"})
+        self.db.session.commit()
+        
 class Auth_Workflow:
     def __init__(self, db, repo):
         self.db = db
@@ -389,23 +384,22 @@ class Score_Workflow:
         self.student_service = StudentServices(db, repo)
 
     def process_add_scores(self, data, user_id):
-        period_id = self.academic_get_service.handle_get_period_id(data)
         detail_change = []
-        for item in data['students']:
-            #get student les period
-            student = self.student_service.handle_get_student_by_id(item)
-            student_lesson_period = self.academic_student_service.handle_get_student_lesson_period({'period_id': period_id,
-                                                                                                    'student_id': item['student_id'],
-                                                                                                    'lesson_id': data['lesson_id']})
-            item['student_lesson_period_id'] = student_lesson_period.id
-            if 'scores' in item:
-                scores = self.academic_score_service.handle_upsert_score(item)
-                detail_change.append(f'{student.name} - điểm {scores}')
-
-            if 'note' in item:
-                student_lesson_period.note = item['note']
-                detail_change.append(f"{student.name} - {item['note']}")
+        period_id = self.academic_get_service.handle_get_period_id(data)
+        for student in data['students']:
+            stu = self.student_service.handle_get_student_by_id(student)  
+            student_lesson_period_id = self.academic_student_service.handle_get_student_lesson_period({'student_id': student['student_id'],
+                                                                                                       'period_id': period_id,
+                                                                                                       'lesson_id': data['lesson_id']}).id
             
+            student.update({'year_id': data['year_id'],
+                            'period_id': period_id,
+                            'student_lesson_period_id': student_lesson_period_id,
+                            'lesson_id': data['lesson_id']})
+            
+            score = self.academic_score_service.handle_upsert_score(student)
+            detail_change.append(f'{stu.name} - {score}')
+
         self.activity_log_service.handle_record_activity_log({'user_id': user_id,
                                                               'target_id': [i['student_id'] for i in data['students']],
                                                               'module': 'academic/entity',
@@ -419,22 +413,24 @@ class Score_Workflow:
         return result
     
     def process_show_scores_by_student_and_period(self, data, user_id):
+        ### show kq học tập cho học sinh
         student = self.student_service.handle_get_student_by_user({'user_id': user_id})
         data['student_id'] = student.id
         result = self.academic_score_service.handle_show_scores_by_student_and_period(data)
         return result
 
     def process_summary_semester_lessons_result(self, data, user_id):
+        # get period id
+        data['period_id'] = self.academic_get_service.handle_get_period_id(data)
+        class_room = self.academic_get_service.handle_get_class_room_by_id(data)
+        student_ids = self.student_service.handle_get_student_ids_by_period_and_class_room(data)
+
         #get all score for stu by les, cla, sem, yea
         result = self.academic_score_service.get_avg_scores_for_students_by_lesson_class_and_period(data)
-        # get period id
-        period_id = self.academic_get_service.handle_get_period_id(data)
-        class_room = self.academic_get_service.handle_get_class_room_by_id(data)
-        student_ids = self.student_service.handle_get_student_ids_by_year_and_class_room(data)
         for student in result:
             student_lesson_period = self.academic_student_service.handle_get_student_lesson_period({'student_id': student['student_id'],
                                                                                                     'lesson_id': data['lesson_id'],
-                                                                                                    'period_id': period_id})
+                                                                                                    'period_id': data['period_id']})
             
             self.academic_score_service.check_exam({'student_lesson_period_id': student_lesson_period.id})
             self.academic_score_service.check_final_exam({'student_lesson_period_id': student_lesson_period.id})
@@ -448,41 +444,18 @@ class Score_Workflow:
                                                               'action': 'UPDATE',
                                                               'detail': f"Tổng kết điểm cho lớp {class_room.class_room}"})
         self.db.session.commit()
+        return class_room
     
     def process_summary_semester_result(self, data, user_id):
-        #get per id + cls id => get stu ids => get all of score of stu => calc 
+        #update score, conduct, absent_day, status, note to student_lesson_period
+        self.academic_student_service.record_academic_results_for_semester(data)
+
         class_room = self.academic_get_service.handle_get_class_room_by_id(data)
-        self.academic_validation.validate_semester_id(data)
-        period_id = self.academic_get_service.handle_get_period_id(data)
-
-        if data['semester_id'] == 1:
-            for student in data['students']:
-                self.academic_student_service.handle_record_academic_semester_results({'student_id': student['student_id'],
-                                                                                       'conduct': student['conduct'],
-                                                                                       'note': student['note'],
-                                                                                       'absent_day': student['absent_day'],
-                                                                                       'period_id': period_id,
-                                                                                       'class_room_id': data['class_room_id']})
-            detail_change = f'Tổng kết học kỳ I cho lớp {class_room.class_room}!'
-
-        elif data['semester_id'] == 2:
-            for student in data['students']:
-                self.academic_student_service.handle_record_academic_semester_results({'student_id': student['student_id'],
-                                                                                       'conduct': student['conduct'],
-                                                                                       'note': student['note'],
-                                                                                       'absent_day': student['absent_day'],
-                                                                                       'period_id': period_id,
-                                                                                       'class_room_id': data['class_room_id']})
-
-            #Sau khi tổng kết HK II sẽ tổng kết các môn học cho cả năm
-            self.academic_student_service.handle_record_academic_annual_result(data)
-            detail_change = f'Tổng kết học kỳ II và cả năm cho lớp {class_room.class_room}!'
-
         self.activity_log_service.handle_record_activity_log({'user_id': user_id,
-                                                              'target_id': class_room.id,
+                                                              'target_id': data['class_room_id'],
                                                               'module': 'academic/entity',
                                                               'action': 'UPDATE',
-                                                              'detail': detail_change})
+                                                              'detail': f"Tổng kết học kỳ {data['semester_id']} cho lớp {class_room.class_room}"})
         
         self.db.session.commit()
 
@@ -490,19 +463,16 @@ class Score_Workflow:
         self.academic_validation.validate_year_id(data)
         class_room = self.academic_get_service.handle_get_class_room_by_id(data)
 
-        for student in data['students']:
-            self.academic_student_service.handle_record_academic_year_result({'student_id': student['student_id'],
-                                                                              'conduct': student['conduct'],
-                                                                              'note': student['note'],
-                                                                              'absent_day': student['absent_day'],
-                                                                              'year_id': data['year_id'],
-                                                                              'class_room_id': data['class_room_id']})
+        self.academic_student_service.handle_record_lesson_result_by_year({'class_room_id': data['class_room_id'],
+                                                                           'year_id': data['year_id']})
+                  
+        self.academic_student_service.handle_record_academic_year_result(data)
             
         self.activity_log_service.handle_record_activity_log({'user_id': user_id,
                                                         'target_id': class_room.id,
                                                         'module': 'academic/entity',
                                                         'action': 'UPDATE',
-                                                        'detail': f"Tổng kết cuối năm cho học sinh lớp {class_room.class_room}"})
+                                                        'detail': f"Tổng kết cuối năm cho học sinh lớp {class_room.class_room}!"})
         
         self.db.session.commit()
 
@@ -601,11 +571,6 @@ class Academic_Relation_Workflow:
 
         return result
     
-    def process_show_lesson(self, data: dict):
-        if data['role'] == 'Teacher':
-            pass
 
-        if data['role'] == 'Student':
-            pass
             
         

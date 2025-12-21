@@ -1,7 +1,7 @@
 from app.models import Users, Tmp_token, Teachers, Students
 from datetime import datetime, timedelta
 from sqlalchemy.dialects.postgresql import insert
-from sqlalchemy import text
+from sqlalchemy import text, case
 import math
 
 class UserRepo:
@@ -48,7 +48,7 @@ class UserRepo:
         role = data['role']
         page = data['page']
 
-        query = self.db.session.query(Users.id, Users.username, Users.role, Teachers.name, Students.name).outerjoin(Users.teachers).outerjoin(Users.students)
+        query = self.db.session.query(Users.id, Users.username, Users.role, case((Teachers.name.isnot(None), Teachers.name), else_=Students.name)).outerjoin(Users.teachers).outerjoin(Users.students)
 
         if username:
             query = query.filter(Users.username.ilike(f'%{username}%'))
@@ -60,9 +60,8 @@ class UserRepo:
         total_pages = math.ceil(all_records/limit) if all_records > limit else 1
         offset = (page - 1) * limit 
 
-        query = query.order_by(Users.username).limit(limit).offset(offset).all()
-
-        keys = ['id', 'username', 'role', 'teacher_name', 'student_name']
+        query = query.order_by(Users.role, Users.username).limit(limit).offset(offset).all()
+        keys = ['id', 'username', 'role', 'name']
         data = [dict(zip(keys, values)) for values in query]
         return {'data': data, 'total_pages': total_pages, 'page': page}
     

@@ -13,5 +13,5 @@ routes = [oauth2.oauth2_bp,
           export.export_bp,
           relation.academic_relation_bp,
           entity.academic_entity_bp,
-          dashboard.dashboard_bp]
+          dashboard.report_bp]
           

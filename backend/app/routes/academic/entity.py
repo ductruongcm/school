@@ -22,14 +22,14 @@ def show_scores_by_class_room_route(id: int, validated_data):
     msg = 'Không tìm thấy thông tin!'
     return ResponseBuilder.get(msg, result)
 
-@academic_entity_bp.put('/scores')
+@academic_entity_bp.post('/scores')
 @jwt_required()
 @required_role('admin', 'Teacher')
 @with_log(True)
 @validate_input(AcademicUpdateSchemas.Scores)
 def give_scores_route(validated_data):
     result = score_workflow.process_add_scores(validated_data, get_jwt().get('id'))
-    msg = f'Đã cho điểm cho học sinh {result}!'
+    msg = f'Đã cho điểm cho học sinh!'
     return ResponseBuilder.put(msg)
 
 @academic_entity_bp.put('/scores/lessons/summary')
@@ -38,8 +38,8 @@ def give_scores_route(validated_data):
 @with_log(True)
 @validate_input(AcademicUpdateSchemas.SummaryLessonPeriod)
 def summary_lesson_for_student(validated_data):
-    score_workflow.process_summary_semester_lessons_result(validated_data, get_jwt().get('id'))
-    msg = 'Đã tổng kết!'
+    result = score_workflow.process_summary_semester_lessons_result(validated_data, get_jwt().get('id'))
+    msg = f'Đã tổng kết điểm cho lớp {result.class_room}!'
     return ResponseBuilder.put(msg)
 
 @academic_entity_bp.put('semesters/<int:id>/summary')
@@ -64,27 +64,27 @@ def summary_year_for_students(id, validated_data):
     msg = 'Đã tổng kết năm học!'
     return ResponseBuilder.post(msg)
 
-@academic_entity_bp.get('/schedules')
-@jwt_required()
-@required_role('admin', 'Student', 'Teacher')
-@validate_input(AcademicShowSchemas.Schedule)
-def get_schedules(validated_data):
-    validated_data.update({'user_id': get_jwt().get('id'),
-                           'role': get_jwt().get('role')})
-    result = academic_schedule_service.handle_show_schedules(validated_data)
-    msg = 'Không tìm thấy thông tin!'
-    return ResponseBuilder.get(msg, result)
-
-@academic_entity_bp.post('/schedules')
+@academic_entity_bp.post('schedules')
 @jwt_required()
 @required_role('admin')
 @with_log(True)
 @validate_input(AcademicSchemas.Schedule)
 def create_schedule_route(validated_data):
-    academic_schedule_service.handle_upsert_schedule(validated_data, get_jwt().get('id'))
+    academic_schedule_service.handle_upsert_schedule(validated_data)
     msg = f"Đã thêm thời khóa biểu!"
     return ResponseBuilder.post(msg)
 
+@academic_entity_bp.get('schedules')
+@jwt_required()
+@required_role('admin')
+@with_log(True)
+@validate_input(AcademicShowSchemas.Schedule)
+def show_schedules_in_tool(validated_data):
+    result = academic_schedule_service.handle_show_schedules_in_tool(validated_data)
+    msg = 'Không tìm thấy dữ liệu!'   
+    return ResponseBuilder.get(msg, result)
+
+### show kq học tập cho học sinh
 @academic_entity_bp.get('scores/me')
 @jwt_required()
 @required_role('admin', 'Teacher', 'Student')
@@ -92,15 +92,6 @@ def create_schedule_route(validated_data):
 def show_academic_results(validated_data):
     result = score_workflow.process_show_scores_by_student_and_period(validated_data, get_jwt().get('id'))
     msg = 'Không tìm thấy dữ liệu!'   
-    return ResponseBuilder.get(msg, result)
-
-@academic_entity_bp.get('scores/students/weak')
-@jwt_required()
-@required_role('admin')
-@validate_input(AcademicShowSchemas.StudentScores)
-def get_weak_students(validated_data):
-    result = academic_score_service.handle_show_weak_students(validated_data)
-    msg = 'Không tìm thấy thông tin!'
     return ResponseBuilder.get(msg, result)
 
 @academic_entity_bp.get('class-rooms/<int:id>/attendence')
@@ -111,17 +102,6 @@ def get_lesson_times_for_teacher(id, validated_data):
     validated_data.update({'user_id': get_jwt().get('id'),
                            'class_room_id': id})
     result = academic_schedule_service.handle_show_lesson_times_for_class_by_day(validated_data)
-    msg = 'Không tìm thấy thông tin!'
-    print(result)
-    return ResponseBuilder.get(msg, result)
-
-@academic_entity_bp.get('schedules/me')
-@jwt_required()
-@required_role('admin', 'Teacher')
-@validate_input(AcademicShowSchemas.Schedule)
-def get_schedules_by_teacher_day(validated_data):
-    validated_data['user_id'] = get_jwt().get('id')
-    result = academic_schedule_service.handle_show_schedules_by_teacher_day(validated_data)
     msg = 'Không tìm thấy thông tin!'
     return ResponseBuilder.get(msg, result)
 
@@ -134,7 +114,33 @@ def make_attendence(validated_data):
     academic_schedule_service.handle_make_attendence(validated_data)
     msg = 'Đã điểm danh!'
     return ResponseBuilder.post(msg)
-    
 
+@academic_entity_bp.get('schedules/me')
+@jwt_required()
+@required_role('admin', 'Student', 'Teacher')
+@validate_input(AcademicShowSchemas.Schedule)
+def get_schedules(validated_data):
+    validated_data.update({'user_id': get_jwt().get('id'),
+                           'role': get_jwt().get('role')})
+    result = academic_schedule_service.handle_show_schedules(validated_data)
+    msg = 'Không tìm thấy thông tin!'
+    return ResponseBuilder.get(msg, result)
 
- 
+@academic_entity_bp.get('attendence/schedules')
+@jwt_required()
+@required_role('admin', 'Teacher')
+@validate_input(AcademicShowSchemas.Schedule)
+def get_schedules_by_teacher_day(validated_data):
+    validated_data['user_id'] = get_jwt().get('id')
+    result = academic_schedule_service.handle_show_schedules_for_attendence(validated_data)
+    msg = 'Không tìm thấy thông tin!'
+    return ResponseBuilder.get(msg, result)
+
+@academic_entity_bp.get('schedules/today')
+@jwt_required()
+@required_role('admin')
+@validate_input(AcademicShowSchemas.Schedule)
+def get_today_schedules(validated_data):
+    result = academic_schedule_service.handle_show_today_schedules(validated_data)
+    msg = 'Không tìm thấy thông tin!'
+    return ResponseBuilder.get(msg, result)

@@ -2,7 +2,7 @@ from flask import Blueprint
 from flask_jwt_extended import jwt_required, get_jwt
 from app.extensions import lm, util, db
 from app.utils import required_role, with_log, validate_input, ResponseBuilder
-from app.schemas import SetPassword, Password, UserSchemas, Tmp_token, Register
+from app.schemas import SetPassword, Password, UserSchemas, Tmp_token, Role
 from app.services import UserService, User_Workflow
 from app.repositories import Repositories
 
@@ -72,11 +72,13 @@ def check_tmp_token_for_reset_password(validated_data):
     msg = 'Temp Token hợp lệ!'
     return ResponseBuilder.post(msg, result)
 
-@user_bp.post('/register')
-@lm.limit("5 per minute", key_func = util.get_remote_address)
-@with_log(True)
-@validate_input(Register)
-def register(validated_data):
-    user_workflow.process_register_account_for_admin(validated_data)
-    msg = 'Đăng ký thành công!'
-    return ResponseBuilder.post(msg)
+@user_bp.put('users/<int:id>/role')
+@jwt_required()
+@required_role('admin')
+@validate_input(Role)
+def update_role_for_user(id, validated_data):
+    validated_data.update({'user_id': get_jwt().get('id'),
+                           'target_id': id})
+    user_workflow.process_update_role_for_user(validated_data)
+    msg = f'Đã thay đổi role!'
+    return ResponseBuilder.put(msg)

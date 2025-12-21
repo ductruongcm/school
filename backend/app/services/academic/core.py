@@ -142,6 +142,12 @@ class AcademicGetService:
             raise NotFound_Exception('Không tìm thấy Score type!')
         return score_type
     
+    def handle_get_class_rooms_by_year(self, data):
+        class_rooms = self.academic_get_repo.get_class_rooms_by_year(data)
+        if not class_rooms:
+            raise NotFound_Exception('Không tìm thấy class rooms!')
+        return class_rooms
+
 class AcademicAddService(BaseService):
     def __init__(self, db, repo):
         self.db = db
@@ -297,6 +303,12 @@ class AcademicShowService(BaseService):
         result = self.show_repo.show_class_room_by_year_and_grade(data)
         keys = ['class_room_id', 'class_room']
         return [dict(zip(keys, values)) for values in result]
+        
+    def handle_show_summary_for_me_by_year(self, year_id, user_id):
+        result = self.show_repo.get_summary_for_me_by_year(year_id, user_id)
+        keys = ['conduct', 'absent_day', 'score', 'status', 'learning_status']
+        output = dict(zip(keys, result))
+        return output
               
 #show lesson
     def handle_show_lessons(self, data:dict):

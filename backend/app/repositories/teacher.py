@@ -1,5 +1,5 @@
 from app.models import Teachers, Teacher_info, Lesson, Teach_class, Users, Class_room, Tmp_token, LessonTag
-from sqlalchemy import func, cast, String, and_
+from sqlalchemy import func, cast, String, and_, text
 from .base import BaseRepo
 
 class TeacherRepo(BaseRepo):
@@ -44,24 +44,25 @@ class TeacherRepo(BaseRepo):
                                                                 .join(LessonTag, LessonTag.lesson_id == Teach_class.lesson_id)
                                                                 .filter(LessonTag.is_visible == True,
                                                                         Teach_class.year_id == data['year_id'])
-                                                                .order_by(Teach_class.class_room_id)
+                                                                .order_by(Teach_class.teacher_id, Class_room.id)
                                                                 .subquery())
+  
         query = self.db.session.query(Teachers.id,
                                       Teachers.name,
                                       Lesson.id,
                                       Lesson.lesson,
                                       Class_room.id,
                                       Class_room.class_room,
-                                      func.aggregate_strings(sub_query.c.class_room_id, ', '), 
+                                      func.array_agg(sub_query.c.class_room_id.op("ORDER BY")(sub_query.c.class_room_id)), 
                                       func.aggregate_strings(sub_query.c.class_room, ', '),             
                                       Teacher_info.tel,
                                       Teacher_info.email,
                                       Teacher_info.add,
-                                      Teachers.status).join(Lesson)\
-                                                      .join(Teacher_info)\
-                                                      .outerjoin(sub_query, sub_query.c.teacher_id == Teachers.id)\
+                                      Teachers.status).join(Teachers.lesson)\
+                                                      .join(Teachers.teacher_info)\
                                                       .outerjoin(Class_room, and_(Class_room.teacher_id == Teachers.id,
-                                                                                  Class_room.year_id == data['year_id']))                                       
+                                                                                  Class_room.year_id == data['year_id']))\
+                                                      .outerjoin(sub_query, sub_query.c.teacher_id == Teachers.id)                              
                                                         
         if lesson:
             query = query.filter(Lesson.lesson.ilike(f'%{lesson}%'))
@@ -78,10 +79,10 @@ class TeacherRepo(BaseRepo):
         if 'status' in fields and fields['status'] is not None:
             query = query.filter(Teachers.status == fields.get('status'))
             
-        return query.order_by(sub_query.c.grade, Lesson.id, Teachers.status).group_by(Teachers.id, Teachers.name, Teachers.status,
+        return query.order_by(Teachers.id).group_by(Teachers.id, Teachers.name, Teachers.status,
                                                                                       Lesson.id, Lesson.lesson,
                                                                                       Class_room.id, Class_room.class_room,
-                                                                                      Teacher_info.tel, Teacher_info.email, Teacher_info.add, sub_query.c.grade
+                                                                                      Teacher_info.tel, Teacher_info.email, Teacher_info.add
                                                                                       ).all()  
 
     def get_info(self, data: dict):

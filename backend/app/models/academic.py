@@ -1,7 +1,6 @@
 from app.extensions import db
 from sqlalchemy import UniqueConstraint
 from sqlalchemy.orm import validates
-from datetime import datetime
 from datetime import date
 
 class Class_room(db.Model):
@@ -29,25 +28,15 @@ class Schedule(db.Model):
     teacher_id = db.Column(db.Integer, db.ForeignKey('teachers.id', ondelete = 'CASCADE'))
     lesson = db.relationship('Lesson', back_populates = 'schedule', lazy = True)
     period = db.relationship('Period', back_populates = 'schedule', lazy = True)
-    attendence = db.relationship('Attendence', back_populates = 'schedule', lazy = True)
     teachers = db.relationship('Teachers', back_populates = 'schedule', lazy = True)
-    __table_args__ = (UniqueConstraint('class_room_id', 'period_id', 'day_of_week', 'lesson_time', name = 'cls_period_day_les_uniq'),
-                      UniqueConstraint('teacher_id', 'period_id', 'day_of_week', 'lesson_time', name='tea_per_day_les_uniq'),)
-
-class Notification(db.Model):
-    __tablename__ = 'notification'
-    id = db.Column(db.Integer, primary_key = True)
-    user_id = db.Column(db.Integer, db.ForeignKey('users.id', ondelete = 'CASCADE'))
-    title = db.Column(db.String)
-    message = db.Column(db.Text)
-    type = db.Column(db.String)
-    is_read = db.Column(db.Boolean, default = False)
-    created_at = db.Column(db.DateTime, default = datetime.utcnow)
+    __table_args__ = (UniqueConstraint('period_id', 'class_room_id', 'day_of_week', 'lesson_time', name='schedule_uniq'),
+                      UniqueConstraint('period_id', 'day_of_week', 'lesson_time', 'teacher_id', name='schedule_teacher_uniq'))
 
 class Semester(db.Model):
     __tablename__ = 'semester'
     id = db.Column(db.Integer, primary_key = True)   
     semester = db.Column(db.String(5), nullable = False)
+    weight = db.Column(db.Integer)
     is_active = db.Column(db.Boolean, default = False)
 
 class Period(db.Model):
@@ -57,6 +46,7 @@ class Period(db.Model):
     semester_id = db.Column(db.Integer, db.ForeignKey('semester.id', ondelete = 'CASCADE'), nullable = False)
     student_lesson_period = db.relationship('Student_Lesson_Period', back_populates = 'period', lazy = True)
     schedule = db.relationship('Schedule', back_populates = 'period', lazy = True)
+    attendence = db.relationship('Attendence', back_populates = 'period', lazy = True)
 
 class Teach_class(db.Model):
     __tablename__ = 'teach_class'
@@ -84,6 +74,7 @@ class Lesson(db.Model):
     student_lesson_annual = db.relationship('Student_Lesson_Annual', back_populates = 'lesson', lazy = True)
     schedule = db.relationship('Schedule', back_populates = 'lesson', lazy = True)
     lessontag = db.relationship('LessonTag', back_populates = 'lesson', lazy = True)
+    retest = db.relationship('Retest', back_populates = 'lesson', lazy = True)
 
 class LessonTag(db.Model):
     __tablename__ = 'lessontag'
@@ -92,7 +83,6 @@ class LessonTag(db.Model):
     is_folder = db.Column(db.Boolean)
     is_visible = db.Column(db.Boolean,)
     is_schedule = db.Column(db.Boolean)
-    is_homeroom_teacher = db.Column(db.Boolean)
     lesson = db.relationship('Lesson', back_populates = 'lessontag', lazy = True)
 
 class Grade(db.Model):
@@ -140,12 +130,6 @@ class Score(db.Model):
             raise ValueError('Attempt không hợp lệ!')
         
         return value
-    
-    # @validates('score_type')
-    # def score_type_validates(self, key, value):
-    #     if value not in [1, 2, 3]:
-    #         raise ValueError('Hệ số không hợp lệ!')
-    #     return value
 
 class Score_Type(db.Model):
     __tablename__ = 'score_type'
@@ -155,7 +139,16 @@ class Score_Type(db.Model):
     max_count = db.Column(db.Integer, default = 1)
     score = db.relationship('Score', back_populates = 'score_type', lazy = True)
     
-    
+class Retest(db.Model):
+    __tablename__ = 'retest'
+    id = db.Column(db.Integer, primary_key = True)
+    student_id = db.Column(db.Integer, db.ForeignKey('students.id', ondelete = 'CASCADE'), nullable = False)
+    lesson_id = db.Column(db.Integer, db.ForeignKey('lesson.id', ondelete = 'CASCADE'), nullable = False)
+    year_id = db.Column(db.Integer, db.ForeignKey('year.id', ondelete = 'CASCADE'), nullable = False)
+    retest_score = db.Column(db.Float)
+    students = db.relationship('Students', back_populates = 'retest', lazy = True)
+    lesson = db.relationship('Lesson', back_populates = 'retest', lazy = True)
+    __table_args__ = (UniqueConstraint('student_id', 'lesson_id', 'year_id', name='stu_les_yea_uniq'),)
 
 
 

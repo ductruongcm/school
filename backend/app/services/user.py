@@ -12,6 +12,7 @@ class UserService:
         self.user_repo = self.repo.user
         self.user_validation = User_Validation(db, repo)
 
+
     def new_student_data_for_user(self, student_code):
         #Create username/password/role
         password = generate_password(length=8)
@@ -27,17 +28,6 @@ class UserService:
         user_data = {'username': data['username'],
                      'password': generate_password_hash(password),
                      'role': 'Teacher'}
-        return user_data
-
-    def new_admin_data_for_user(self, data):
-        self.user_validation.validate_password(data)
-        password = generate_password_hash(data['password'])
-
-        user_data = {'username': data['username'],
-                     'password': password,
-                     'role': 'admin'
-                     }
-        
         return user_data
 
     def handle_add_user(self, data):
@@ -126,6 +116,8 @@ class UserService:
         self.user_repo.set_password({'password': generate_password_hash(data['password']), 'user_id': user.user_id})
         self.db.session.commit()
         return user
+    
+
 
   
         

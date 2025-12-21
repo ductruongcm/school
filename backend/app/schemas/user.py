@@ -93,6 +93,7 @@ class StudentSchemas:
         lesson: List['StudentSchemas.StudentItem']
         note: str
         absent_day: Optional[int]
+        transfer_info: str
         
         @field_validator('bod', 'absent_day', mode='before')
         def bod_cls_room_validate(cls, v):
@@ -159,11 +160,42 @@ class StudentSchemas:
         class_room_id: Optional[int] = Field(default=None)
         lesson_id: Optional[int] = Field(default=None)
         grade: Optional[int] = Field(default=None)
+        learning_status: Optional[str] = Field(default=None)
+        status: Optional[str] = Field(default=None)
+
+        @field_validator('class_room_id', 'lesson_id', 'grade', mode='before')
+        def validate_id(cls, v):
+            if v in ['', 'null', None]:
+                return None
+            return v
+        
+        @field_validator('learning_status')
+        def validate_learning_status(cls, v):
+            if v not in ['', 'Tốt', 'Khá', 'Đạt', 'Chưa đạt']:
+                raise ValueError('Learning_status không hợp lệ!')
+            return v
+        
+        @field_validator('status')
+        def validate_status(cls, v):
+            if v not in ['', 'Lên lớp', 'Lưu ban', 'Thi lại']:
+                raise ValueError('Status không hợp lệ!')
+            return v
 
     class StudentTransferClass(BaseModel):
         student_id: int
         year_id: int
         class_room_id: int
+
+    # class StudentShowForBadScores(BaseModel):
+    #     year_id: int
+    #     semester_id: int
+    #     class_room_id: Optional[int] = Field(default=None)
+
+    #     @field_validator('class_room_id', mode='before')
+    #     def validate_class_room_id(cls, v):
+    #         if v in ['', 'null', None]:
+    #             return None
+    #         return v
 
     class StudentUpdate(BaseModel):
         student_id: int
@@ -216,7 +248,7 @@ class StudentSchemas:
 
         @field_validator('status')
         def status_validate(cls, v):
-            if v not in ['Chờ xét duyệt', 'Chờ xếp lớp', '', 'Lên lớp', 'Lưu ban', 'Bảo lưu']:
+            if v not in ['', 'Lên lớp', 'Lưu ban', 'Bảo lưu']:
                 return ValueError('Status không hợp lệ!')
             return v
 
@@ -336,6 +368,7 @@ class TeacherSchemas:
         add: Optional[str] = None
         email: Optional[EmailStr] = None
         year_id: int
+        semester_id: int
 
         @field_validator('name')
         def name_validator(cls, v):

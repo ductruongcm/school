@@ -38,22 +38,6 @@ class Password(BaseModel):
         
         return v
 
-class Register(Username, Password):
-    name: str 
-    tel: str
-    email: EmailStr
-    add: str
-
-    @field_validator('name')
-    def name_validator(cls, v):
-        if not v:
-            raise ValueError('Chưa nhập tên!')
-        
-        elif not re.fullmatch(r"^[^\W\d_]+(?:\s[^\W\d_]+)*$", v, flags=re.UNICODE):
-            raise ValueError("Tên không được chứa số và ký tự đặc biệt!")
-   
-        return v
-
 class Tmp_token(BaseModel):
     token: str
 
@@ -74,5 +58,15 @@ class Login(Username):
 class SetPassword(Password):
     token: str
     user_id: int
+
+class Role(BaseModel):
+    role: str
+
+    @field_validator('role')
+    def validate_role(cls, v):
+        if v not in ['admin', 'Teacher', 'Student']:
+            raise ValueError('Role không hợp lệ!')
+        
+        return v
 
     

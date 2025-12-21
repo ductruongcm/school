@@ -154,10 +154,8 @@ class AcademicSchemas:
                 raise ValueError('Dữ liệu không hợp lệ!')
             return v
         
-    class Attendence(BaseModel):
-        class_room_id: int
+    class Attendence(YearID, SemesterID):
         day: date
-        lesson_time: int
         students: List['AcademicSchemas.AttendenceItem']
 
     class Scores(Semester, SemesterID):
@@ -318,7 +316,7 @@ class AcademicShowSchemas:
             return v
         
     class GradeShow(BaseModel):
-        grade_status: Optional[bool] = None
+        grade_status: Optional[bool] = Field(default=None)
 
         @field_validator('grade_status', mode='before')
         def grade_validator(cls, v):
@@ -344,6 +342,7 @@ class AcademicShowSchemas:
 
     class Schedule(YearId, SemesterId):
         class_room_id: Optional[int] = Field(default=None)
+        day: Optional[date] = Field(default_factory=date.today)
 
         @field_validator('class_room_id', mode='before')
         def validate_class_id(cls, v):
@@ -351,6 +350,9 @@ class AcademicShowSchemas:
                 return
             
             return v
+        
+    class ClassInfoForDashboard(YearId, SemesterId):
+        day: Optional[date] = Field(default_factory=date.today)
 
     class ScheduleForDashBoard(YearId, SemesterId):
         pass
@@ -477,19 +479,19 @@ class AcademicUpdateSchemas:
         def validate_scores(cls, v):
             for score_type_id, attempts in v.items():
                 for attempt, score in attempts.items():
-                    try:
-                        if score == '':
-                            attempts[attempt] = None
-                        
-                        else:
-                            score = float(score)
+                    if score == '':
+                        attempts[attempt] = None
 
-                            if not (0 <= score <= 10):
-                                raise ValueError('Điểm sổ nằm trong dãy từ 0 đến 10!')
+                    try:
+                        score = float(score)
                             
-                            attempts[attempt] = score
                     except:
                         raise ValueError('Điểm số phải là số!')
+                    
+                    if 0 > score or score > 10:
+                        raise ValueError('Điểm sổ nằm trong dãy từ 0 đến 10!')
+                            
+                    attempts[attempt] = score
                     
             return v
         
@@ -532,12 +534,67 @@ class AcademicUpdateSchemas:
             return v
 
     class SummaryPeriod(BaseScores):
-        students : List
+        students : List['AcademicUpdateSchemas.SummaryItem']
+
+        @validator('students')
+        def validate_students(cls, v):
+            for item in v:
+                if item.conduct in ['', None]:
+                    raise ValueError('Chưa đánh giá hạnh kiểm học sinh đầy đủ!')
+                
+                if item.absent_day in ['', None]:
+                    item.absent_day = 0
+
+                elif item.absent_day < 0:
+                    raise ValueError('Số ngày nghỉ không hợp lệ!')
+
+            return v
+
+    class SummaryItem(BaseModel):
+        student_id: int
+        absent_day: Optional[int]
+        conduct: Optional[bool]
+        note: Optional[str]
+        status: Optional[str]
         
     class SummaryLessonPeriod(BaseScores):
         lesson_id: int
         semester_id: int
 
     class SummaryYear(BaseModel):
-        students : List
+        students : List['AcademicUpdateSchemas.SummaryItem']
         class_room_id: int
+        
+        @validator('students')
+        def validate_students(cls, v):
+            for item in v:
+                if item.conduct in ['', None]:
+                    raise ValueError('Chưa đánh giá hạnh kiểm học sinh đầy đủ!')
+                
+                if item.absent_day in ['', None]:
+                    item.absent_day = 0
+
+                elif item.absent_day < 0:
+                    raise ValueError('Số ngày nghỉ không hợp lệ!')
+
+            return v
+
+    class RetestScoreItem(BaseModel):
+        score: float
+
+        @field_validator('score')
+        def validate_score(cls, v):
+            try:
+                v = float(v)
+
+            except:
+                raise ValueError('Điểm số phải là số')
+            
+            if v < 0 or v > 10:
+                raise ValueError('Điểm số trong phạm từ 0 đến 10!')
+
+            return v
+            
+    class RetestScore(BaseModel):
+        student_id: int
+        lessons: Dict[int, 'AcademicUpdateSchemas.RetestScoreItem']

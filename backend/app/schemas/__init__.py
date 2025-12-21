@@ -1,4 +1,4 @@
-from .auth import Register, Login, SetPassword, Username, Password, Tmp_token
+from .auth import Login, SetPassword, Username, Password, Tmp_token, Role
 from .user import TeacherSchemas, UserSchemas, StudentSchemas
 from .academic import AcademicShowSchemas, AcademicSchemas, AcademicUpdateSchemas
 from pydantic import ValidationError

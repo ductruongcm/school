@@ -225,6 +225,10 @@ def update_score_types(validated_data):
     msg = f"Đã cập nhật lại điểm số!"
     return ResponseBuilder.put(msg)
 
-
-
+@academic_bp.get('/summary/years/<int:id>/me')
+@jwt_required()
+def get_summary_for_me_by_year(id):
+    result = academic_show_service.handle_show_summary_for_me_by_year(id, get_jwt().get('id'))
+    msg = 'Không tìm thấy dữ liệu!'   
+    return ResponseBuilder.get(msg, result)
 

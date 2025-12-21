@@ -36,7 +36,6 @@ def show_teacher(validated_data):
 @with_log(True)
 @validate_input(TeacherSchemas.TeacherUpdateSchema)
 def update_info(id: int, validated_data):
-    print(validated_data)
     validated_data['teacher_id'] = id
     result = teacher_workflow.process_update_teacher(validated_data)
     msg = f'Đã cập nhật lại thông tin của giáo viên {result.name}!'

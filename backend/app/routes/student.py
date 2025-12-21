@@ -2,7 +2,7 @@ from flask import Blueprint
 from app.utils import required_role, validate_input, with_log, ResponseBuilder
 from flask_jwt_extended import jwt_required, get_jwt
 from app.services import StudentServices, Student_Workflow, Academic_Student_Service
-from app.schemas import StudentSchemas
+from app.schemas import StudentSchemas, AcademicUpdateSchemas
 from app.extensions import db
 from app.repositories import Repositories
 
@@ -110,3 +110,51 @@ def get_students_for_semester_summary(id, validated_data):
     result = academic_student_service.handle_show_student_for_semester_summary(validated_data)
     msg = 'Không tìm thấy thông tin!'
     return ResponseBuilder.get(msg, result)
+
+@student_bp.get('scores/students/weak')
+@jwt_required()
+@required_role('admin', 'Teacher')
+# @validate_input(StudentSchemas.StudentShowForBadScores)
+@validate_input(StudentSchemas.StudentShowForScores)
+def get_weak_students(validated_data):
+    result = academic_student_service.handle_show_weak_students(validated_data)
+    msg = 'Không tìm thấy thông tin!'
+    return ResponseBuilder.get(msg, result)
+
+@student_bp.get('years/<int:id>/students/summary/result')
+@jwt_required()
+@required_role('admin', 'Teacher')
+@validate_input(StudentSchemas.StudentShowForScores)
+def get_summary_result_for_class(id, validated_data):
+    validated_data['year_id'] = id
+    result = academic_student_service.handle_show_summary_result_for_class(validated_data)
+    msg = 'Không tìm thấy thông tin!'
+    return ResponseBuilder.get(msg, result)
+
+@student_bp.get('years/<int:id>/students/retest')
+@jwt_required()
+@required_role('admin', 'Teacher')
+@validate_input(StudentSchemas.StudentShowForScores)
+def get_students_for_retest(id, validated_data):
+    validated_data.update({'user_id': get_jwt().get('id'),
+                           'year_id': id})
+    result = academic_student_service.handle_show_students_for_retest(validated_data)
+    msg = 'Không tìm thấy thông tin!'
+    return ResponseBuilder.get(msg, result)
+
+@student_bp.put('years/<int:id>/students/retest')
+@jwt_required()
+@required_role('admin', 'Teacher')
+@validate_input(AcademicUpdateSchemas.RetestScore)
+def set_score_for_retest(id, validated_data):
+    academic_student_service.handle_add_score_to_retest_for_student(validated_data, id, get_jwt().get('id'))
+    msg = "Đã thêm điểm thi lại cho học sinh!"
+    return ResponseBuilder.put(msg)
+
+@student_bp.put('years/<int:id>/summary/retest')
+@jwt_required()
+@required_role('admin', 'Teacher')
+def summary_retest_by_year(id):
+    academic_student_service.handle_summary_retest_by_year(id)
+    msg = 'Đã tổng kết điểm thi lại!'
+    return ResponseBuilder.put(msg)

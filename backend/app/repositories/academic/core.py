@@ -73,11 +73,11 @@ class AcademicGetRepo(BaseRepo):
     
     def get_teaching_class_by_class_room_year_general_folder(self, data):
         return (self.db.session.query(Teach_class)
-                .join(LessonTag, LessonTag.lesson_id == Teach_class.lesson_id)
-                .filter(Teach_class.year_id == data['year_id'],
-                        Teach_class.class_room_id == data['class_room_id'],
-                        LessonTag.is_folder == True, 
-                        LessonTag.is_visible == False).scalar())
+                                    .join(LessonTag, LessonTag.lesson_id == Teach_class.lesson_id)
+                                    .filter(Teach_class.year_id == data['year_id'],
+                                            Teach_class.class_room_id == data['class_room_id'],
+                                            LessonTag.is_folder == True, 
+                                            LessonTag.is_visible.isnot(True)).scalar())
     
     def get_general_folder_id(self):
         return self.db.session.query(Lesson.id).join(Lesson.lessontag).filter(LessonTag.is_folder == True, 
@@ -104,6 +104,9 @@ class AcademicGetRepo(BaseRepo):
     
     def get_period_ids_by_year(self, data):
         return self.db.session.scalars(select(Period.id).filter(Period.year_id == data['year_id'])).all()
+    
+    def get_class_rooms_by_year(self, data):
+        return self.db.session.scalars(select(Class_room.class_room).filter(Class_room.year_id == data['year_id']).order_by(Class_room.id)).all()
 
 class AcademicAddRepo(BaseRepo):
     def insert_year(self, data: dict):
@@ -133,7 +136,6 @@ class AcademicAddRepo(BaseRepo):
         new_lesson.lessontag = [LessonTag(**fields)]
         self.db.session.add(new_lesson)
 
-        self.db.session.flush()
         return new_lesson
 
     def insert_class_room(self, data: dict):
@@ -249,3 +251,14 @@ class AcademicShowRepo(BaseRepo):
         return self.db.session.query(Score_Type.id, 
                                      Score_Type.score_type,
                                      Score_Type.weight).all()
+    
+    def get_summary_for_me_by_year(self, year_id, user_id):
+        return (self.db.session.query(Student_Year_Summary.conduct,
+                                     Student_Year_Summary.absent_day,
+                                     Student_Year_Summary.score,
+                                     Student_Year_Summary.status,
+                                     Student_Year_Summary.learning_status)
+                                     .join(Students, Student_Year_Summary.student_id == Students.id)
+                                     .filter(Student_Year_Summary.year_id == year_id,
+                                             Students.user_id == user_id).first())
+
