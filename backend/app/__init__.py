@@ -7,8 +7,6 @@ from .routes import routes
 from .exceptions import register_error_handler_with_log
 
 def launch():
-    # logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
-
     global celery
     app = Flask(__name__)
     app.config.from_object(Configs)
@@ -23,17 +21,5 @@ def launch():
         app.register_blueprint(route)
     
     register_error_handler_with_log(app, db)
-
-
-    # @app.before_request
-    # def before_request():
-    #     # Ghi lại thời điểm bắt đầu mỗi request
-    #     request.start_time = time.time()
-
-    # @app.after_request
-    # def after_request(response):
-    #     duration = time.time() - request.start_time
-    #     print(f"{request.method} {request.path} took {duration:.3f}s")
-    #     return response
 
     return app

@@ -46,7 +46,7 @@ class Dashboard_Service:
         result_df = info_df.merge(ranking_count_df, on = 'class_room_id', how='left').replace({np.nan: None})
 
         result = result_df.to_dict(orient='records')
-        print(result_df)
+
         return result
     
     def handle_show_summary_info_by_year(self, data):
@@ -59,5 +59,5 @@ class Dashboard_Service:
         result = self.dashboard_repo.get_report_of_year_summary_result(data)
         keys = ['total', 'graduation', 'upgrade', 'failure', 'retest', 'good', 'fair', 'avg', 'new', 'transfer']
         output = dict(zip(keys, result))
-        print(output)
+
         return output

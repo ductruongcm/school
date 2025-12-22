@@ -21,7 +21,6 @@
             Đăng ký vào danh sách giáo viên 
         </label> <br>
         <button @click.prevent="addLesson">Thêm Môn học</button>    
-        <button @click.prevent="createLessonClass">Tạo bảng Môn học và Lớp</button>
         <button v-if="!editing" @click.prevent="edit">Cài đặt môn học</button>
         <button v-else @click.prevent="saveEdit">Xác nhận</button>
         <button v-if="editing" @click.prevent="editing = false">Hủy</button>
@@ -102,14 +101,6 @@ const addLesson = async () => {
             resultMsg.value = e.response.data.msg
         }
     }
-}
-
-const createLessonClass = async () => {
-    const payload = {year_id: yearStore.year.id}
-    const res = await axios.post('api/academic/relation/lessons-class', payload, {
-        withCredentials: true
-    })
-    resultMsg.value = res.data.msg
 }
 
 const lessonList = ref([])

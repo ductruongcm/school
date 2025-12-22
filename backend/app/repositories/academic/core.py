@@ -84,11 +84,11 @@ class AcademicGetRepo(BaseRepo):
                                                                               LessonTag.is_visible == False).scalar()
     
     def get_class_lessons_by_year(self, data):
-        return (self.db.session.query(Class_room.id, Lesson.id)
-                               .join(Lesson, Class_room.grade >= Lesson.grade)
-                               .join(Lesson.lessontag)
-                               .filter(Class_room.year_id == data['year_id'],
-                                       LessonTag.is_folder == True).all())
+        return (self.db.session.scalars(select(func.jsonb_build_object('class_room_id', Class_room.id, 'lesson_id', Lesson.id, 'year_id', Class_room.year_id))
+                                                            .join(Lesson, Class_room.grade >= Lesson.grade)
+                                                            .join(Lesson.lessontag)
+                                                            .filter(Class_room.year_id == data['year_id'],
+                                                                    LessonTag.is_folder == True)).all())
     
     def get_lessons_by_grade_and_is_visible(self, data):
         rows = self.db.session.query(func.jsonb_build_object(Lesson.id, Lesson.lesson)).join(LessonTag.lesson).filter(Lesson.grade <= data['grade'],

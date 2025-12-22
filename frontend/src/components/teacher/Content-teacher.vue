@@ -1,29 +1,51 @@
 <template>
-    <div>
-        <label>Danh sách Giáo viên</label>
-        <label> - Niên Khóa </label>
-        <select v-model="selectedYear">
-            <option :value="yearList[0]?.id">{{ yearList[0]?.year }}</option>
-            <option value="">Toàn bộ</option>
-            <option v-for="year in yearList" :key="year.id" :value="year.id">{{ year.year }}</option>
-        </select>
+    <div style="display: flex; gap: 1em;">
+        <div>Danh sách Giáo viên</div>
+        <div v-if="userStore.userInfo.role === 'admin'">
+            Niên Khóa 
+            <select v-model="selectedYear">
+                <!-- <option value="">Toàn bộ</option> -->
+                <option v-for="year in yearList" :key="year.id" :value="year.id">{{ year.year }}</option>
+            </select>
+        </div>
+        <div v-else>
+            Niên Khóa {{ yearStore.year.year }}
+        </div>
     </div>
 
     <div class="main">
         <div>
-            <form @submit.prevent="fetchdata">
-                <label> Tìm theo tên: </label>
-                <input v-model="filterName" placeholder="Nhập tên giáo viên">
-                <label> Tìm theo môn học: </label>
-                <input type="text" v-model="lessonSearch" placeholder="Nhập môn học">
-                <label> Tìm theo lớp: </label>
-                <input type="text" v-model="classSearch" placeholder="Nhập tên lớp">
-                <label> Khối lớp: </label>
-                <select v-model="selectedGrade">
-                    <option value="" disabled>--Chọn khối--</option>
-                    <option value="">Toàn bộ</option>
-                    <option v-for="grade in gradeList" :key="grade.id" :value="grade.id">Khối lớp {{ grade.grade }}</option>
-                </select>
+            <form @submit.prevent="fetchdata" style="display: flex; gap: 1em;">
+                <label> 
+                    Tìm theo tên: <input style="width: 9em;" v-model="filterName" placeholder="Nhập tên giáo viên"> 
+                </label>
+                
+                <label> 
+                    Tìm theo môn học: <input style="width: 7em;"  type="text" v-model="lessonSearch" placeholder="Nhập môn học">
+                </label>
+                
+                <label> 
+                    Tìm theo lớp: <input style="width: 6em;"  type="text" v-model="classSearch" placeholder="Nhập lớp học">
+                </label>
+                
+                <label> 
+                    Khối lớp: 
+                    <select v-model="selectedGrade">
+                        <option value="" disabled>--Chọn khối--</option>
+                        <option value="">Toàn bộ</option>
+                        <option v-for="grade in gradeList" :key="grade.grade" :value="grade.grade">Khối lớp {{ grade.grade }}</option>
+                    </select>
+                </label>
+                <label v-if="userStore.userInfo.role === 'admin'">
+                    Trạng thái:
+                    <select v-model="selectedStatus">
+                        <option value="" disabled>--Chọn--</option>
+                        <option value="">Toàn bộ</option>
+                        <option :value="true">Hiện</option>
+                        <option :value="false">Ẩn</option>
+                    </select>
+                </label>
+
                 <button>Tìm kiếm</button>
                 <button type="button" @click="onReset">Nhập lại</button>
             </form>
@@ -42,7 +64,7 @@
                         <th style="width: 15em;">Địa chỉ</th>
                         <th style="width: 13em;">Email</th>
                         <th style="width: 8em;" v-if="userStore.userInfo.role === 'admin'">Trạng thái</th>
-                        <th style="width: 8em;">Thao tác</th>
+                        <th style="width: 8em;" v-if="userStore.userInfo.role === 'admin'">Thao tác</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -65,19 +87,18 @@
         </div>
     </div>
     <ContentEditTeacher 
-    v-if="editPopup"
+    v-if="editPopup && selectedItem"
     :data="selectedItem"
     @save="updateTeacher"
-    @close="editPopup=false"
-    v-model:visible="editPopup"
-  
+    @close="editPopup = false"
     />
 </template>
 <script setup>
 import { ref, onMounted } from 'vue';
 import axios from 'axios';
-import useUserStore from '../../stores/user';
+import { useUserStore } from '../../stores/user';
 import { message } from '../../stores/usePopup';
+import { userYearStore } from '../../stores/yearStore';
 
 const teacherList = ref([])
 const teacherSearchMsg = ref('')
@@ -85,22 +106,24 @@ const lessonSearch = ref('')
 const classSearch = ref('')
 const filterName = ref('')
 const userStore = useUserStore()
-
+const yearStore = userYearStore()
 onMounted(() => {
     fetchdata()
     fetchGradeData()
     fetchYearData()
 })
 
+const selectedStatus = ref(true)
 const fetchdata = async () => {
     try {
-        const res = await axios.get('api/me/teachers', {
+        const res = await axios.get('api/teachers', {
             params: {
                 year_id: selectedYear.value,
                 grade: selectedGrade.value,
                 lesson: lessonSearch.value,
                 class_room: classSearch.value,
-                name: filterName.value
+                name: filterName.value,
+                status: selectedStatus.value
             },
             withCredentials: true
         })     
@@ -120,7 +143,7 @@ const fetchdata = async () => {
 const selectedYear = ref('')
 const yearSearch = ref('')
 const yearList = ref([])
-
+selectedYear.value = yearStore.year.id
 const fetchYearData = async () => {
     const res = await axios.get('api/academic/years', {
         withCredentials: true,
@@ -139,7 +162,7 @@ const fetchGradeData = async () => {
         withCredentials: true,
         params: {
             grade: gradeSearch.value,
-            is_active: ''
+            grade_status: true
         }
     })
     gradeList.value = res.data.data
@@ -148,9 +171,10 @@ const fetchGradeData = async () => {
 const editPopup = ref(false)
 const selectedItem = ref(null)
 import ContentEditTeacher from './Content-editTeacher.vue';
+import { toRaw } from 'vue';
 const openPopup = (item) => {
-    selectedItem.value = JSON.parse(JSON.stringify(item))
-     editPopup.value = true
+    selectedItem.value = structuredClone(toRaw(item))
+    editPopup.value = true
 }
 
 const updateTeacher = async (msg) => {

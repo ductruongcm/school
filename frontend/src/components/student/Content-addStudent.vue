@@ -18,16 +18,19 @@
         <input style="width: 23em;" type="text" v-model="add"> <br>
         <button type="submit">Đăng ký</button> <br>
         <div>Lịch sử học tập năm trước: 
-            <select v-model="prev_year">
+            <select v-model="selectedYear">
                 <option value="">Chọn niên khóa</option>
-                <option v-for="y in yearCode" :key="y.id" :value="y.id">{{ y.year_code }}</option>
+                <option v-for="y in yearList" :key="y.id" :value="y.id">{{ y.year }}</option>
             </select>
+            (Lưu ý: niên khóa đúng với lịch sử học tập của học sinh!!!)
         </div> 
         <label>Khối lớp: </label>
         <select v-model="selectedGrade" @change="onGradeChange">
             <option value="" disabled>-- Chọn khối --</option>
             <option v-for="grade in gradeList" :key="grade.id" :value="grade.grade">Khối {{ grade.grade }}</option>
         </select> 
+        <label> Thông tin chuyển trường: </label>
+        <input type="text" style="width: 38em;" v-model="transferInfo"> <br>
         <label> Hạnh kiểm: </label>
         <select v-model="conduct">
             <option value="" disabled>-- Chọn --</option>
@@ -36,7 +39,7 @@
         </select>
         <label> Chuyên cần: </label>
         <input style="width: 5em;" v-model="absent_day" type="number" required min="0">
-        <label> Ghi chú: </label>
+        <label> Nhận xét cuối cấp: </label>
         <input v-model="note" style="width: 30em;" type="text">
         <table>
             <thead>
@@ -76,11 +79,12 @@ const selectedGrade = ref('')
 const conduct = ref('')
 const absent_day = ref('')
 const note = ref('')
-const prev_year = ref('')
+const transferInfo = ref('')
+const selectedYear = ref('')
 const addStudent = async () => {
     const payload = {
         name: name.value,
-        year_id: prev_year.value,
+        year_id: selectedYear.value,
         year: yearStore.year.year,                                  // quan trọng: để làm student code
         tel: tel.value,
         add: add.value,
@@ -90,9 +94,10 @@ const addStudent = async () => {
         conduct: conduct.value,
         absent_day: absent_day.value,
         lesson: lessonList.value,
+        transfer_info: transferInfo.value,
         note: note.value
     }
-    console.log(payload)
+
     try {const res = await axios.post('/api/students', payload, { 
             withCredentials: true,
             headers: {'Content-Type': 'application/json'}
@@ -112,7 +117,7 @@ const addStudent = async () => {
 
 onMounted( () => {
     fetchGradeData()
-    fetchYearCode()
+    fetchYear()
 })
 
 const gradeSearch = ref('')
@@ -135,12 +140,16 @@ const fetchLessonData = async () => {
     })
     lessonList.value = res.data.data
 }
-const yearCode = ref([])
-const fetchYearCode = async () => {
-    const res = await axios.get('api/academic/prev-year-code', {
-        withCredentials: true
-    })
-    yearCode.value = res.data.data
+const yearSearch = ref('')
+const yearList = ref([])
+const fetchYear = async () => {
+  const res = await axios.get('api/academic/years', {
+    params: {
+      year: yearSearch.value,
+      is_active: ''
+    }
+  })
+  yearList.value = res.data.data
 }
 
 const onGradeChange = async () => {

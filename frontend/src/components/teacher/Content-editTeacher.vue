@@ -1,6 +1,6 @@
 <template>
   <transition name="fade">
-    <div v-if="visible" class="backdrop" @click.self="close">
+    <div class="backdrop" @click.self="close">
       <div class="popup">
         <h3>Điều chỉnh thông tin giáo viên</h3>
         <label>Họ và tên: </label>
@@ -53,6 +53,7 @@
         </div> 
         <div>{{ resultMsg }}</div>
         <div class="actions">
+          <button @click="resetPassword">Gửi lại mật khẩu</button>
           <button @click="status">Hiện/Ẩn</button>
           <button @click="save">Lưu</button>
           <button @click="close">Đóng</button>
@@ -66,20 +67,20 @@
 import { ref, onMounted, toRaw } from 'vue'
 import axios from 'axios'
 import { userYearStore } from '../../stores/yearStore'
+import { useSemesterStore } from '../../stores/semesterStore'
 
 const yearStore = userYearStore()
-
+const semesterStore = useSemesterStore()
 const props = defineProps({
   data: {
     type: Object,
     default: () => ({})
-  },
-  visible: Boolean // nhận prop từ cha
+  }
 })
-const emit = defineEmits(['update:visible', 'save'])
+const emit = defineEmits(['close', 'save'])
 
 function close() {
-  emit('update:visible', false)
+  emit('close')
 }
 
 onMounted(() => {
@@ -110,7 +111,7 @@ const fetchLessonData = async () => {
 const homeClassList = ref(null)
 const class_roomSearch = ref('')
 const fetchClassList = async () => {
-  const res = await axios.get(`api/academic/years/${yearStore.year.id}/class-rooms`, {
+  const res = await axios.get(`api/academic/years/${yearStore.year.id}/me/class-rooms`, {
     withCredentials: true,
     params: {
       grade: selectedGrade.value,
@@ -153,8 +154,10 @@ const fetchTeachClassData = async () => {
   })
   teachClassList.value = res.data.data
   leftList.value = teachClassList.value.filter(item => item.teacher_id === null)
+  // console.log(props.data.teach_room_ids)
   if (props.data.lesson_id === original.lesson_id) {
-    rightList.value = teachClassList.value.filter(item => props.data.teach_room_ids.includes(item.class_room_id))
+    const teach_room_ids = props.data.teach_room_ids.map(Number)
+    rightList.value = teachClassList.value.filter(item => teach_room_ids.includes(item.class_room_id))
   } else {
     rightList.value = []
   }
@@ -177,10 +180,9 @@ const save = async () => {
   const changedEntries = Object.entries(data)
     .filter(([k, v]) => v !== original[k]).filter(Boolean) // chỉ lấy field bị thay đổi
 
-  if (changedEntries.length === 0) return null;
-
   const payload = {
     ...Object.fromEntries(changedEntries), 
+    semester_id: semesterStore.semester.semester_id,
     year_id: yearStore.year.id,
     lesson_id: data.lesson_id,
     teach_class: newIds.value
@@ -207,13 +209,14 @@ const save = async () => {
   }
 }
 
-
-
-
-
-
-
-
+const resetPassword = async () => {
+    const res = await axios.post(`api/teachers/${props.data.id}/password/reset-email`, {
+        withCredentials: true
+    })
+    editMSG.value = res.data.msg
+    emit('save', resultMsg.value)
+    close()
+}
 
 </script>
 

@@ -4,16 +4,24 @@
         <div style="display: flex; gap: 1rem; align-items: center;">
             <div >
                 <label>
-                    <input type="radio" name="action" v-model="assignStatus" :value="false" @change="studentList = []">
-                    Danh sách chờ xếp lớp
+                    <input type="radio" name="action" @change="forApproval">
+                    Danh sách chờ xét duyệt 
                 </label>
 
                 <label> 
-                    <input type="radio" name="action" v-model="assignStatus" :value="true" @change="studentList = []">
-                    Danh sách đã xếp lớp 
+                    <input type="radio" name="action" @change="forAssignment">
+                    Danh sách đã xét duyệt
                 </label>
             </div>
             <div>
+                <label>
+                    Năm học
+                    <select v-model="selectedYear">
+                        <option value="">--Chọn năm học--</option>
+                        <option v-for="y in yearList" :key="y.id" :value="y.id">{{ y.year }}</option>
+                    </select>
+                </label>
+
                 <label>
                     Khối lớp
                     <select v-model="selectedGrade">
@@ -22,11 +30,20 @@
                     </select>
                 </label>
             </div>
+            <div v-if="!edit && selectedReviewStatus" >
+                <label>
+                    Kết quả
+                    <select v-model="selectedStatus">
+                        <option value="" disabled>--Kết quả--</option>
+                        <option value="Lên lớp">Lên lớp</option>
+                        <option value="Lưu ban">Lưu ban</option>
+                    </select>
+                </label>
+            </div>
             <div>
                 <button @click.prevent="fetchData">Lấy danh sách</button>
-                <button v-if="!assignStatus" @click.prevent="assignStudent">Xác nhận</button>
-                <button v-if="!edit && assignStatus" @click.prevent="edit = true">Điều chỉnh</button>
-                <button v-if="edit" @click.prevent="transferClass">Xác nhận</button>
+                <button v-if="!selectedReviewStatus || edit && selectedReviewStatus" @click.prevent="confirm">Xác nhận</button>
+                <button v-if="!edit && selectedReviewStatus" @click.prevent="edit = true">Điều chỉnh</button>
                 <button v-if="edit" @click.prevent="edit = false">Hủy</button>
             </div>
         </div>
@@ -41,10 +58,10 @@
                         <th style="width: 5em;">Điểm TB</th>
                         <th style="width: 6em;">Xếp loại</th>
                         <th style="width: 6em;">Hạnh kiểm</th>
-                        <th style="width: 6em;">Khối lớp</th>
+                        <th style="width: 6em;">Chuyên cần</th>
                         <th style="width: 5em;">Lớp học</th>
                         <th style="width: 18em;">Ghi chú</th>
-                        <th style="width: 5em;">Thao tác</th>
+                        <th style="width: 7em;">Kết quả</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -61,15 +78,16 @@
                             <span>{{ item.learning_status }}</span>
                         </td>
                         <td>{{ item.conduct ? 'Đạt' : 'Không đạt' }}</td>
-               
-                        <td>{{ item.class_room ? item.class_room : 'N/A'}}</td>
-                        <td>{{ item.status }}</td>
+                        <td>{{ item.absent_day }}</td>
+                        <td>{{ item.class_room_id ? item.class_room_id : 'N/A'}}</td>
                         <td>{{ item.note }}</td>
                         <td>
-                            <span v-if="!edit">{{ item.assign_class }}</span>
-                            <select v-if="edit || !assignStatus" v-model="item.class_room_id">
-                                <option :value="null" disabled>--Xếp lớp--</option>
-                                <option v-for="cls in classList" :key="cls.class_room_id" :value="cls.class_room_id">{{ cls.class_room }}</option>
+                            <span v-if="selectedReviewStatus && !edit">{{ item.status }}</span>
+                            <select v-if="!selectedReviewStatus || selectedReviewStatus && edit" v-model="item.status">
+                                <option :value="null">--Xét duyệt--</option>
+                                <option value="Lên lớp">Lên lớp</option>
+                                <option value="Lưu ban">Lưu ban</option>
+                                <option value="Bảo lưu">Bảo lưu</option>
                             </select>
                         </td>
                     </tr>
@@ -85,47 +103,33 @@ import { userYearStore } from '../../stores/yearStore';
 
 const resultMSG = ref('')
 const yearStore = userYearStore()
-
+const edit = ref(false)
 
 onMounted(() => {
     fetchGradeData()
+    fetchYearData()
 })
 
-const edit = ref(false)
-const original = ref('')
-const selectedStatus = ref('')
-const selectedStudent = ref([])
-const assignStudent = async () => {
-    const changedRows = studentList.value.filter(item => {
-        const origin = original.value.find(o => o.student_id === item.student_id)
-        return item.class_room_id !== origin.class_room_id
+const selectedYear = ref('')
+selectedYear.value = yearStore.year.id
+const yearList = ref([])
+const fetchYearData = async () => {
+    const res = await axios.get('api/academic/years', {
+        withCredentials: true,
+        params: {year: ''}
     })
-    .map(item => ({
-        class_room_id: item.class_room_id, 
-        student_id: item.student_id,
-       })) 
-    
-    if (changedRows.length === 0) return;
+    yearList.value = res.data.data
+}
 
-    const payload = {
-        student_assign_list: changedRows
-    }
-  
-        try {
-            const res = await axios.post(`api/years/${yearStore.year.id}/students/assignment`, payload, {
-                withCredentials: true,
-                headers: {'Content-Type': 'application/json'}
-            })
+const selectedStatus = ref('')
 
-            resultMSG.value = res.data.msg
-            fetchStudentData()
-            selectedStudent.value = []
+const forApproval = () => {
+    selectedStatus.value = ''
+    selectedReviewStatus.value = false
+}
 
-        } catch (e) {
-            if (e.response && [400,404,409,422,500].includes(e.response.status)) {
-                resultMSG.value = e.response.data.msg
-            }
-        }
+const forAssignment = () => {
+    selectedReviewStatus.value = true
 }
 
 const gradeSearch = ref('')
@@ -135,8 +139,7 @@ const fetchGradeData = async () => {
     const res = await axios.get('api/academic/grades', {
         withCredentials: true,
         params: {
-            grade: gradeSearch.value,
-            grade_status: true
+            grade: gradeSearch.value
         }
     })
     gradeList.value = res.data.data
@@ -146,28 +149,26 @@ const fetchData = () => {
     fetchStudentData()
 }
 
+const selectedReviewStatus = ref('')
 const studentList = ref([])
-const assignStatus = ref('')
 const fetchStudentData = async () => {
-    if (assignStatus.value === '' || selectedGrade.value === '') {
-        alert("Vui lòng chọn danh sách tìm kiếm và khối lớp trước khi lấy danh sách học sinh!")
+    if (selectedReviewStatus.value === '') {
+        alert("Vui lòng chọn danh sách tìm kiếm trước khi lấy danh sách học sinh!")
         return
-    }
-   
-    await fetchClassData()
+    } 
 
     try {
-        const res = await axios.get(`api/years/${yearStore.year.id}/students/assignment`, {
+        const res = await axios.get(`api/years/${selectedYear.value}/students/review`, {
             withCredentials: true,
             params: {
                 grade: selectedGrade.value,
-                assign_status: assignStatus.value,
+                review_status: selectedReviewStatus.value,
+                status: selectedStatus.value,
             }
         })
         studentList.value = []
         studentList.value = res.data.data
         original.value = JSON.parse(JSON.stringify(studentList.value))
-
     } catch (e) {
         if (e.response && [400,404,409,422,500].includes(e.response.status)) {
             resultMSG.value = e.response.data.msg
@@ -175,40 +176,21 @@ const fetchStudentData = async () => {
     }
 }
 
-const classList = ref([])
-const fetchClassData = async () => {
-    const res = await axios.get(`api/academic/years/${yearStore.year.id}/class-rooms/assignable`, {
-        withCredentials: true,
-        params: {
-            grade: selectedGrade.value,
-            status: selectedStatus.value
-        }
-    })
-    classList.value = res.data.data
-}
-
-const transferClass = async () => {
+const original = ref([])
+const confirm = async () => {
     const changeRows = studentList.value.filter(item => {
         const origin = original.value.find(o => o.student_id === item.student_id)
-        if (!origin) return null
-    
-        return  item.class_room_id != origin.class_room_id 
+        return item.status !== origin.status
     })
     .map(item => ({
         student_id: item.student_id,
-        class_room_id: item.class_room_id, 
-        year_id: yearStore.year.id
+        status: item.status
     }))
-
-    if (changeRows.length === 0) return;
-
-    const res = await axios.put('api/students', changeRows, {
-        withCredentials: true,
-        headers: {'Content-Type': 'application/json'}
+    const res = await axios.put(`api/years/${selectedYear.value}/students/review`, changeRows, {
+        withCredentials: true
     })
-    edit.value = false
     fetchStudentData()
     resultMSG.value = res.data.msg
+    edit.value = false
 }
-
 </script>

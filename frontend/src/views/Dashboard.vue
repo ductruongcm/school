@@ -23,22 +23,50 @@ import ContentLessonTool from '../components/tool/Content-lessonTool.vue';
 import ContentYearTool from '../components/tool/Content-yearTool.vue';
 import ContentSemesterTool from '../components/tool/Content-semesterTool.vue';
 import ContentUser from '../components/user/Content-user.vue';
-import ContentFolder from '../components/class_room/Content-folder.vue';
 import ContentScheduleTool from '../components/tool/Content-scheduleTool.vue';
 import axios from 'axios';
 import { ref, onMounted, shallowRef } from 'vue';
-import  useUserStore  from '../stores/user';
+import { useUserStore } from '../stores/user';
 import ContentClassTool from '../components/tool/Content-classTool.vue';
 import ContentStudent from '../components/class_room/Content-student.vue';
 import ContentScoreTool from '../components/tool/Content-scoreTool.vue';
 import ContentYearSummary from '../components/class_room/Content-YearSummary.vue';
 import ContentPeriodSummary from '../components/class_room/Content-PeriodSummary.vue';
-
+import ContentActivitylog from '../components/monitoring/Content-activitylog.vue';
+import ContentApproveStudent from '../components/student/Content-approveStudent.vue';
+import ContentStudentMain from '../components/report/Content-studentMain.vue';
+import ContentStudentSchedule from '../components/report/Content-StudentSchedule.vue';
+import ContentMainSchedule from '../components/report/Content-MainSchedule.vue';
+import ContentAttendence from '../components/class_room/Content-attendence.vue';
+import Content_weakStudents from '../components/class_room/Content_weakStudents.vue';
+import ContentSummaryResult from '../components/class_room/Content-SummaryResult.vue';
+import ContentRetest from '../components/Retest/Content-Retest.vue';
+import ContentDailyReport from '../components/report/Content-DailyReport.vue';
+import ContentTeacherSchedule from '../components/report/Content-TeacherSchedule.vue';
+import { watch } from 'vue';
 const username = ref('')
 const role = ref('')
 const userStore = useUserStore()
 
-const activeComponent = shallowRef(ContentReport)
+const roleComponentMap = {
+  admin: ContentReport,
+  Student: ContentStudentSchedule,
+  Teacher: ContentTeacherSchedule
+}
+
+const activeComponent = shallowRef(null)
+
+watch(
+  () => userStore.userInfo.role,
+  (role) => {
+    if (!activeComponent.value && role) {
+      activeComponent.value = roleComponentMap[role]
+    }
+  },
+  { immediate: true }
+)
+
+
 function switchComponent(name) {
     const map = {
         ContentReport,
@@ -56,12 +84,22 @@ function switchComponent(name) {
         ContentMonitoring,
         ContentClass,
         ContentSemesterTool,
-        ContentFolder,
+        ContentStudentMain,
         ContentScheduleTool,
         ContentStudent,
         ContentScoreTool,
         ContentYearSummary,
-        ContentPeriodSummary
+        ContentPeriodSummary,
+        ContentActivitylog,
+        ContentApproveStudent,
+        ContentStudentSchedule,
+        ContentMainSchedule,
+        ContentAttendence, 
+        Content_weakStudents,
+        ContentSummaryResult,
+        ContentRetest,
+        ContentDailyReport,
+        ContentTeacherSchedule
     }
     activeComponent.value = map[name]
 }

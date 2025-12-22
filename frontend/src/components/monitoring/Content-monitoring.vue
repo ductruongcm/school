@@ -1,24 +1,27 @@
 <template>
     <div>Danh sách Log</div>
 
-    <form @submit.prevent="fetchData(page)">
-        <label>IP: </label>
-        <input v-model="ip" type="text">
-        <label>Username: </label>
-        <input v-model="username" type="text">
-        <label>Action: </label>
-        <input v-model="action" type="text"> 
-        <label>Status: </label>
-        <select v-model="status">
-            <option value="">--choose--</option>
-            <option>Success</option>
-            <option>Fail</option>
-        </select>
-        <br>
-        <label>Start Date: </label>
-        <input v-model="startDate" type="date">
-        <label>End Date: </label>
-        <input v-model="endDate" type="date">
+    <form @submit.prevent="fetchData(page)" style="display: flex; gap: 1em;">
+        <label>
+            IP: <input style="width: 7em;" v-model="ip" type="text">
+        </label>
+
+        <label>
+            Username: <input style="width: 10em;" v-model="username" type="text">
+        </label>
+
+        <label>
+            Action: <input style="width: 7em;" v-model="action" type="text"> 
+        </label>
+
+        <label>
+            Start Date: <input v-model="startDate" type="date">
+        </label>
+
+        <label>
+            End Date: <input v-model="endDate" type="date">
+        </label>
+        
         <button>Search</button>
         <button @click="onReset()" type="reset">Reset</button>
     </form>
@@ -28,7 +31,7 @@
                 <th style="width: 2em;">STT</th>
                 <th style="width: 5em;">IP</th>
                 <th style="width: 7em;">Username</th>
-                <th style="width: 10em;">Thao tác</th>
+                <th style="width: 15em;">Thao tác</th>
                 <th style="width: 10em;">Ngày</th>
                 <th style="width: 7em;">Trạng thái</th>
                 <th style="width: 30em;">Chi tiết</th>

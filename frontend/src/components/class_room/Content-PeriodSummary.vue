@@ -1,27 +1,28 @@
 <template>
     <div>
         <div>Tổng kết Học Kỳ</div>
-        <div>
-            <label for="">
-                Lớp học:
-                <select v-model="selectedClass" @change="fetchStudentData">
-                    <option value="">--Chọn lớp--</option>
-                    <option v-for="cl in classList" :key="cl.class_room_id" :value="cl.class_room_id">{{ cl.class_room }}</option>
-                </select>
-            </label>
-            <label for="">
-                Học kỳ:
-                <select v-model="selectedSemester" @change="fetchStudentData">
-                    <option value="">--Chọn học kỳ--</option>
-                    <option v-for="sem in semesterList" :key="sem.semester_id" :value="sem.semester_id">{{ sem.semester }}</option>
-                </select>
-            </label>
-            <!-- <button @click.prevent="fetchStudentData">Lấy danh sách</button> -->
-            <!-- <button @click.prevent="summaryPeriod">Tổng kết</button> -->
-            <button v-if="!editing" @click.prevent="edit">Tổng kết</button>
-            <button v-else @click.prevent="confirmEdit">Xác nhận</button>
-            <button v-if="editing" @click.prevent = cancelEdit>Hủy</button>
-            <!-- <button @click.prevent="yearSummary">Tổng kết cả năm</button> -->
+        <div style="display: flex; gap: 1em;">
+            <div>
+                <label>
+                    Lớp học:
+                    <select v-model="selectedClass" @change="fetchStudentData">
+                        <option value="">--Chọn lớp--</option>
+                        <option v-for="cl in classList" :key="cl.class_room_id" :value="cl.class_room_id">{{ cl.class_room }}</option>
+                    </select>
+                </label>
+                <label for="">
+                    Học kỳ:
+                    <select v-model="selectedSemester" @change="fetchStudentData">
+                        <option value="">--Chọn học kỳ--</option>
+                        <option v-for="sem in semesterList" :key="sem.semester_id" :value="sem.semester_id">{{ sem.semester }}</option>
+                    </select>
+                </label>
+            </div>
+            <div v-if="role === 'admin' || role === 'Teacher' && isHomeroomTeacher && selectedClass === homeRoomId">
+                <button v-if="!editing" @click.prevent="edit">Tổng kết</button>
+                <button v-else @click.prevent="confirmEdit">Xác nhận</button>
+                <button v-if="editing" @click.prevent = cancelEdit>Hủy</button>
+            </div>
         </div>
         <div>{{ resultMsg }}</div>
         <div>
@@ -30,23 +31,30 @@
                     <tr>
                         <th style="width: 3em;">STT</th>
                         <th style="width: 10em;">Tên</th>
-                        <th style="width: 4.5em;" v-for="subject in Object.keys(studentList[0]?.scores || {})" :key="subject">{{ subject }}</th>
+                        <template v-for="subjectScore in Object.values(studentList?.[0]?.lessons || {})" :key="subjectScore">  
+                            <th style="width: 4.5em;" v-for="subject in Object.keys(subjectScore)">{{ subject }}</th>
+                        </template>
                         <th style="width: 4.5em;">Tổng kết</th>
-                        <th style="width: 4.5em;">Xếp loại</th>
+                        <th style="width: 7em;">Xếp loại</th>
                         <th style="width: 6em;">Hạnh kiểm</th>
                         <th style="width: 6em;">Chuyên cần</th>
                         <th style="width: 10em;">Ghi chú</th>
                     </tr>
                 </thead>
                 <tbody>
-                    <tr v-for="(student, ind) in studentList" :key="ind">
+                    <tr v-for="(student, ind) in studentList" :key="ind"  v-if="studentList?.length >= 1">
                         <td>{{ ind + 1 }}</td>
                         <td>{{ student.name }}</td>
-                        <td v-for="score in Object.values(student?.scores || {})" :key="score">{{ score }}</td>
-                        <td>{{ student.total }}</td>
-                        <td>{{ student.status }}</td>
+                        <template v-for="subjectScore in Object.values(student.lessons || {})" :key="subjectScore">  
+                            <td style="width: 4.5em;" v-for="score in Object.values(subjectScore)">{{ score ? score : '-' }}</td>
+                        </template>
+                        <td>{{ student.score ? student.score : '-' }}</td>
+                        <td>{{ student.status ? student.status : '-' }}</td>
                         <td>
-                            <span v-if="!editing">{{ student.conduct }}</span>
+                            <span v-if="!editing">  {{
+                                student.conduct === 'true' ? 'Đạt' : student.conduct === 'false' ? 'Không đạt' : '-'
+                                }}
+                            </span>
                             <select v-else v-model="student.conduct">
                                 <option disabled :value="null">Đánh giá</option>
                                 <option :value="true">Đạt</option>
@@ -54,7 +62,7 @@
                             </select>
                         </td>
                         <td>
-                            <span v-if="!editing">{{ student.absent_day }}</span>
+                            <span v-if="!editing">{{ student.absent_day ? student.absent_day : '-' }}</span>
                             <input v-else style="width: 6em;" type="number"  v-model="student.absent_day" required>
                         </td>
                         <td>
@@ -72,22 +80,32 @@ import { ref, onMounted } from 'vue';
 import axios from 'axios';
 import { userYearStore } from '../../stores/yearStore';
 import { useSemesterStore } from '../../stores/semesterStore';
+import { useUserStore } from '../../stores/user';
+
+const userStore = useUserStore()
+const isHomeroomTeacher = userStore.userInfo.is_homeroom_teacher
+const homeRoomId = userStore.userInfo.homeroom_id
+const role = userStore.userInfo.role
 
 onMounted(async () => {
-    await Promise.all([
-        fetchClassData(),
-        fetchSemesterData()
-    ])
+    await fetchClassData()
+    await fetchSemesterData()
+    await fetchStudentData()
 })
+
 const yearStore = userYearStore()
 const semesterStore = useSemesterStore()
-
+const gradeSearch = ref('')
 const classList = ref('')
 const fetchClassData = async () => {
     const res = await axios.get(`api/academic/years/${yearStore.year.id}/me/class-rooms`, {
         withCredentials: true,
+        params: {
+            grade: gradeSearch.value,
+        }
     })
     classList.value = res.data.data
+    selectedClass.value = homeRoomId || classList.value?.[0].class_room_id
 }
 
 const selectedSemester = ref(semesterStore.semester.semester_id)
@@ -112,16 +130,16 @@ const fetchStudentData = async () => {
 
     studentList.value = []
 
+    const selected = classList.value.find(c => c.class_room_id === selectedClass.value)
+
     const res = await axios.get(`api/semesters/${selectedSemester.value}/students/summary`, {
         withCredentials: true,
         params: {
             year_id: yearStore.year.id,
-            class_room_id: selectedClass.value
+            class_room_id: selected?.class_room_id,
         }
     })
-    
     studentList.value = res.data.data
-
 }
 
 const resultMsg = ref('')
@@ -144,9 +162,12 @@ const confirmEdit = async () => {
         return
     }
 
-    studentList.value.forEach(item => 
-        delete item.scores
-    )
+    studentList.value.forEach(item => {
+        delete item.lessons;
+        delete item.learning_status;
+        delete item.score;
+        delete item.name
+    })
     
     const payload = {
         students : studentList.value,
@@ -164,10 +185,9 @@ const confirmEdit = async () => {
             editing.value = false
 
     } catch (e) {
-
         if (e.response && [400,404,409,422,500].includes(e.response.status)) {
             resultMsg.value = e.response.data.msg
-
+            fetchStudentData()
         }
     }
 }

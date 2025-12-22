@@ -16,7 +16,7 @@
         <option value="" disabled>- Chọn lớp -</option>
         <option v-for="cls in classList" :key="cls.class_room_id" :value="cls.class_room_id">{{ cls.class_room }}</option>
     </select>
-    <button v-if="!editing" @click.prevent="fetchScheduleData">Tìm</button>
+    <button v-if="!editing" @click.prevent="fetchScheduleData" :disabled="selectedClass === ''">Tìm</button>
     <button v-if="!editing" @click.prevent="editSchedule">Tạo/Điều chỉnh</button>
     <button v-if="editing" @click.prevent="save">Lưu</button>
     <button v-if="editing" @click.prevent="cancelEdit">Hủy</button>
@@ -24,31 +24,26 @@
     <div>
         <table border="1" style="border-collapse: collapse; text-align: center;">
             <thead>
-                <tr>
-                    <th style="width: 5em;" class="border px-2 py-1">Tiết</th>
-                    <th style="width: 5em;" v-for="day in Object.keys(Object.values(scheduleData)[0] || {})">Thứ {{ Number(day) + 1 }} </th>
+                <tr style="height: 2em;">
+                    <th style="width: 8em;" class="border px-2 py-1">Tiết</th>
+                    <th style="width: 8em;" v-for="day in Object.keys(Object.values(scheduleData)[0] || {})">Thứ {{ Number(day) + 1 }} </th>
                 </tr>
             </thead>
             <tbody>
-                <tr v-for="(dayObj, period) in scheduleData" :key="period">
-                            
+                <tr style="height: 2em;" v-for="(dayObj, period) in scheduleData" :key="period">
                     <td>Tiết {{ period }}</td>
-
                     <td v-for="(subject, day) in dayObj" :key = day>
                         <span v-if="!editing">{{ subject.lesson}}</span>
-
-                        <select v-else v-model="subject.lesson_id">
+                        <select style="width: 8em;" v-else v-model="subject.lesson_id">
                             <option :value="null" disabled>Chọn môn</option>
                             <option :value="null">Bỏ chọn</option>
                             <option v-for="ls in lessonList" :key="ls.lesson_id" :value="ls.lesson_id">{{ ls.lesson }}</option>
                         </select>
                     </td>
-
                 </tr>
             </tbody>
         </table>
     </div>
-
 </template>
 <script setup>
 import { ref, onMounted } from 'vue';
@@ -60,7 +55,8 @@ onMounted(async () => {
     await Promise.all[
         fetchClassData(), 
         fetchGradeData(),
-        fetchSemesterData()
+        fetchSemesterData(),
+        fetchScheduleData()
     ]
 })
 
@@ -75,13 +71,6 @@ const fetchScheduleData = async () => {
         }
     })
     scheduleData.value = res.data.data
-    original.value = JSON.parse(JSON.stringify(scheduleData.value))
-
-    Object.values(original.value).forEach(row => 
-        Object.values(row).forEach(cell => 
-            delete cell.lesson
-        )
-    )
 }
 
 
@@ -104,7 +93,7 @@ const classList = ref([])
 const selectedGrade = ref('')
 
 const fetchClassData = async () => {
-    const res = await axios.get(`api/academic/years/${yearStore.year.id}/class-rooms`, {
+    const res = await axios.get(`api/academic/years/${yearStore.year.id}/me/class-rooms`, {
         withCredentials: true,
         params: {
             grade: selectedGrade.value,
@@ -147,7 +136,11 @@ const fetchLessondata = async () => {
 
 const original = ref({})
 const editSchedule = async () => {
-    if (selectedClass.value === "" || scheduleData.value === "") return;
+    if (selectedClass.value === '') {
+        alert('Vui lòng chọn lớp học để tạo thời khóa biểu!') 
+        return
+    }
+    original.value = JSON.parse(JSON.stringify(scheduleData.value))
     await fetchLessondata()
     editing.value = true
 }
@@ -173,16 +166,20 @@ function deepEqual(obj1, obj2) {
   return true;
 }
 
-
-
 const save = async () => {
     Object.values(scheduleData.value).forEach(row => 
         Object.values(row).forEach(cell => 
             delete cell.lesson
         )
     )
-    
-    if (deepEqual(original.value, scheduleData.value)) return;
+
+    Object.values(original.value).forEach(row => 
+        Object.values(row).forEach(cell => 
+            delete cell.lesson
+        )
+    )
+
+    if (deepEqual(original.value, scheduleData.value)) return null;
 
     const payload = {
         year_id: yearStore.year.id, 

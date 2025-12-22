@@ -7,7 +7,7 @@
         </select>
         <label> Danh sách lớp học:  </label>
         <select v-model="selectedClass">
-            <option value="">-- Chọn lớp --</option>
+            <option value="" disabled>-- Chọn lớp --</option>    
             <option v-for="item in classList" :key="item.class_room_id" :value="item.class_room_id">{{ item.class_room }}</option>
         </select>
         <label> Học kỳ: </label>
@@ -53,9 +53,9 @@
                                 <span v-else>{{ s.scores[scoreType][attempt] }}</span>
                         </td>
                     </template>
-                    <td>{{ s.total }}</td>
-                    <td>{{ s.status }}</td>
-            
+                    <td>{{ s.total ? s.total : '-' }}</td>
+                    <td>{{ s.status === true ? 'Đạt' 
+                                             : s.status === false ? 'Không đạt' : '-'}}</td>
                     <td>
                         <input v-if="editing" type="text" v-model="s.note" style="width: 23em;" />
                         <span v-else>{{ s.note }}</span>
@@ -83,8 +83,13 @@ onMounted(async () => {
         fetchSemesterData(),
         fetchClassData(),
         fetchLessonData()
-   
     ])
+})
+
+watch(selectedClass, (newVal) => {
+    if (newVal) {
+        fetchStudentData()
+    }
 })
 
 const selectedGrade = ref('')
@@ -92,7 +97,7 @@ const fetchClassData = async () => {
     const res = await axios.get(`api/academic/years/${yearStore.year.id}/me/class-rooms`, {
         withCredentials: true,
         params: {
-            grade: selectedGrade.value
+            grade: selectedGrade.value,
         }
     })
     classList.value = res.data.data
@@ -126,13 +131,10 @@ const fetchLessonData = async () => {
         }
     })
     lessonList.value = res.data.data
+    if (lessonList.value.length === 1) {
+        selectedLesson.value = lessonList.value[0].lesson_id
+    }
 }
-
-// watch (lessonList, (newVal) => {
-//     if (newVal.length === 1) {
-//         selectedLesson.value = newVal[0].lesson_id
-//     }
-// }) 
 
 const fetchStudentData = async () => {
     if (selectedLesson.value === '' || selectedClass.value === '' || selectedSemester.value === '') {
@@ -175,7 +177,7 @@ const confirm = async () => {
         const changedScoreEntries = Object.entries(s.scores).map(([typeId, scoreGroup]) => {
             const originGroup = origin.scores[typeId] || {};
             const diffs = Object.fromEntries(Object.entries(scoreGroup)
-                .filter(([attempt, newVal]) => newVal !== originGroup[attempt]))
+                .filter(([attempt, newVal]) => Number(newVal) !== Number(originGroup[attempt])))
 
             return Object.keys(diffs).length > 0 ? [typeId, diffs] : null;
         })
@@ -205,7 +207,7 @@ const confirm = async () => {
         }
 
         try {
-            const res = await axios.put(`api/academic/entity/scores`, payload, {
+            const res = await axios.post(`api/academic/entity/scores`, payload, {
 
                 withCredentials: true,
                 headers: {'Content-Type': 'application/json'}
@@ -217,9 +219,7 @@ const confirm = async () => {
             fetchStudentData()
 
         } catch (e) { 
-
             if (e.response && [400,404,409,422,500].includes(e.response.status)) {
-
                 resultMsg.value = e.response.data.msg
             }
         }
@@ -235,13 +235,20 @@ const summary = async () => {
         semester_id: selectedSemester.value,
         lesson_id: selectedLesson.value
     }
+    try{
+        const res = await axios.put('api/academic/entity/scores/lessons/summary', payload, {
+            withCredentials: true,
+            headers: {'Content-Type': 'application/json'}
+        })
+        fetchStudentData()
+        resultMsg.value = res.data.msg
 
-    const res = await axios.put('api/academic/entity/scores/lessons/summary', payload, {
-        withCredentials: true,
-        headers: {'Content-Type': 'application/json'}
-    })
-    fetchStudentData()
-    resultMsg.value = res.data.msg
+    } catch (e) {
+        
+        if (e.response && [400,404,409,422,500].includes(e.response.status)) {
+            resultMsg.value = e.response.data.msg
+        }
+    }
 }
 
 </script>

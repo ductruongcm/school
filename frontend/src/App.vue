@@ -1,7 +1,7 @@
 <script setup>
 import TopPopup from './components/TopPopup.vue';
 import { ref, computed, onMounted } from 'vue';
-import useUserStore from './stores/user';
+import { useUserStore } from './stores/user';
 import { userYearStore } from './stores/yearStore';
 import axios from 'axios';
 import { useSemesterStore } from './stores/semesterStore';
@@ -47,7 +47,7 @@ onMounted(async () => {
 })
 
 function logout() {
-  axios.get('api/user/logout')
+  axios.get('api/auth/logout')
   userStore.clearUser()
   window.location.href = '/'
 }

@@ -1,11 +1,11 @@
 import {createRouter, createWebHistory} from 'vue-router'
 import Login from '../views/Login.vue'
-import Register from '../views/Register.vue'
 import SetPassword from '../views/SetPassword.vue'
+import ChangePassword from '../views/ChangePassword.vue'
 import Dashboard from '../views/Dashboard.vue'
 import Sidebar from '../components/Sidebar.vue'
 import MainContent from '../components/MainContent.vue'
-import useUserStore  from '../stores/user'
+import { useUserStore } from '../stores/user'
 import ContentClass from '../components/class_room/Content-class.vue'
 import ContentDownload from '../components/class_room/Content-download.vue'
 import ContentUpload from '../components/class_room/Content-upload.vue'
@@ -21,17 +21,26 @@ import ContentLessonTool from '../components/tool/Content-lessonTool.vue'
 import ContentYearTool from '../components/tool/Content-yearTool.vue'
 import ContentUser from '../components/user/Content-user.vue'
 import ContentSemesterTool from '../components/tool/Content-semesterTool.vue'
-import ContentFolder from '../components/class_room/Content-folder.vue'
 import ContentScheduleTool from '../components/tool/Content-scheduleTool.vue'
 import ContentStudent from '../components/class_room/Content-student.vue'
 import ContentScoreTool from '../components/tool/Content-scoreTool.vue'
 import ContentPeriodSummary from '../components/class_room/Content-PeriodSummary.vue'
 import ContentYearSummary from '../components/class_room/Content-YearSummary.vue'
+import ContentActivitylog from '../components/monitoring/Content-activitylog.vue'
+import ContentApproveStudent from '../components/student/Content-approveStudent.vue'
+import ContentStudentMain from '../components/report/Content-studentMain.vue'
+import ContentStudentSchedule from '../components/report/Content-StudentSchedule.vue'
+import ContentMainSchedule from '../components/report/Content-MainSchedule.vue'
+import ContentAttendence from '../components/class_room/Content-attendence.vue'
+import Content_weakStudents from '../components/class_room/Content_weakStudents.vue'
+import ContentSummaryResult from '../components/class_room/Content-SummaryResult.vue'
+import ContentRetest from '../components/Retest/Content-Retest.vue'
+import ContentDailyReport from '../components/report/Content-DailyReport.vue'
 
 const routes = [
     {path: '/', component: Login},
-    {path: '/register', component: Register},
     {path: '/setpassword', component: SetPassword},
+    {path: '/changepassword', component: ChangePassword},
     {path: '/dashboard', component: Dashboard, Children: [
         {path: 'sidebar', component: Sidebar},
         {path: 'mainContent', component: MainContent, Children: [
@@ -50,19 +59,28 @@ const routes = [
             {path: 'user', component: ContentUser},
             {path: 'monitoring', component: ContentMonitoring},
             {path: 'semesterTool', component: ContentSemesterTool},
-            {path: 'folder', component: ContentFolder},
             {path: 'scheduleTool', component: ContentScheduleTool},
             {path: 'student', component: ContentStudent},
             {path: 'scoreTool', component: ContentScoreTool},
             {path: 'periodsummary', component: ContentPeriodSummary},
-            {path: 'yearsummary', component: ContentYearSummary}
+            {path: 'yearsummary', component: ContentYearSummary},
+            {path: 'activitylog', component: ContentActivitylog},
+            {path: 'approveStudent', component: ContentApproveStudent},
+            {path: 'studentMain', component: ContentStudentMain},
+            {path: 'studentSchedule', component: ContentStudentSchedule},
+            {path: 'mainSchedule', component: ContentMainSchedule},
+            {path: 'attendence', component: ContentAttendence},
+            {path: 'weakStudents', component: Content_weakStudents},
+            {path: 'summaryResult', component: ContentSummaryResult},
+            {path: 'retest', component: ContentRetest},
+            {path: 'dailyReport', component: ContentDailyReport}
         ]}
     ]}
 ]
 
 const router = createRouter({history: createWebHistory(), routes})
 
-const publicPages = ['/', '/register', '/setpassword']
+const publicPages = ['/']
 
 router.beforeEach(async (to, form, next) => {
     const userStore = useUserStore()

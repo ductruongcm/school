@@ -62,7 +62,7 @@ def summary_year_for_students(id, validated_data):
     validated_data['year_id'] = id
     score_workflow.process_summary_year_result(validated_data, get_jwt().get('id'))
     msg = 'Đã tổng kết năm học!'
-    return ResponseBuilder.post(msg)
+    return ResponseBuilder.put(msg)
 
 @academic_entity_bp.post('schedules')
 @jwt_required()

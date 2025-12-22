@@ -32,7 +32,7 @@ def get_students_by_year_for_assignment(id, validated_data):
     msg = f'Không còn học sinh chờ xếp lớp của khối!'
     return ResponseBuilder.get(msg, result)
 
-@student_bp.get('/years/<int:id>/students/approval')
+@student_bp.get('/years/<int:id>/students/review')
 @jwt_required()
 @required_role('admin')
 @validate_input(StudentSchemas.StudentShowForApproval)
@@ -61,25 +61,16 @@ def review_students(id, validated_data):
     msg = 'Đã xét duyệt học sinh!'
     return ResponseBuilder.put(msg)
 
-@student_bp.post('/students/assignment')
+@student_bp.post('years/<int:id>/students/assignment')
 @jwt_required()
 @required_role('admin')
 @with_log(True)
 @validate_input(StudentSchemas.StudentAssignment)
-def assign_student_for_new_year(validated_data):
+def assign_student_for_new_year(id, validated_data):
+    validated_data['year_id'] = id
     student_workflow.process_assign_students_for_new_year(validated_data, get_jwt().get('id'))
     msg = 'Đã hoàn thành xếp lớp cho học sinh!'
     return ResponseBuilder.post(msg)
-
-@student_bp.put('/students/assignment')
-@jwt_required()
-@required_role('admin')
-@with_log(True)
-@validate_input(StudentSchemas.StudentTransferClass)
-def transfer_class_for_student(validated_data):
-    academic_student_service.handle_transfer_class_for_students(validated_data)
-    msg = 'Đã chuyển lớp cho học sinh!'
-    return ResponseBuilder.put(msg)
 
 @student_bp.put('/students')
 @jwt_required()
@@ -94,7 +85,7 @@ def update_students(validated_data):
 @student_bp.get('years/<int:id>/students/summary')
 @jwt_required()
 @required_role('admin', 'Teacher')
-@validate_input(StudentSchemas.StudentShowForScores)
+@validate_input(StudentSchemas.Class_room_id)
 def get_students_for_year_summary(id, validated_data):
     validated_data['year_id'] = id
     result = academic_student_service.handle_show_student_for_year_summary(validated_data)
@@ -104,7 +95,7 @@ def get_students_for_year_summary(id, validated_data):
 @student_bp.get('semesters/<int:id>/students/summary')
 @jwt_required()
 @required_role('admin', 'Teacher')
-@validate_input(StudentSchemas.StudentShowForScores)
+@validate_input(StudentSchemas.StudentShowForSemesterSummary)
 def get_students_for_semester_summary(id, validated_data):
     validated_data['semester_id'] = id
     result = academic_student_service.handle_show_student_for_semester_summary(validated_data)
@@ -114,8 +105,7 @@ def get_students_for_semester_summary(id, validated_data):
 @student_bp.get('scores/students/weak')
 @jwt_required()
 @required_role('admin', 'Teacher')
-# @validate_input(StudentSchemas.StudentShowForBadScores)
-@validate_input(StudentSchemas.StudentShowForScores)
+@validate_input(StudentSchemas.StudentShowWithBadScore)
 def get_weak_students(validated_data):
     result = academic_student_service.handle_show_weak_students(validated_data)
     msg = 'Không tìm thấy thông tin!'
@@ -124,7 +114,7 @@ def get_weak_students(validated_data):
 @student_bp.get('years/<int:id>/students/summary/result')
 @jwt_required()
 @required_role('admin', 'Teacher')
-@validate_input(StudentSchemas.StudentShowForScores)
+@validate_input(StudentSchemas.StudentShowForYearSummary)
 def get_summary_result_for_class(id, validated_data):
     validated_data['year_id'] = id
     result = academic_student_service.handle_show_summary_result_for_class(validated_data)
@@ -134,7 +124,7 @@ def get_summary_result_for_class(id, validated_data):
 @student_bp.get('years/<int:id>/students/retest')
 @jwt_required()
 @required_role('admin', 'Teacher')
-@validate_input(StudentSchemas.StudentShowForScores)
+@validate_input(StudentSchemas.StudentShowForRetest)
 def get_students_for_retest(id, validated_data):
     validated_data.update({'user_id': get_jwt().get('id'),
                            'year_id': id})
@@ -147,6 +137,7 @@ def get_students_for_retest(id, validated_data):
 @required_role('admin', 'Teacher')
 @validate_input(AcademicUpdateSchemas.RetestScore)
 def set_score_for_retest(id, validated_data):
+    print(validated_data)
     academic_student_service.handle_add_score_to_retest_for_student(validated_data, id, get_jwt().get('id'))
     msg = "Đã thêm điểm thi lại cho học sinh!"
     return ResponseBuilder.put(msg)

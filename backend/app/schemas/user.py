@@ -121,7 +121,22 @@ class StudentSchemas:
                 raise ValueError('Chưa chọn khối lớp đăng ký cho học sinh!')
             
             return v
-    
+        
+    class Class_room_id(BaseModel):
+        class_room_id: Optional[int]
+
+        @field_validator('class_room_id', mode='before')
+        def validate_int(cls, v):
+            if v in ['', None]:
+                return 
+            return v
+
+    class Year_id(BaseModel):
+        year_id: int
+
+    class Semester_id(BaseModel):
+        semester_id: int
+
     class StudentShow(BaseModel):
         year_id: Optional[int] = Field(default = None)
         grade: Optional[int] = Field(default = None)
@@ -132,6 +147,12 @@ class StudentSchemas:
             if v in ['', 'None', 'null']:
                 return 
             return v
+        
+    class StudentShowForSemesterSummary(Class_room_id, Year_id):
+        pass
+
+    class StudentShowWithBadScore(Class_room_id, Year_id, Semester_id):
+        pass
         
     class StudentShowForAssignment(BaseModel):
         grade: Optional[int]
@@ -154,48 +175,23 @@ class StudentSchemas:
                 return 
             return v
     
-    class StudentShowForScores(BaseModel):
-        semester_id: Optional[int] = Field(default=None)
-        year_id: Optional[int] = Field(default=None)
-        class_room_id: Optional[int] = Field(default=None)
-        lesson_id: Optional[int] = Field(default=None)
-        grade: Optional[int] = Field(default=None)
-        learning_status: Optional[str] = Field(default=None)
-        status: Optional[str] = Field(default=None)
+    class StudentShowForYearSummary(Class_room_id):
+        learning_status: str
+        status: str
+    
+    class StudentShowForRetest(BaseModel):
+        grade: Optional[int]
+        lesson_id: Optional[int]
+        class_room_id: Optional[int]
 
-        @field_validator('class_room_id', 'lesson_id', 'grade', mode='before')
-        def validate_id(cls, v):
-            if v in ['', 'null', None]:
-                return None
-            return v
-        
-        @field_validator('learning_status')
-        def validate_learning_status(cls, v):
-            if v not in ['', 'Tốt', 'Khá', 'Đạt', 'Chưa đạt']:
-                raise ValueError('Learning_status không hợp lệ!')
-            return v
-        
-        @field_validator('status')
-        def validate_status(cls, v):
-            if v not in ['', 'Lên lớp', 'Lưu ban', 'Thi lại']:
-                raise ValueError('Status không hợp lệ!')
+        @field_validator('grade', 'lesson_id', 'class_room_id', mode='before')
+        def validate_int(cls, v):
+            if v in ['', None]:
+                return
             return v
 
-    class StudentTransferClass(BaseModel):
+    class StudentTransferClass(Class_room_id):
         student_id: int
-        year_id: int
-        class_room_id: int
-
-    # class StudentShowForBadScores(BaseModel):
-    #     year_id: int
-    #     semester_id: int
-    #     class_room_id: Optional[int] = Field(default=None)
-
-    #     @field_validator('class_room_id', mode='before')
-    #     def validate_class_room_id(cls, v):
-    #         if v in ['', 'null', None]:
-    #             return None
-    #         return v
 
     class StudentUpdate(BaseModel):
         student_id: int
@@ -248,7 +244,7 @@ class StudentSchemas:
 
         @field_validator('status')
         def status_validate(cls, v):
-            if v not in ['', 'Lên lớp', 'Lưu ban', 'Bảo lưu']:
+            if v not in ['Lên lớp', 'Lưu ban', 'Bảo lưu']:
                 return ValueError('Status không hợp lệ!')
             return v
 
@@ -257,7 +253,6 @@ class StudentSchemas:
         student_id: int
 
     class StudentAssignment(BaseModel):
-        year_id: int
         student_assign_list: List['StudentSchemas.StudentAssignmentItem']
     
     class TransferStudent(BaseModel):

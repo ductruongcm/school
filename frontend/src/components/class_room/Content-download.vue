@@ -7,7 +7,7 @@
                 <label>Lớp: </label>
                 <select v-model="classFolder" @change="fetchFolder">
                     <option :value="null" disabled>-- Chọn lớp --</option>
-                    <option v-for="item in classList" :key="item.class_room_id" :value="item">{{item.class_room }}</option>
+                    <option v-for="item in classList" :key="item.class_room_id" :value="item">{{ item.class_room }}</option>
                 </select>
                 <label> Thư mục: </label>
                 <select v-model="fileFolder">
@@ -21,13 +21,13 @@
             <thead>
                 <tr>
                     <th style="width: 3em;">STT</th>
-                    <th style="width: 15em;">File name</th>
+                    <th style="width: 20em;">File name</th>
                     <th style="width: 7em;">File type</th>
-                    <th style="width: 4em;">File size</th>
-                    <th style="width: 10em;">Upload lúc</th>
-                    <th style="width: 8em;">Người upload</th>
+                    <th style="width: 6em;">File size</th>
+                    <th style="width: 11em;">Upload lúc</th>
+                    <th style="width: 9em;">Người upload</th>
                     <th style="width: 7em;">Trạng thái</th>
-                    <th style="width: 14em;"></th>
+                    <th style="width: 7em;">Thao tác</th>
                 </tr>
             </thead>
             <tbody>
@@ -41,8 +41,8 @@
                     <td>{{ item.status ? 'Hiện' : 'Ẩn'}}</td>
                     <td>
                         <button @click="download(item)">Download</button>
-                        <button @click="hideFile(item)">Ẩn/Hiện</button>
-                        <button @click="del(item)">Xóa</button>
+                        <button v-if="userStore.userInfo.role === 'admmin' || userStore.userInfo.role === 'Teacher'" @click="hideFile(item)">Ẩn/Hiện</button>
+                        <button v-if="userStore.userInfo.role === 'admmin' || userStore.userInfo.role === 'Teacher'" @click="del(item)">Xóa</button>
                     </td>
                 </tr>
             </tbody>
@@ -54,6 +54,8 @@ import axios from 'axios';
 import dayjs from 'dayjs'
 import { ref, onMounted, watch } from 'vue';
 import { userYearStore } from '../../stores/yearStore';
+import { useSemesterStore } from '../../stores/semesterStore';
+import { useUserStore } from '../../stores/user';
 
 const classList = ref([])
 const classFolder = ref(null)
@@ -61,39 +63,49 @@ const folder = ref([])
 const fileFolder = ref(null)
 const yearStore = userYearStore()
 const downloadMsg = ref(null)
+const semesterStore = useSemesterStore()
+const userStore = useUserStore()
 
-onMounted( () => {
-    fetchTeachRoom()
+onMounted( async () => {
+    Promise.all[
+        fetchTeachRoom()
+    ]
 })
 
-const classSearch = ref('')
 const gradeSearch = ref('')
 const fetchTeachRoom = async () => {
-    const res = await axios.get('api/academic/me/class-rooms', {
+    const res = await axios.get(`api/academic/years/${yearStore.year.id}/me/class-rooms`, {
         withCredentials: true,
-        headers: {'Content-Type': 'application/json'},
         params: {
-            year_id: yearStore.year.id,
-            class_room: classSearch.value,
-            grade_id: gradeSearch.value
+            semester_id: semesterStore.semester.semester_id,
+            grade: gradeSearch.value
         }
     })
     classList.value = res.data.data
+
+    if (classList.value.length === 1) {
+        classFolder.value = classList.value[0]
+        fetchFolder()
+    }
 }
 
 const fetchFolder = async () => {
-    const res = await axios.get('api/academic/me/lessons', {
+    const res = await axios.get('api/cloud/me/folders', {
         params: {
-            grade_id: gradeSearch.value,
+            grade: classFolder.value.grade,
             year_id: yearStore.year.id,
-            is_visible: false,
-            is_folder: true,
-            is_schedule: false
+            class_room_id: classFolder.value.class_room_id
         },
         withCredentials: true
     })
     folder.value = res.data.data
 }
+
+watch([fileFolder, classFolder], async([newLessonId, newClassId]) => {
+    if (newLessonId && newClassId) {
+        await fetchFile()
+    }
+})
 
 const fileList = ref(null)
 const fetchFile = async () => {
@@ -109,17 +121,11 @@ const fetchFile = async () => {
         fileList.value = res.data.data
 
     } catch (e) {
-        if (e.response && e.response.status === 400 || 404 || 422 || 500) {
+        if (e.response && [400,404,409,422,500].includes(e.response.status)) {
             downloadMsg.value = e.response.data.msg
         }
     }
 }
-
-watch([fileFolder, classFolder], async([newLessonId, newClassId]) => {
-    if (newLessonId && newClassId) {
-        await fetchFile()
-    }
-})
 
 async function hideFile(item) {
     const res = await axios.put(`/api/cloud/files/${item.id}/hide`, { 

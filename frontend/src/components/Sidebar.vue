@@ -1,29 +1,41 @@
 <template>
     <nav class="sidebar">
-        <div v-if="role === 'admin'" @click="$emit('change', 'ContentReport')">Thống kê</div>
-
-        <div @click="classControlStatus = true">Quản lý lớp học</div>
+        <div v-if="role === 'admin'">
+            <div @click="$emit('change', 'ContentDailyReport')">Thống kê ngày</div>
+            <div @click="$emit('change', 'ContentMainSchedule')">Lịch học hôm nay</div>
+            <div @click="$emit('change', 'ContentReport')">Thống kê Tổng</div>
+            <div @click.stop="$emit('change', 'ContentTeacherSchedule')">Lịch dạy</div>
+        </div>
+        <div v-if="role === 'Teacher'" @click.stop="$emit('change', 'ContentTeacherSchedule')">Lịch dạy</div>
+        <div v-if="role === 'Student'">
+            <div @click="$emit('change', 'ContentStudentSchedule')">Thời khóa biểu</div>
+            <div @click="$emit('change', 'ContentStudentMain')">Kết quả học tập</div>
+        </div>
+        <div @click="classControlStatus = true">Lớp học</div>
             <div v-if="classControlStatus" class="classControl">
-                <div v-if="role === 'admin' || 'Teacher'" @click="$emit('change', 'ContentStudent')">Danh sách học sinh</div>
-                <div v-if="role === 'admin' || 'Teacher'" @click="$emit('change', 'ContentClass')">Cho điểm học sinh</div>
-                <div v-if="role === 'admin' || 'Teacher'" @click="$emit('change', 'ContentPeriodSummary')">Tổng kết học kỳ</div>
-                <div  v-if="role === 'admin' || 'Teacher'" @click="$emit('change', 'ContentYearSummary')">Tổng kết năm học</div>
+                <div v-if="role === 'admin' || role === 'Teacher'" @click="$emit('change', 'ContentStudent')">Danh sách học sinh</div>
+                <div v-if="role === 'admin' || role === 'Teacher'" @click="$emit('change', 'Content_weakStudents')">Danh sách học sinh cần chú ý</div>
+                <div v-if="role === 'admin' || role === 'Teacher'" @click="$emit('change', 'ContentAttendence')">Điểm danh</div>
+                <div v-if="role === 'admin' || role === 'Teacher'" @click="$emit('change', 'ContentClass')">Cho điểm học sinh</div>
+                <div v-if="role === 'admin' || role === 'Teacher'" @click="$emit('change', 'ContentPeriodSummary')">Tổng kết học kỳ</div>
+                <div v-if="role === 'admin' || role === 'Teacher'" @click="$emit('change', 'ContentYearSummary')">Tổng kết năm học</div>
+                <div v-if="role === 'admin' || role === 'Teacher'" @click="$emit('change', 'ContentSummaryResult')">Kết quả cuối năm</div>
                 <div>Cloud lưu trữ</div>
                 <div class="cloudControl">
-                    <div v-if="role === 'admin' || 'Teacher'"  @click="$emit('change', 'ContentUpload')">Upload</div>
+                    <div v-if="role === 'admin' || role === 'Teacher'"  @click="$emit('change', 'ContentUpload')">Upload</div>
                     <div @click="$emit('change', 'ContentDownload')">Download</div>
-                    <div v-if="role === 'admin' || 'Teacher'" @click="$emit('change', 'ContentFolder')">Quản lý thư mục</div>
                     <div @click="classControlStatus = false">Đóng</div>
                 </div>
             </div>
         <div v-if="role === 'admin'" @click="studentControlStatus = true">Quản lý học sinh</div>
             <div v-if="studentControlStatus" class="studentControl">
-                <div @click="$emit('change', 'ContentAssignStudent')">Xếp lớp</div>
+                <div @click="$emit('change', 'ContentApproveStudent')">Xét duyệt cuối năm</div>
+                <div @click="$emit('change', 'ContentAssignStudent')">Xếp lớp năm học mới</div>
                 <div @click="$emit('change', 'ContentAddStudent')">Thêm học sinh</div>
                 <div @click="studentControlStatus = false">Đóng</div>
             </div>
-
-        <div v-if="role === 'admin' || 'Teacher'" @click="teacherControlStatus = true">Quản lý giáo viên</div>
+        <div v-if="role === 'admin' || role === 'Teacher'" @click="$emit('change', 'ContentRetest')">Đánh giá lại học sinh</div>    
+        <div v-if="role === 'admin' || role === 'Teacher'" @click="teacherControlStatus = true">Quản lý giáo viên</div>
             <div v-if="teacherControlStatus"  class="teacherControl">
                 <div @click="$emit('change', 'ContentTeacher')">Danh sách giáo viên</div>
                 <div v-if="role === 'admin'" @click="$emit('change', 'ContentAddTeacher')">Thêm giáo viên</div>
@@ -40,22 +52,21 @@
                 <div @click="$emit('change', 'ContentScoreTool')">Điểm số</div>
                 <div @click="toolStatus = false">Đóng</div>
             </div>
-
         <div v-if="role === 'admin'" @click="$emit('change', 'ContentUser')">Quản lý User</div>
-        <div v-if="role === 'admin'" @click="$emit('change', 'ContentMonitoring')">Quản lý log</div>
+        <div v-if="role === 'admin' || role === 'Teacher'" @click="$emit('change', 'ContentActivitylog')">Lịch sử hoạt động</div>
+        <div v-if="role === 'admin'" @click="$emit('change', 'ContentMonitoring')">Quản lý Audit log</div>
         <div @click="$emit('change', 'ContentInfo')">Quản lý thông tin cá nhân</div>
     </nav>
 </template>
 <script setup>
 import { ref } from 'vue';
-import useUserStore from '../stores/user';
+import { useUserStore } from '../stores/user';
 
 const studentControlStatus = ref(false)
 const teacherControlStatus = ref(false)
 const classControlStatus = ref(false)
 const toolStatus = ref(false)
 const userStore = useUserStore() 
-
 const role = userStore.userInfo.role
 
 </script>

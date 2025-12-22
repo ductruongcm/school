@@ -15,6 +15,10 @@
         <button @click.prevent="addClass">Thêm</button>
     </form>
     <div>{{ resultMsg }}</div>
+    <div>
+        <button @click.prevent="createLessonClass ">Tạo liên kết môn học - lớp</button> <br>
+        <span>***Lưu ý quan trọng: Sau khi tạo lớp học cho năm mới, phải tạo liên kết môn học - lớp để có thể xếp lớp cho giáo viên!!</span>
+    </div>
     <div style="display: flex;">
         <div>Danh sách khối lớp</div>
         <div>
@@ -204,7 +208,7 @@ const addClass = async () => {
 }
 
 const fetchClassData = async () => {
-    const res = await axios.get(`api/academic/years/${selectedYear.value}/class-rooms`, {
+    const res = await axios.get(`api/academic/years/${selectedYear.value}/me/class-rooms`, {
         params: {
             grade: selectedGrade.value
         },
@@ -229,6 +233,16 @@ const fetchYearData = async () => {
         params: {year: yearSearch.value}
     })
     yearList.value = res.data.data
+}
+
+const createLessonClass = async () => {
+    const payload = {
+        year_id: yearStore.year.id
+    }
+    const res = await axios.post('api/academic/relation/lessons-class', payload, {
+        withCredentials: true
+    })
+    resultMsg.value = res.data.msg
 }
 
 let originalClassList = []

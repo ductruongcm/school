@@ -2,40 +2,46 @@
     <div>Danh sách User</div>
     <div>{{ editMSG }}</div>
     <div>
-        <form @submit.prevent="fetchData(page)">
-            <label>Username: </label>
-            <input v-model="username" type="text">
-            <label>Role: </label>
-            <input v-model="role" type="text">
+        <form @submit.prevent="fetchData(page)" style="display: flex; gap: 1em">
+            <label>Username: <input v-model="username" type="text"></label>
+
+            <label>Role: <input v-model="role" type="text"></label>
             <button type="submit">Tìm</button>
             <button @click="onReset">Bỏ tìm kiếm</button>
         </form>
     </div>
     <div>
-        <table border="1" style="border-collapse: collapse; text-align: center;">
+        <table border="1"  style="border-collapse: collapse; text-align: center;">
             <thead>
                 <tr>
                     <th style="width: 3em;">STT</th>
-                    <th style="width: 7em;">Username</th>
-                    <th style="width: 4em;">role</th>
+                    <th style="width: 10em;">Username</th>
+                    <th style="width: 7em;">role</th>
+                    <th style="width: 14em;">Tên</th>
+   
                 </tr>
             </thead>
-            <tbody>
-                <tr v-for="(item, index) in userList" :key="item.username">
+            <tbody >
+                <tr v-for="(item, index) in userList" :key="item.id" class="row-wrapper">
                     <td>{{ index + 1 }}</td>
-                    <td>{{ item.username }}</td>
+                    <td @click.prevent="edit(item)" style="cursor: pointer;">{{ item.username }}</td>
                     <td>
-                        <span v-if="!item.editing">{{ item.role }}</span>
-                        <input style="width: 4em;" v-else v-model="item.role" type="text">
+                        <span v-if="editingId !== item.id">{{ item.role }}</span>
+                        <select v-if="editingId === item.id" v-model="item.role">
+                            <option disabled value="">--Chọn role--</option>
+                            <option value="admin">Admin</option>
+                            <option value="Teacher">Teacher</option>
+                            <option value="Student">Student</option>
+                        </select>
                     </td>
-                    <td>
-                        <div>
-                            <button v-if="!item.editing" @click="edit(item)">Edit</button>
-                            <button v-else @click.prevent="save(item)">Save</button>
-                            <button v-if="item.editing" @click.prevent="cancel(item)">Cancel</button>
-                            <button @click.prevent="resendTmpToken(item)">Resent new temporary token</button>
-                        </div>
-                    </td>  
+                    <td>{{ item.name }}</td>
+                    <div
+                            v-if="editingId === item.id"
+                            class="floating-td"
+                        >
+                            <button @click="confirmEdit(item)">✔</button>
+                            <button @click="cancelEdit(item)">✖</button>
+                    </div>
                 </tr>      
             </tbody>
         </table>
@@ -74,10 +80,10 @@ const fetchData = async (page = 1) => {
             withCredentials: true
             })
         userList.value = res.data.data.data
-        currentPage.value = res.data.page
-        totalPages.value = res.data.total_pages
+        currentPage.value = res.data.data.page
+        totalPages.value = res.data.data.total_pages
     } catch (e) {
-        if (e.response && e.response.status === 400 || 404 || 422 || 500) {
+        if (e.response && [400,404,409,422,500].includes(e.response.status)) {
             editMSG.value = e.response.data.msg
         } else {
             editMSG.value = 'Có rắc rối khác!'
@@ -95,33 +101,47 @@ const onReset = () => {
     role.value = ''
     fetchData(1)
 }
-
-function edit(item) {
-    item.original = {...item}
-    item.editing = true
+const editingId = ref('')
+const original = ref('')
+const edit = (item) => {
+    editingId.value = item.id
+    original.value = item.role
 }
 
-function cancel(item) {
-    Object.assign(item, item.original)
-    item.editing = false
+const cancelEdit = (item) => {
+    editingId.value = ''
+    item.role = original.value
 }
 
-async function save(item) {
+const confirmEdit = async (item) => {
+    if (item.role === original.value) return null
+
     const payload = {
-        username: item.username,
         role: item.role
     }
-    const res = await axios.put('api/user/update_role', payload, {
+
+    const res = await axios.put(`api/users/${item.id}/role`, payload, {
         withCredentials: true,
         headers: {'Content-Type': 'application/json'}
     })
+
     editMSG.value = res.data.msg
+    editingId.value = ''
+    fetchData()
 }
 
-const resendTmpToken = async (item) => {
-    const res = await axios.put(`api/users/${item.id}/tmp_token`, {
-        withCredentials: true
-    })
-    editMSG.value = res.data.msg
-}
 </script>
+<style scoped>
+.row-wrapper {
+  position: relative;
+}
+
+.floating-td {
+  position: absolute;
+  top: 50%;
+  right: -90px;        /* đẩy ra ngoài bảng */
+  transform: translateY(-50%);
+  display: flex;
+  gap: 6px;
+}
+</style>

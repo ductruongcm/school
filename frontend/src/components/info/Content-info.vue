@@ -2,7 +2,7 @@
     <div>Thông tin cá nhân</div>
     <div>
         <div>
-            <label>name: </label>
+            <label>Tên: </label>
             <span>{{ info.name }} </span>
         </div>
         <div>
@@ -13,7 +13,7 @@
             <label>username: </label>
             <span>{{ userStore.userInfo.username }}</span>
         </div>
-        <div>
+        <div v-if="userStore.userInfo.role === 'admin' || userStore.userInfo.role === 'Teacher'">
             <label>email: </label>
             <span v-if="!editing">{{ info.email }}</span>
             <input v-else v-model="info.email" type="email">
@@ -51,8 +51,9 @@
 </template>
 <script setup>
 import { ref, onMounted } from 'vue';
-import useUserStore from '../../stores/user';
+import { useUserStore } from '../../stores/user';
 import axios from 'axios';
+import { userYearStore } from '../../stores/yearStore';
 
 const userStore = useUserStore() 
 const info = ref({})
@@ -61,16 +62,17 @@ const re_password = ref('')
 const resultMsg = ref('')
 const setPassword = ref(false)
 const editing = ref(false)
+const yearStore = userYearStore()
 
 onMounted(() => {
     fetchUserInfo()
 })
 
 const fetchUserInfo = async () => {
-    try {const res = await axios.get(`api/users/me`, {
+    try {const res = await axios.get(`api/users/years/${yearStore.year.id}/me`, {
             withCredentials: true,
     })
-        info.value = res.data.data
+        info.value = res.data.data[0]
     } catch (e) {
         if (e.response && [400,404,409,422,500].includes(e.response.status)) {
             resultMsg.value = e.response.data.msg

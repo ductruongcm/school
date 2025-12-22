@@ -29,11 +29,13 @@ const message = ref('')
 const fetchUserInfo = async () => {
     try{
         const payload = {token: token}
-        const res = await axios.post('api/auth/tmp_token', payload, {
+        const res = await axios.post('api/users/me/tmp-token', payload, {
             headers: {'Content-Type': 'application/json'}
         })
+        
         userId.value = res.data.data.id
         name.value = res.data.data.username
+
     } catch (e) {
         router.push('/')
     }
@@ -50,18 +52,19 @@ const handleSubmit = async () => {
     const payload = {
         password: password.value,
         repassword: rePassword.value,
+        user_id: userId.value,
         token: token
     }
 
     try {
-        await axios.post(`/api/users/${userId.value}/password`, payload, {
-        headers: {"Content-Type": "application/json"}
+        await axios.post(`/api/users/me/password`, payload, {
+            headers: {"Content-Type": "application/json"}
         })
         
         router.push('/')
         
     } catch (error) {
-        if (error.response && error.response.status === 400 || 422 || 500) {
+        if (error.response && [400,404,409,422,500].includes(error.response.status)) {
             message.value = error.response.data.msg
         } else {
             message.value = 'có lỗi xảy ra!!'

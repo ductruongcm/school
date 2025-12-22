@@ -3,6 +3,8 @@
         <form>
             <label> Thêm học kỳ </label>
             <input v-model="semesterInput" type="text"></input>
+            <label> Hệ số điểm </label>
+            <input v-model="weightInput" type="text">
             <button @click.prevent="addSemester">Thêm</button>
         </form>
         <button v-if="!editing" @click.prevent="edit">Điều chỉnh</button>
@@ -48,12 +50,14 @@ import { useSemesterStore } from '../../stores/semesterStore';
 const yearStore = userYearStore()
 const semesterStore = useSemesterStore()
 const semesterInput = ref('')
+const weightInput = ref('')
 const resultMsg = ref('')
 const editing = ref(false)
 
 const addSemester = async () => {
     const payload = {
         semester: semesterInput.value,
+        weight: weightInput.value,
         year_id: yearStore.year.id
     }
     try {

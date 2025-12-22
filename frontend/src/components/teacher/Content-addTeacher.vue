@@ -30,7 +30,7 @@
                 <div>Chọn lớp học</div>
                 <ul>
                     <li v-for="teachRoom in teachClassList" :key="teachRoom.id" :value="teachRoom.id">
-                        <input type="checkbox" :value="teachRoom" v-model="selectedLeft" /> {{ teachRoom.class_room }}
+                        <input type="checkbox" :value="teachRoom" v-model="selectedLeft" />Lớp {{ teachRoom.class_room }}
                     </li>
                 </ul>
             </div>
@@ -53,6 +53,7 @@
         </div> 
         <button>Đăng ký</button>
     </form>
+
     <div>{{ teacherMsg }}</div>
 </template>
 <script setup>
@@ -93,7 +94,7 @@ const fetchLessonData = async () => {
 }
 
 const fetchClassData = async () => {
-    const res = await axios.get(`api/academic/years/${yearStore.year.id}/class-rooms`, {
+    const res = await axios.get(`api/academic/years/${yearStore.year.id}/me/class-rooms`, {
         withCredentials: true,
         params: {
             grade: selectedGrade.value

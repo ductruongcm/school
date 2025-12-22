@@ -1,12 +1,16 @@
 <template>
-    <div>Danh sách học sinh Lớp
-        <select v-model="selectedClass">
-            <option value="" disabled>--Chọn lớp--</option>
-            <option v-for="class_room in classList" :key="class_room.class_room_id" :value="class_room.class_room_id">{{ class_room.class_room }}</option>
-        </select>
-        <button v-if="!editing" @click.prevent="updateInfo">Cập nhật thông tin</button>
-        <button v-else @click.prevent="saveUpdate">Lưu</button>
-        <button v-if="editing" @click.prevent="cancelUpdate">Hủy</button>
+    <div style="display: flex; gap: 1em;">Danh sách học sinh Lớp
+        <div>
+            <select v-model="selectedClass">
+                <option value="" disabled>--Chọn lớp--</option>
+                <option v-for="class_room in classList" :key="class_room.class_room_id" :value="class_room.class_room_id">{{ class_room.class_room }}</option>
+            </select>
+        </div>
+        <div v-if="role ==='admin' || role === 'Teacher' && isHomeroomTeacher && selectedClass === homeroomId">
+            <button v-if="!editing" @click.prevent="updateInfo">Cập nhật thông tin</button>
+            <button v-else @click.prevent="saveUpdate">Lưu</button>
+            <button v-if="editing" @click.prevent="cancelUpdate">Hủy</button>
+        </div>
     </div>
     <div>{{ resultMsg }}</div>
     <div>
@@ -16,7 +20,7 @@
                     <th style="width: 2em;">STT</th>
                     <th style="width: 10em;">Họ và tên</th>
                     <th style="width: 5em;">Giới tính</th>
-                    <th style="width: 6em;">Ngày sinh</th>
+                    <th style="width: 7em;">Ngày sinh</th>
                     <th style="width: 7em;">Số điện thoại</th>
                     <th style="width: 14em;">Địa chỉ</th>
                     <th style="width: 16em;">Ghi chú</th>
@@ -58,7 +62,7 @@
                     </td>
                     <td>
                         <select v-model="item.class_room_id" v-if="editing">
-                            <option :value="item.class_room_id">-Chọn lớp-</option>
+                            <option disabled>-Chọn lớp-</option>
                             <option v-for="classChange in classChangeList" :key="classChange.class_room_id" :value="classChange.class_room_id">{{ classChange.class_room }}</option>
                         </select>
                     </td>
@@ -70,23 +74,31 @@
 <script setup>
 import { ref, onMounted, watch } from 'vue';
 import { userYearStore } from '../../stores/yearStore';
+import { useUserStore } from '../../stores/user';
 import axios from 'axios';
 import dayjs from 'dayjs';
 
 const yearStore = userYearStore()
+const userStore = useUserStore()
+const isHomeroomTeacher = userStore.userInfo.is_homeroom_teacher
+const homeroomId = userStore.userInfo.homeroom_id
+const role = userStore.userInfo.role
 
-onMounted( () => {
-    fetchClassData()
+onMounted( async () => {
+    await fetchClassData()
 })
 
-const selectedClassChange = ref('')
 const classList = ref([])
 const gradeSearch = ref('')
 const fetchClassData = async () => {
     const res = await axios.get(`api/academic/years/${yearStore.year.id}/me/class-rooms`, {
         withCredentials: true, 
+        params: {
+            grade: gradeSearch.value
+        }
     })
     classList.value = res.data.data
+    selectedClass.value = homeroomId || classList.value[0].class_room_id
 }
 
 const selectedClass = ref('')

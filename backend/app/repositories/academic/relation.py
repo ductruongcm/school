@@ -6,13 +6,13 @@ from sqlalchemy.dialects.postgresql import insert
 class AcademicRelationRepo(BaseRepo):    
     def insert_lessons_class(self, data):
         #data: lesson_id, class_room_id, year_id
-        stmt = insert(Teach_class).values(**data)
+        stmt = insert(Teach_class).values(data)
         stmt = stmt.on_conflict_do_nothing(index_elements=[Teach_class.class_room_id, Teach_class.lesson_id, Teach_class.year_id])
         self.db.session.execute(stmt)
 
     def get_class_room_ids_by_grade_of_lesson_and_year(self, data: dict):
         return self.db.session.scalars(select(Class_room.id).filter(Class_room.grade >= data['lesson_grade'],
-                                                           Class_room.year_id == data['year_id'])).all()
+                                                                    Class_room.year_id == data['year_id'])).all()
                 
     def delete_lesson_id_in_teach_class(self, data: dict):
         self.db.session.query(Teach_class).filter(Teach_class.lesson_id == data['lesson_id']).delete(synchronize_session=False)

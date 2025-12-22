@@ -19,20 +19,18 @@
             <button type="submit">Upload</button>
         </form>
     </div>
+
     <div>{{ uploadMSG }}</div>
 </template>
 <script setup>
-import { ref, onMounted, watch } from 'vue';
+import { ref, onMounted } from 'vue';
 import axios from 'axios';
-import useUserStore from '../../stores/user';
 import { userYearStore } from '../../stores/yearStore';
 
 const teachRoomList = ref(null)
 const lessonList = ref([])
-const class_roomSearch = ref('')
 const yearStore = userYearStore()
 const folder = ref(null)
-const userStore = useUserStore()
 
 onMounted(() => {
     fetchTeachClass()
@@ -44,30 +42,23 @@ const filename = ref('')
 const gradeSearch = ref('')
 
 const fetchTeachClass = async () => {
-    const res = await axios.get('api/academic/me/class-rooms', {
+    const res = await axios.get(`api/academic/years/${yearStore.year.id}/me/class-rooms`, {
         withCredentials: true,
-        headers: {'Content-Type': 'application/json'},
         params: {
-            year_id: yearStore.year.id,
-            class_room: class_roomSearch.value,
-            grade_id: gradeSearch.value,
+            grade: gradeSearch.value,
         }
     })
     teachRoomList.value = res.data.data
 }
 
-const lessonSearch = ref('')
 const teachRoom = ref(null)
-const selectedGrade = ref('')
 const fetchFolderData = async () => {
-    const res = await axios.get('api/academic/me/lessons', {
+    const res = await axios.get('api/cloud/me/folders', {
         withCredentials: true,
         params: {
-            grade_id: selectedGrade.value,
+            grade: teachRoom.value.grade,
             year_id: yearStore.year.id,
-            is_visible: false,
-            is_folder: true,
-            is_schedule: false
+            class_room_id: teachRoom.value.class_room_id
         }
     })
     lessonList.value = res.data.data

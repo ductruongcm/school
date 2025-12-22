@@ -16,10 +16,8 @@ class Academic_Relation_Service:
         # check year_id, get all lesson with is_visible, get all class by grade on lesson and year
         self.academic_validation.validate_year_id(data)
         class_lessons = self.academic_get_repo.get_class_lessons_by_year(data)
-        for class_lesson in class_lessons:
-            self.academic_relation_repo.insert_lessons_class({'year_id': data['year_id'],
-                                                              'lesson_id': class_lesson[1],
-                                                              'class_room_id': class_lesson[0]})
+
+        self.academic_relation_repo.insert_lessons_class(class_lessons)
                 
         self.activity_log_service.handle_record_activity_log({'user_id': id,
                                                               'module': 'academic/relation',
