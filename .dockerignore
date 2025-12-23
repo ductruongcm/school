@@ -1,0 +1,15 @@
+.git
+.gitignore
+**/--pycache--
+
+
+.venv
+venv
+env
+
+.env
+.env.*
+
+.log
+README.md
+docker-compose*
