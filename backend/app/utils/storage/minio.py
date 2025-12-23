@@ -1,5 +1,4 @@
-from app.init_minio import BUCKET_NAME
-from app.extensions import minio_client
+from app.extensions import minio_client, BUCKET_NAME
 from datetime import timedelta
 
 def cloud_upload(class_room, folder, file_name):
