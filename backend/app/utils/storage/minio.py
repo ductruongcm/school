@@ -1,10 +1,6 @@
+from app.init_minio import BUCKET_NAME
 from app.extensions import minio_client
 from datetime import timedelta
-
-BUCKET_NAME = 'bvd'
-
-if not minio_client.bucket_exists(BUCKET_NAME):
-    minio_client.make_bucket(BUCKET_NAME)
 
 def cloud_upload(class_room, folder, file_name):
     url = minio_client.presigned_put_object(bucket_name = BUCKET_NAME,

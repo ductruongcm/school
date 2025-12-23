@@ -1,0 +1,59 @@
+services:
+  api:
+    build: ../school/backend
+    image: school-backend
+    command: sh -c 'python -m app.init_minio && gunicorn -w 4 -b 0.0.0.0:5000 main:app' 
+    ports:
+      - "5000:5000"
+    env_file: 
+      - .env.docker
+    depends_on:
+      - redis
+      - minio
+      - db
+  
+  db: 
+    image: postgres:16
+    env_file:
+      - .env.docker
+    ports:
+      - "5432:5432"
+    volumes:
+      - db-data:/var/lib/postgressql/data
+
+  worker:
+    image: school-backend
+    command:  celery -A celery_app.celery worker --loglevel=info --pool=solo
+    depends_on:
+      - redis
+    env_file:
+      - .env.docker
+
+  redis:
+    image: redis:7
+    ports:
+      - '6379:6379'
+
+  minio:
+    image: minio/minio
+    command: server /data --console-address ":9001"
+    env_file:
+      - .env.docker
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - minio-data:/data
+  
+  frontend:
+    build: 
+      context: ../school/frontend
+      dockerfile: Dockerfile
+    ports:
+      - '5173:5173'
+    depends_on:
+      - api
+
+volumes:
+  minio-data:
+  db-data:

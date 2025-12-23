@@ -3,7 +3,7 @@ from app.utils import required_role, validate_input, ResponseBuilder, with_log
 from flask_jwt_extended import jwt_required, get_jwt
 from app.schemas import AcademicShowSchemas, AcademicUpdateSchemas, AcademicSchemas
 from app.services import Academic_Score_Service, Score_Workflow, Academic_Schedule_Service
-from app.extensions import db
+from app.extensions import db, lm, util
 from app.repositories import Repositories
 
 academic_entity_bp = Blueprint('academic_entity_bp', __name__, url_prefix = '/api/academic/entity')
@@ -23,6 +23,7 @@ def show_scores_by_class_room_route(id: int, validated_data):
     return ResponseBuilder.get(msg, result)
 
 @academic_entity_bp.post('/scores')
+@lm.limit("5 per minute", key_func = util.get_remote_address)
 @jwt_required()
 @required_role('admin', 'Teacher')
 @with_log(True)
@@ -33,6 +34,7 @@ def give_scores_route(validated_data):
     return ResponseBuilder.put(msg)
 
 @academic_entity_bp.put('/scores/lessons/summary')
+@lm.limit("5 per minute", key_func = util.get_remote_address)
 @jwt_required()
 @required_role('admin', 'Teacher')
 @with_log(True)
@@ -43,6 +45,7 @@ def summary_lesson_for_student(validated_data):
     return ResponseBuilder.put(msg)
 
 @academic_entity_bp.put('semesters/<int:id>/summary')
+@lm.limit("5 per minute", key_func = util.get_remote_address)
 @jwt_required()
 @required_role('admin', 'Teacher')
 @with_log(True)
@@ -54,6 +57,7 @@ def summary_semester_for_students(id, validated_data):
     return ResponseBuilder.put(msg)
 
 @academic_entity_bp.put('years/<int:id>/summary')
+@lm.limit("5 per minute", key_func = util.get_remote_address)
 @jwt_required()
 @required_role('admin', 'Teacher')
 @with_log(True)

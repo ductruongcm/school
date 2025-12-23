@@ -7,14 +7,17 @@ from minio import Minio
 from os import getenv
 from dotenv import load_dotenv
 
-load_dotenv()
+env_file = '.env.docker' if getenv('APP_ENV') == 'docker' else '.env'
+load_dotenv(env_file)
 
+REDIS_HOST = getenv('REDIS_HOST')
+REDIS_PORT = getenv('REDIS_PORT')
 db = SQLAlchemy()
 jwt = JWTManager()
-lm = Limiter(key_func = util.get_remote_address, storage_uri = "redis://localhost:6379/1" )
+lm = Limiter(key_func = util.get_remote_address, storage_uri = f"redis://{REDIS_HOST}:{REDIS_PORT}/1" )
 cors = CORS()
 migrate = Migrate()
 minio_client = Minio(endpoint = getenv('MINIO_ENDPOINT'),
-                     access_key = getenv('MINIO_ACCESS_KEY'),
-                     secret_key = getenv('MINIO_SECRET_KEY'),
+                     access_key = getenv('MINIO_ROOT_USER'),
+                     secret_key = getenv('MINIO_ROOT_PASSWORD'),
                      secure = False)

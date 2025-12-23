@@ -469,7 +469,7 @@ class AcademicStudentRepo(BaseRepo):
                                                                    literal(year_id)).where(Student_Lesson_Annual.student_id == student_id,
                                                                                            Student_Lesson_Annual.year_id == year_id,
                                                                                            Student_Lesson_Annual.avg_annual < 5))
-        stmt = stmt.on_conflict_do_nothing([Retest.lesson_id, Retest.student_id, Retest.year_id])
+        stmt = stmt.on_conflict_do_nothing(index_elements=[Retest.lesson_id, Retest.student_id, Retest.year_id])
         self.db.session.execute(stmt)
     
     def insert_student_to_retest(self, student_id, lesson_id, year_id):

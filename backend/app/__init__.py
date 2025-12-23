@@ -1,6 +1,4 @@
-from flask import Flask, request
-import logging
-import time
+from flask import Flask
 from .extensions import db, lm, jwt, cors, migrate
 from configs import Configs
 from .routes import routes

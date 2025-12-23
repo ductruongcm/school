@@ -2,15 +2,25 @@ from dotenv import load_dotenv
 from os import getenv
 from urllib.parse import quote_plus
 
-load_dotenv()
+env_file = '.env.docker' if getenv('APP_ENV') == 'docker' else '.env'
+load_dotenv(env_file)
 
-db_username = quote_plus(getenv('db_username'))
-db_password = quote_plus(getenv('db_password'))
+db_username = getenv('POSTGRES_USER')
+db_password =  getenv('POSTGRES_PASSWORD')
+db_host = getenv('POSTGRES_HOST')
+db = getenv('POSTGRES_DB')
+REDIS_HOST= getenv('REDIS_HOST')
+REDIS_PORT = getenv('REDIS_PORT')
 jwt_secret_key = quote_plus(getenv('jwt_secret_key'))
 
+if not db_username or not db_password:
+    raise ValueError('Database username or password not set in environment!')
+
+db_username = quote_plus(db_username)
+db_password = quote_plus(db_password)
 
 class Configs:
-    SQLALCHEMY_DATABASE_URI = f'postgresql://{db_username}:{db_password}@localhost:5432/school'
+    SQLALCHEMY_DATABASE_URI = f'postgresql://{db_username}:{db_password}@{db_host}:5432/{db}'
     SQLALCHEMY_TRACK_MODIFICATIONS = True
     JWT_SECRET_KEY = jwt_secret_key
     JWT_TOKEN_LOCATION = ["cookies"]           #Đọc token từ cookies thay vì header
@@ -20,7 +30,7 @@ class Configs:
     JWT_COOKIE_SAMESITE = 'Strict' 
     JWT_COOKIE_CSRF_PROTECT = False          #tắt csrf để test, thực tế phải bật
     JWT_COOKIE_SECURE = False                 #cho phép gửi cookies qua http(ko cần https để test)
-    CELERY_BROKER_URL = "redis://localhost:6379/0"
-    CELERY_RESULT_BACKEND = "redis://localhost:6379/0"
+    CELERY_BROKER_URL = f"redis://{REDIS_HOST}:{REDIS_PORT}/0"
+    CELERY_RESULT_BACKEND = f"redis://{REDIS_HOST}:{REDIS_PORT}/0"
 
 
