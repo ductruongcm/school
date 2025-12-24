@@ -1,52 +1,115 @@
-Dự án được thiết kế và triển khai end-to-end, bao gồm phân tích nghiệp vụ, thiết kế database, API, và xử lý logic backend
+  1. Student Management Backend System
+    End-to-end backend system for managing academic records in Vietnamese high school,
+    designed with complex business rules, strong data integrity, and set-based SQL processing.
 
-1. Mục tiêu dự án:
-    Đây là backend quản lý học sinh cho trường phổ thông, xử lý nghiệp vụ phức tạp như tổng kết học kỳ, tổng kết cả năm, thi lại, xét lên lớp/lưu ban, phân quyền ba vai trò lớn là
-    admin, Teacher, Student; Và đảm bảo tính toàn vẹn dữ liệu
+  2. Project Overview
+     This project is an end-to-end student management system backend, covering:
+     - Control user: students, teachers
+     - Academic records
+     - Retest and promotion / retention logic
+     - Role-based access control (Admin / Teacher / Student)
+     The system focuses on **Correct business logic, **Data consistency, and **Transaction safety rather than UI features
 
-2. Các bài toán backend đã giải quyết:
-    - Tổng kết học kỳ chỉ được phép khi tất cả các môn đã được tổng kết
-    - Áp dụng đánh giá, xếp loại theo đúng của bộ giáo dục
-    - Xử lý các nghiệp vụ theo set-based SQL, tránh loop qua python
-    - Xử lý rollback và audit log khi nghiệp vụ lỗi
-    - Xử lý chi tiết lịch trùng của giáo viên trong schedule
-    - Xử lý cập nhật thông tin giáo viên, môn học triệt để với các phát sinh từ những nghiệp vụ khác có liên quan
+  3. Core Backend Challenges Solved
+     - Semester / Year summary is allowed only when all subjects are finalized
+     - Yearly evalution follows official Vietnamese education grading rules
+     - Retest workflow with full recalculation and status update
+     - Promotion / retention decision based on aggregated results
+     - Schedule conflict detection for teachers
+     - safe update of teachers / subjects with cascading business impact
+     - All write operations are executed inside database transactions
+     - Automatic rollback on any business / validation / DB error
+    
+  4. Architecture
+     Client (Vue) -> API layer (Flask Routes) -> Service layer (Business logic) -> Repository layer (SQL / ORM) -> PostgreSQL
+     - Route: auth, role checking, input validation
+     - Service: business rules, transaction control
+     - Repository: set-based SQL, no Python loops
+     Detailed architecture is described in [Doc][ARCHITECTURE.md]
 
-3. Kiến trúc hệ thống:
-    Route => Service => Repository => Database
-        Route: validate, auth
-        Service: Business logic
-        Repository: SQL & ORM 
-        DB: PostgreSQL
+  5. Tech Stack
+     - Backend: Flask REST API
+     - ORM: SQLAlchemy
+     - Validation: Pydantic
+     - Auth: JWT (acess & refresh token)
+     - Database: PostgreSQL
+     - Background jobs: Celery + Redis
+     - Object storage: MinIO
+     - Logging: Audit log & Activity log
 
-4. Công nghệ sử dụng:
-    - Backend: Flask REST API
-    - ORM: SQLAlchemy
-    - Validation: Pydantic
-    - Auth: JWT
-    - Database: PostgreSQL
-    - Background task: Celery + Redis
-    - Storage: MinIO
-    - Logging: Audit log + Activity log
+  6. Business Workflows
+     Some complex workflows are documented separately:
+     - Add Lesson workflow: business_flow.md
+     - Add Teacher workflow: business_flow.md
+     - Yearly Academic summary: business_flow.md
+     - Retest evaluation workflow: business_flow.md
 
-5. Phân quyền:
-    - Admin: Full control
-    - Teacher: Nhập điểm, điểm danh, tổng kết, thay đổi thông tin học sinh, chuyển lớp cho cả lớp
-    - Student: Xem kết quả học tập của chính mình
+  7. Data safety & Integrity
+     - All DB write operations run inside transactions
+     - Automatic rollback on any raised error
+     - Input validation with Pydantic
+     - Unique constraints at DB level to prevent race conditions
+     - Audit log for failed critical operations
+     - Activity log for successful critical operations
 
-6. Nghiệp vụ phức tạp tiêu biểu:
-    - Thêm học sinh: xem business_flow.md ## Chức năng thêm học sinh
-    - Tổng kết năm học: xem business_flow.md ## Tổng kết Năm học
-    - Tổng kết lại học sinh: xem business_flow.md ## Tổng kết kết quả đánh giá lại cho học sinh
+  8. How to run
+     A. Quick start (Recommended)
+       a. Requirements
+           - Docker
+           - Docker compose
+      
+       b. Start all services
+        Bash:
+            git clone https://github.com/ductruongcm/school.git
+            cd project
+            cp .env.docker.example .env.docker
+            docker-compose up -d
+     
+       c. Enviroment variables
+            Copy .env.docker.example to .env.docker and update values if needed.
+            Default values are for local development only.
+     
+     B. Manual Setup 
+        1. Install service
+            1.1 PostgreSQL 
+            docker run -d --name postgres -e POSTGRES_USER=school_user -e POSTGRES_PASSWORD=school_password -e POSTGRES_DB=school -p 5432:5432 postgres:15 
 
-7. Test & độ an toàn dữ liệu
-    - Mọi nghiệp vụ ghi DB đều chạy trong transaction
-    - Tự động rollback khi raise error (logic / validation / DB)
-    - Validation đầu vào bằng Pydantic
-    - Unique constraint ở DB để chống race-condition
-    - Audit log khi thao tác lỗi
-    - Activity log khi thao tác thành công
+            1.2 Redis
+            docker run -d --name redis -p 6379:6379 redis:7
 
-8. Cách chạy
-    pip install -r requirements.txt
-    uvicorn main:app
+            1.3 Minio
+            docker run -d --name minio -p 9000:9000 -p 9001:9001 -e MINIO_ROOT_USER=minio_demo -e MINIO_ROOT_PASSWORD=minio_demo_password minio/minio server /data --console-address ":9001" 
+            
+        2. git clone: 
+            git clone https://github.com/ductruongcm/school.git 
+            cd project cp .env.example .env 
+            
+        3. Enviroment variables 
+            Copy .env.example to .env and update values if needed. 
+            Default values are for local development only. 
+            
+        3. Requirement 
+            pip install -r requirements.txt 
+
+        4. Initialize system 
+            Create database tables: python -m app.cli.migrate 
+
+            Create admin user: python -m app.cli.seed_admin 
+            
+            Initialize MinIO bucker: python -m app.cli.init_minio 
+
+        5. Run backend
+            (local) python main.py 
+
+        6. Run background worker 
+            celery -A worker.celery worker --loglevel=info 
+        
+        *** This project requires PostgreSQL, Redis, and MiniO to be running. Without these services, the application will not start *** For quick start, 
+        Docker compose setup is recommended. Manual setup is provided for development and debugging purposes.
+
+
+*** This project requires PostgreSQL, Redis, and MiniO to be running
+*** Without these services, the application will not start
+       
+        
+     

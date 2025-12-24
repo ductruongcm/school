@@ -2,7 +2,7 @@ services:
   api:
     build: ../school/backend
     image: school-backend
-    command: sh -c 'python -m app.init_minio && alembic upgrade head && gunicorn -w 4 -b 0.0.0.0:5000 main:app' 
+    command: sh -c 'python -m app.cli.migrate && python -m app.cli.seed_admin && python -m app.cli.init_minio && gunicorn -w 4 -b 0.0.0.0:5000 main:app' 
     ports:
       - "5000:5000"
     env_file: 
