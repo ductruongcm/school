@@ -111,14 +111,15 @@ class AcademicGetRepo(BaseRepo):
 class AcademicAddRepo(BaseRepo):
     def insert_year(self, data: dict):
         # year
-        new_year = (Year(**data))
+        new_year = Year(**data)
         self.db.session.add(new_year)
-        self.db.session.flush()
         return new_year
 
     def insert_semester(self, data: dict):
         # semester
-        self.db.session.add(Semester(**data))
+        new_semester = Semester(**data)
+        self.db.session.add(new_semester)
+        return new_semester
 
     def insert_period(self, data: dict):
         self.db.session.add(Period(**data))

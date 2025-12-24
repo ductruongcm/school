@@ -168,20 +168,20 @@ class AcademicAddService(BaseService):
         #check dup year code
         self.academic_validation.check_dup_year({'year_code': data['year_code']})
         #add new_year
-        new_year = self.academic_add_repo.insert_year(data)
-        #add period
-        for semester in [1,2]:
-            self.academic_add_repo.insert_period({'year_id': new_year.id,
-                                         'semester_id': semester})
+        self.academic_add_repo.insert_year(data)
             
         self.db.session.commit()
         return data
          
-    def handle_add_semester(self, data: dict):        
+    def handle_add_semester(self, data: dict):   
         self.academic_validation.check_dup_semester(data)
-        self.academic_add_repo.insert_semester(data)
+        semester = self.academic_add_repo.insert_semester({'semester': data['semester'],
+                                                           'weight': data['weight']})
+        
+        self.academic_add_repo.insert_period({'year_id': data['year_id'],
+                                              'semester_id': semester.id})
         self.db.session.commit()
-        return {'data': data['semester']}
+        return {'data': semester.semester}
          
     def handle_add_lesson(self, data: dict, user_id):  
         #check dup name      

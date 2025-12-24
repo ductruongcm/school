@@ -75,6 +75,7 @@ class AcademicSchemas:
 
     class Semester(YearID):
         semester: str
+        weight: int
         
         @field_validator('semester')
         def semester_validator(cls, v):
