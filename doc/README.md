@@ -55,23 +55,29 @@
      - Activity log for successful critical operations
 
   8. How to run
-     A. Quick start (Recommended)
-       a. Requirements
+    A. Quick start (Recommended)
+        a. Requirements
            - Docker
            - Docker compose
       
-       b. Start all services
+        b. Start all services
         Bash:
             git clone https://github.com/ductruongcm/school.git
-            cd project
-            cp .env.docker.example .env.docker
+            cd school
+
+            # Backend env
+            cp backend/.env.docker.exmple backend/.env.example
+
+            # Fronted env
+            cp frontend/.env.docker.example frontend/.env.docker
+
             docker-compose up -d
      
-       c. Enviroment variables
+        c. Enviroment variables
             Copy .env.docker.example to .env.docker and update values if needed.
             Default values are for local development only.
      
-     B. Manual Setup 
+    B. Manual Setup 
         1. Install service
             1.1 PostgreSQL 
             docker run -d --name postgres -e POSTGRES_USER=school_user -e POSTGRES_PASSWORD=school_password -e POSTGRES_DB=school -p 5432:5432 postgres:15 
@@ -84,26 +90,32 @@
             
         2. git clone: 
             git clone https://github.com/ductruongcm/school.git 
-            cd project cp .env.example .env 
+            cd school
+
+            # Backend env
+            cp backend/.env.docker.exmple backend/.env.example
+
+            # Fronted env
+            cp frontend/.env.docker.example frontend/.env.docker
             
         3. Enviroment variables 
             Copy .env.example to .env and update values if needed. 
             Default values are for local development only. 
             
-        3. Requirement 
+        4. Requirement 
             pip install -r requirements.txt 
 
-        4. Initialize system 
+        5. Initialize system 
             Create database tables: python -m app.cli.migrate 
 
             Create admin user: python -m app.cli.seed_admin 
             
             Initialize MinIO bucker: python -m app.cli.init_minio 
 
-        5. Run backend
+        6. Run backend
             (local) python main.py 
 
-        6. Run background worker 
+        7. Run background worker 
             celery -A worker.celery worker --loglevel=info 
         
         *** This project requires PostgreSQL, Redis, and MiniO to be running. Without these services, the application will not start *** For quick start, 
