@@ -177,7 +177,7 @@ class AcademicAddService(BaseService):
         self.academic_validation.check_dup_semester(data)
         semester = self.academic_add_repo.insert_semester({'semester': data['semester'],
                                                            'weight': data['weight']})
-        
+
         self.academic_add_repo.insert_period({'year_id': data['year_id'],
                                               'semester_id': semester.id})
         self.db.session.commit()
@@ -253,7 +253,7 @@ class AcademicShowService(BaseService):
 
     def handle_show_semester(self, data: dict):
         result = self.show_repo.show_semesters(data)
-        keys = ['semester_id', 'semester', 'semester_status']
+        keys = ['semester_id', 'semester', 'weight','is_active']
         return [dict(zip(keys, values)) for values in result]
         
     def handle_show_grade(self, data: dict):
@@ -369,16 +369,13 @@ class AcademicUpdateService(BaseService):
     
     def handle_update_semester(self, data: dict):
         for new in data:
-            semester_id = self.get_repo.semester_by_id(new)
-            #check dup name
-            self.academic_validation.dup_semester(new)
-
-            semester_id.semester = new['semester']
+            self.add_repo.update_semester(new)
             self.db.session.commit()
 
-            semester = ', '.join(item['semester'] for item in data)
-        return {'semester': semester}
-    
+    def handle_delete_semester(self, data):
+        self.add_repo.delete_semester(data)
+        self.db.session.commit()
+
     def handle_set_semester(self, data: dict):
         self.academic_relation_repo.set_semester_status_to_false()
 

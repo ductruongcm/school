@@ -68,8 +68,17 @@ def show_semester_route(validated_data):
 @required_role('admin')
 @validate_input(AcademicSchemas.SemesterUpdate)
 def update_semester_route(validated_data):
-    result = academic_update_service.handle_update_semester(validated_data)
-    msg = f'Đã cập  nhật học kỳ {result['semester']}'
+    academic_update_service.handle_update_semester(validated_data)
+    msg = f'Đã cập  nhật học kỳ!'
+    return ResponseBuilder.put(msg)
+
+@academic_bp.delete('/semesters')
+@jwt_required()
+@required_role('admin')
+@validate_input(AcademicSchemas.SemesterDelete)
+def delete_semester_route(validated_data):
+    academic_update_service.handle_delete_semester(validated_data)
+    msg = 'Đã xóa học kỳ ra khỏi hệ thống!'
     return ResponseBuilder.put(msg)
 
 @academic_bp.put('/semesters/<int:id>/status')

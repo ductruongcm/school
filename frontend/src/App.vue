@@ -15,20 +15,20 @@ const yearSearch = ref('')
 const yearList = ref([])
 
 const fetchYear = async () => {
-  const res = await axios.get('http://127.0.0.1:5000/api/academic/years', {
+  const res = await axios.get('api/academic/years', {
     params: {
       year: yearSearch.value,
       is_active: true
     }
   })
   yearList.value = res.data.data
-  yearUse.setYear(yearList.value[0])
+  if (yearList.value)  yearUse.setYear(yearList?.value[0])
 }
 
 const semesterSearch = ref('')
 const semesterList = ref([])
 const fetchSemester = async () => {
-  const res = await axios.get('http://127.0.0.1:5000/api/academic/semesters', {
+  const res = await axios.get('api/academic/semesters', {
     withCredentials: true, 
     params: {
       semester: semesterSearch.value,
@@ -36,7 +36,7 @@ const fetchSemester = async () => {
     }
   })
   semesterList.value = res.data.data
-  semesterStore.setSemester(semesterList.value[0])
+  if (semesterList) semesterStore.setSemester(semesterList?.value[0])
 }
 
 onMounted(async () => {

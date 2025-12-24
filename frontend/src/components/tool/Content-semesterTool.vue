@@ -7,39 +7,61 @@
             <input v-model="weightInput" type="text">
             <button @click.prevent="addSemester">Thêm</button>
         </form>
-        <button v-if="!editing" @click.prevent="edit">Điều chỉnh</button>
-        <button v-else @click.prevent="saveEdit">Lưu</button>
-        <button v-if="editing" @click.prevent="cancelEdit">Hủy</button>
         <label> Thiết lập học kỳ </label>
         <select v-model="selectedSemester">
             <option value="" disabled>-- Chọn học kỳ --</option>
             <option v-for="item in semesterList" :key="item.semester_id" :value="item.semester_id">{{ item.semester }}</option>
-        </select>
+        </select> 
         <button @click.prevent="setSemester">Xác nhận</button>
+        <br>
+        <button v-if="!editing" @click.prevent="edit">Điều chỉnh</button>
+        <button v-else @click.prevent="saveEdit">Lưu</button>
+        <button v-if="editing" @click.prevent="cancelEdit">Hủy</button>
+        <button v-if="!deleting" @click.prevent="del">Xóa</button>
+        <button v-else @click.prevent="agreeDel">XÁC NHẬN XÓA</button>
+        <button v-if="deleting" @click.prevent="cancelDel">Hủy</button>
     <div>
-        <table>
+        <table border="1" style="border-collapse: collapse; text-align: center;">
             <thead>
                 <tr>
-                    <td>STT</td>
-                    <td>Học kỳ</td>
+                    <th v-if="deleting" style="width: 3em;">Chọn</th>
+                    <th style="width: 4em;">STT</th>
+                    <th style="width: 6em;">Học kỳ</th>
+                    <th style="width: 6em;">Hệ số điểm</th>
+                    <th style="width: 6em;">Trạng thái</th>
                 </tr>
             </thead>
             <tbody>
                 <tr v-for="(item, index) in semesterList" :key="item.semester_id">
+                    <td v-if="deleting">
+                    <input
+                        type="checkbox"
+                        :value="item.semester_id"
+                        v-model="selectedIds"
+                    />
+                    </td>
                     <td>{{ index + 1 }}</td>
                     <td>
                         <span v-if="!editing">{{ item.semester }}</span>
-                        <input v-model="item.semester" v-else type="text">
+                        <input style="width: 6em;" v-model="item.semester" v-else type="text">
                     </td>
                     <td>
-                        <button @click.prevent="setScoreBoard(item)">Tạo bảng điểm</button>
+                        <span v-if="!editing">{{ item.weight }}</span>
+                        <input style="width: 6em;" v-model="item.weight" v-else type="number">
+                    </td>
+                    <td>
+                        {{ item.is_active === true ? 'Active' : '-' }}
                     </td>
                 </tr>
             </tbody>
         </table>
     </div>
+    <div v-if="deleting">
+            <div>****Cực kỳ lưu ý: Nếu học kỳ đã được sử dụng cho các tác vụ</div>
+            <div>khi xóa đi sẽ làm sai lệch hoặc có thể mất tất cả dữ liệu.</div>
+            <div>Hãy liên hệ với quản trị viên trước khi thao tác!!</div>
+    </div>
     <div>{{ resultMsg }}</div>
-
 </template>
 <script setup>
 import { onMounted, ref } from 'vue';
@@ -66,6 +88,7 @@ const addSemester = async () => {
             headers: {'Content-Type': 'application/json'}
         })
         resultMsg.value = res.data.msg
+        fetchSemesterData()
     } catch (e) {
         if (e.response && e.response.status === 400 || 422 || 500) {
             resultMsg.value = e.response.data.msg
@@ -105,22 +128,29 @@ const cancelEdit = () => {
 }
 
 const saveEdit = async () => {
-    const changedRows = semesterList.value.filter(semester => {
-        semester['year_id'] = yearStore.year.id
+    const changedRows = semesterList.value.map(semester => {
         const original = originalSemester.value.find(o => o.semester_id === semester.semester_id)
-        if (!original) return null;
+        if (!original) return null
 
-        const changedEntries = Object.entries(semester).filter(([k, v]) => v !== origin[k])
-        if (changedEntries.length === 0) return null;
+        const changes = Object.keys(semester).reduce((acc, key) => {
+      if (semester[key] !== original[key]) {
+            acc[key] = semester[key]
+        }
+        return acc
+        }, {})
 
-        const changedObject = Object.fromEntries(changedEntries)
-        changedObject.year_id = yearStore.year.id
-        return changedObject
-    }).filter(Boolean)
+        if (Object.keys(changes).length === 0) return null
 
+        return {
+        semester_id: semester.semester_id,
+        changes
+        }
+    })
+    .filter(Boolean)
+    
     if (changedRows.length > 0) {
         try {
-            const res = await axios.put('api/academic/semester', changedRows, {
+            const res = await axios.put('api/academic/semesters', changedRows, {
                 withCredentials: true
             })
             resultMsg.value = res.data.msg
@@ -148,5 +178,35 @@ const setSemester = async () => {
     })
     resultMsg.value = res.data.msg
     semesterStore.setSemester(res.data.data)
+}
+
+const selectedIds = ref([])
+
+const deleting = ref(false)
+const del = () => {
+    deleting.value = true
+}
+
+const cancelDel = () => {
+    selectedIds.value = []
+    deleting.value = false
+}
+
+const agreeDel = async () => {
+    const payload = {
+        semester_ids: selectedIds.value
+    }
+    try {
+        const res = await axios.delete('api/academic/semesters', {
+            data: payload,
+            withCredentials: true,
+            headers: {'Content-Type': 'application/json'}
+        })
+        resultMsg.value = res.data.msg
+    } catch (e) {
+        if (e.response && [400,404,409,422,500].includes(e.response.status)) {
+            resultMsg.value = e.response.data.msg
+        }
+    }
 }
 </script>

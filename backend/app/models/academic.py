@@ -35,7 +35,7 @@ class Schedule(db.Model):
 class Semester(db.Model):
     __tablename__ = 'semester'
     id = db.Column(db.Integer, primary_key = True)   
-    semester = db.Column(db.String(5), nullable = False)
+    semester = db.Column(db.String(5), nullable = False, unique = True)
     weight = db.Column(db.Integer)
     is_active = db.Column(db.Boolean, default = False)
 

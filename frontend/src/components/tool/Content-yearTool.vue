@@ -50,7 +50,7 @@ const addYear = async () => {
         })
 
         resultMsg.value = res.data.msg
-
+        fetchYear()
     } catch (e) {
         if (e.response && [400,404,409,422,500].includes(e.response.status)) {
             resultMsg.value = e.response.data.msg

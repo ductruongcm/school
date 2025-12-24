@@ -119,6 +119,7 @@ class AcademicAddRepo(BaseRepo):
         # semester
         new_semester = Semester(**data)
         self.db.session.add(new_semester)
+        self.db.session.flush()
         return new_semester
 
     def insert_period(self, data: dict):
@@ -147,6 +148,12 @@ class AcademicAddRepo(BaseRepo):
     def insert_score_types(self, data:dict):
         self.db.session.add(Score_Type(**data))
 
+    def update_semester(self, data):
+        self.db.session.query(Semester).filter(Semester.id == data['semester_id']).update(data['changes'])
+
+    def delete_semester(self, data):
+        self.db.session.query(Semester).filter(Semester.id.in_(data['semester_ids'])).delete(synchronize_session = False)
+
 class AcademicShowRepo(BaseRepo):
     def show_years(self, data: dict):
         query = self.db.session.query(Year.id, Year.year_code)
@@ -168,14 +175,12 @@ class AcademicShowRepo(BaseRepo):
         return self.db.session.query(Year.id, Year.year_code).filter(Year.end_date < date.today()).order_by(Year.year_code.desc()).limit(1).first()
         
     def show_semesters(self, data: dict):
-        query = self.db.session.query(Semester.id, Semester.semester, Semester.is_active)
+        query = self.db.session.query(Semester.id, Semester.semester, Semester.weight, Semester.is_active)
 
-        # if data['semester']:
-        #     query = query.filter(Semester.semester.ilike(f'%{data['semester']}%'))
         if data.get('is_active'):
             query = query.filter(Semester.is_active == data['is_active'])
         
-        return query.order_by(Semester.is_active.desc()).all()
+        return query.order_by(Semester.semester).all()
         
     def show_lessons(self, data: dict):
         query = self.db.session.query(Lesson.id, Lesson.lesson, 
@@ -262,4 +267,5 @@ class AcademicShowRepo(BaseRepo):
                                      .join(Students, Student_Year_Summary.student_id == Students.id)
                                      .filter(Student_Year_Summary.year_id == year_id,
                                              Students.user_id == user_id).first())
+
 

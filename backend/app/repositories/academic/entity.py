@@ -23,8 +23,7 @@ class AcademicStudentRepo(BaseRepo):
                                   Student_Period_Summary.period_id], select(literal(data['student_id']),
                                                                             literal(data['class_room_id']),
                                                                             literal(data['grade']),
-                                                                            Period.id).where(Period.year_id == data['year_id'],
-                                                                                             Period.semester_id.in_([1, 2]))))
+                                                                            Period.id).where(Period.year_id == data['year_id'])))
         stmt = stmt.on_conflict_do_nothing(constraint='stu_per_uniq')
         self.db.session.execute(stmt)
 
@@ -36,8 +35,8 @@ class AcademicStudentRepo(BaseRepo):
                                                            Student_Lesson_Period.period_id],
                                                            select(literal(data['student_id']),
                                                                   sub_lesson.c.lesson_id,
-                                                                  Period.id).where(Period.year_id == data['year_id'],
-                                                                                   Period.semester_id.in_([1,2]))))
+                                                                  Period.id).where(Period.year_id == data['year_id'])))
+        
         stmt = stmt.on_conflict_do_nothing(constraint='stu_ls_per_uniq')
         self.db.session.execute(stmt)
 

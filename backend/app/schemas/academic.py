@@ -162,8 +162,15 @@ class AcademicSchemas:
     class Scores(Semester, SemesterID):
         pass
 
-    class SemesterUpdate(Semester, SemesterID):
-        pass
+    class SemesterUpdateItem(BaseModel):
+        semester: Optional[str] = None
+        weight: Optional[int] = None
+
+    class SemesterUpdate(SemesterID):
+        changes: 'AcademicSchemas.SemesterUpdateItem'
+
+    class SemesterDelete(BaseModel):
+        semester_ids: List[int]
                
     class LessonUpdate(BaseModel):
         lesson_id: int
