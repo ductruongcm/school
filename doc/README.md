@@ -112,6 +112,10 @@
             
             Initialize MinIO bucker: python -m app.cli.init_minio 
 
+            login account:
+            username: administrator
+            password: #Adm1n01
+
         6. Run backend
             (local) python main.py 
 
